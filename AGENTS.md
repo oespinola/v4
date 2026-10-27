@@ -23,6 +23,8 @@ Las reglas de diseño y de proceso viven en `.specify/memory/constitution.md` y 
 archivo. Recordatorio de las que no se negocian:
 - Commits chicos y frecuentes; antes de cada uno, compila y `pnpm test` en verde. Cada feature o
   fix: primero `test(...)` con `it.fails`, después `feat(...)`/`fix(...)` pasándolos a `it`.
+- Cada etapa de Spec Kit (constitution, specify, clarify, plan, tasks, implement) termina con
+  commit y push a `origin`: el historial remoto se evalúa etapa por etapa.
 - Ninguna API key ni la sesión de WhatsApp en el repo; la key de Binance solo con permiso de
   trading (Principio V).
 - Nunca una entrada sin SL y TP: si falla alguno, se cierra la posición (Principio III).
