@@ -12,6 +12,24 @@ validación, PRD-002 carga y reversión, PRD-003 seguimiento y cierre), tal cual
 **Fuente**: los identificadores RF/RNF/AC entre paréntesis son los del PRD y se mantienen para
 trazabilidad.
 
+## Clarifications
+
+### Session 2026-10-27
+
+- Q: ¿Qué pasa con los mensajes que llegan al grupo mientras WhatsApp está desconectado o el
+  proceso está caído? → A: Se ignoran: solo se procesan los mensajes que llegan con la conexión
+  activa; los del período sin conexión no se procesan ni se loguean.
+- Q: ¿Qué hace el sistema si al arrancar falta la clave de cifrado de la sesión, las credenciales
+  de Binance del modo elegido o la key del proveedor de IA? → A: No arranca: termina indicando qué
+  variable falta, sin conectarse a WhatsApp ni a Binance.
+- Q: ¿Qué balance se usa para el apalancamiento efectivo (nocional / balance) de RF-15? → A: El
+  balance total de la billetera de Futuros USDT del modo activo, sin PnL no realizado.
+- Q: ¿Qué hace el sistema después del 10.º intento fallido consecutivo de reconexión? → A: Deja de
+  reintentar y el proceso termina; el reinicio automático (RNF-05) vuelve a arrancar el ciclo de
+  reconexión desde cero.
+- Q: ¿Qué pasa con una alerta si el proveedor de IA falla o no responde al extraer datos? → A: Los
+  datos que dependían de la IA se tratan como faltantes y la alerta se rechaza como "incompleta".
+
 ## User Scenarios & Testing *(mandatory)*
 
 Personas (PRD-000):
@@ -318,6 +336,8 @@ key de producción en Binance.
 
 ### Edge Cases
 
+- **El proveedor de IA falla o no responde**: los datos que dependían de él cuentan como faltantes
+  y la alerta se rechaza como "incompleta" (FR-059).
 - **Varias validaciones fallan a la vez**: se registra solo la primera según el orden de FR-020.
 - **Edición de una alerta ya procesada**: no se opera; se registra en el log el texto anterior y
   el nuevo y los datos que cambiaron, para revisión manual (FR-047).
@@ -332,13 +352,15 @@ key de producción en Binance.
 - **Falla del SL o del TP con la entrada ejecutada**: cierre a mercado y evento crítico (FR-030).
 - **El operador cancela a mano el SL o el TP de una posición abierta**: solo se registra un evento
   crítico; la posición no se toca y el SL/TP no se recoloca (FR-038).
-- **Mensajes que llegan mientras WhatsApp está desconectado o el proceso está caído**:
-  [NEEDS CLARIFICATION: ¿se procesan al reconectar/reiniciar (protegidos por la deduplicación) o
-  se descartan? El PRD pide "retomar la ingesta" (RNF-05) y menciona reinicios que releen el
-  historial, pero no define qué hacer con mensajes del período sin conexión.]
-- **Arranque con configuración incompleta** (falta la clave de cifrado de la sesión o las
-  credenciales de Binance del modo elegido): [NEEDS CLARIFICATION: ¿el sistema se niega a arrancar
-  o arranca y rechaza las alertas? El PRD no lo define.]
+- **Mensajes que llegan mientras WhatsApp está desconectado o el proceso está caído**: se ignoran
+  sin procesarse ni loguearse; al reconectar o reiniciar, la ingesta sigue solo con los mensajes
+  nuevos (FR-057).
+- **Arranque con configuración incompleta** (falta la clave de cifrado de la sesión, las
+  credenciales de Binance del modo elegido o la key del proveedor de IA): el sistema no arranca y
+  termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance (FR-058).
+- **10 intentos fallidos consecutivos de reconexión**: evento crítico, el proceso termina y el
+  reinicio automático arranca de nuevo el ciclo de reconexión (FR-055, FR-056); al volver aplica
+  la reconciliación (FR-039) y solo se procesan los mensajes nuevos (FR-057).
 - **Sesión de WhatsApp expirada o cerrada por WhatsApp**: se detecta como desconexión, se reintenta
   (FR-055) y, si hace falta, el operador se reautentica con un nuevo QR (FR-048).
 
@@ -359,12 +381,18 @@ key de producción en Binance.
   los datos de FR-003, para completar los que falten.
 - **FR-005** (RF-17): El sistema MUST rechazar una alerta a la que le falte cualquiera de los datos
   de FR-003 después de analizar texto e imagen.
+- **FR-059** (Clarificación 2026-10-27): Si el proveedor de IA falla o no responde al extraer
+  datos del texto o de la imagen, el sistema MUST tratar esos datos como faltantes y, si siguen
+  faltando, rechazar la alerta con el motivo "incompleta" (FR-005).
 - **FR-006** (RF-11): El sistema MUST asignar a cada alerta procesada (cargada o rechazada) un
   identificador único persistente, formado por el ID del mensaje de WhatsApp y un hash de
   (ticker, Entrada, SL, TP).
 - **FR-007** (RF-29): El sistema MUST rechazar como duplicado, sin operarla, una alerta cuyo ID de
   mensaje coincida con el de cualquier alerta ya registrada, o cuyo hash de (ticker, Entrada, SL,
   TP) coincida con el de una alerta registrada en las últimas 24 h.
+- **FR-057** (Clarificación 2026-10-27): El sistema MUST procesar solo los mensajes que llegan
+  mientras la conexión con WhatsApp está activa; los mensajes enviados al grupo durante una
+  desconexión o una caída del proceso MUST NOT procesarse ni loguearse al reconectar o reiniciar.
 
 **Dirección, símbolo y precios (PRD-001)**
 
@@ -420,9 +448,8 @@ key de producción en Binance.
   de la cantidad mínima o del nocional mínimo del símbolo.
 - **FR-024** (RF-15): El sistema MUST rechazar una alerta cuyo nocional exceda el tamaño de
   posición máximo configurado (USDT), o cuyo apalancamiento efectivo (nocional / balance de la
-  cuenta del modo activo) exceda el apalancamiento máximo configurado. [NEEDS CLARIFICATION: ¿qué
-  "balance" se usa: el total de la cuenta de Futuros, el disponible para operar, o el balance de
-  margen? El PRD no lo precisa y cambia cuántas alertas se rechazan.]
+  cuenta del modo activo) exceda el apalancamiento máximo configurado. El balance es el total de
+  la billetera de Futuros USDT del modo activo, sin PnL no realizado.
 - **FR-025** (RF-12): El sistema MUST rechazar una alerta válida si abrirla haría que posiciones
   abiertas más entradas pendientes superen el máximo configurable de posiciones simultáneas.
 - **FR-026** (RF-20): El sistema MUST rechazar una alerta válida si abrirla haría que el nocional
@@ -512,6 +539,9 @@ key de producción en Binance.
 
 - **FR-053** (RNF-02): Las API keys (del proveedor de IA y de Binance) MUST NOT estar en el código;
   se leen de variables de entorno.
+- **FR-058** (Clarificación 2026-10-27): Si al arrancar falta la clave de cifrado de la sesión de
+  WhatsApp, las credenciales de Binance del modo elegido o la key del proveedor de IA, el sistema
+  MUST NOT arrancar: termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance.
 - **FR-054** (RNF-08): La key de Binance de producción MUST tener solo permiso de trading, con el
   retiro de fondos deshabilitado.
 
@@ -520,7 +550,8 @@ key de producción en Binance.
 - **FR-055** (RNF-04): El sistema MUST detectar la desconexión de WhatsApp o de Binance en < 30 s y
   reintentar con backoff exponencial (1 s, 2 s, 4 s… hasta un máximo de 60 s entre intentos);
   cada interrupción se registra en el log, y tras 10 intentos fallidos consecutivos se registra un
-  evento crítico.
+  evento crítico, el sistema deja de reintentar y el proceso termina, para que el reinicio
+  automático (FR-056) vuelva a arrancar el ciclo de reconexión desde cero.
 - **FR-056** (RNF-05): Si el proceso se cae, MUST reiniciarse automáticamente y retomar la ingesta
   en < 60 s.
 
@@ -576,9 +607,6 @@ key de producción en Binance.
   validación, carga y reversión, seguimiento y cierre, y el marco transversal (log, modos,
   seguridad y resiliencia).
 - Un solo operador por instancia y un solo grupo de alertas monitoreado.
-- Después del 10.º intento fallido consecutivo de reconexión el sistema sigue reintentando con el
-  intervalo máximo de 60 s; el PRD fija ese máximo entre intentos y solo agrega el registro del
-  evento crítico.
 - El cifrado de la sesión de WhatsApp (FR-049) es requisito antes de habilitar el modo LIVE.
 - La política de habilitación de LIVE (al menos 7 días corridos y 20 alertas en DRY con 0 errores
   de clasificación contra revisión manual) es manual y el sistema no la controla.
