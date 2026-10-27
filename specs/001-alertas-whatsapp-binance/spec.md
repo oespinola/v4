@@ -29,6 +29,20 @@ trazabilidad.
   reconexión desde cero.
 - Q: ¿Qué pasa con una alerta si el proveedor de IA falla o no responde al extraer datos? → A: Los
   datos que dependían de la IA se tratan como faltantes y la alerta se rechaza como "incompleta".
+- Q: ¿Qué pasa si falla el propio cierre a mercado de emergencia? → A: Se reintenta con el mismo
+  backoff de reconexión (1 s, 2 s, 4 s… hasta 60 s) hasta que la posición quede cerrada,
+  registrando un evento crítico en cada falla.
+- Q: ¿Con qué modo de margen y apalancamiento del símbolo se coloca la operación? → A: Margen
+  aislado, con el apalancamiento del símbolo tomado de la configuración del operador.
+- Q: ¿Sobre qué valores se calcula el hash de deduplicación? → A: Sobre los valores crudos de la
+  alerta: ticker, Entrada y SL tal como vienen, y como TP el precio numérico del objetivo o, si no
+  trae precio, el texto del objetivo.
+- Q: ¿Cómo se procesan alertas que llegan casi a la vez? → A: De a una, en orden de llegada: cada
+  alerta se evalúa por completo (y su entrada se coloca o se rechaza) antes de empezar la
+  siguiente.
+- Q: ¿Qué pasa si falta o es inválida la configuración del operador? → A: Igual que con las
+  credenciales: el sistema no arranca y dice qué parámetro falta o es inválido; los valores
+  numéricos deben ser mayores que 0.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -349,7 +363,11 @@ key de producción en Binance.
   × 1000 (FR-009).
 - **Ejecución parcial de la entrada**: el SL y el TP cubren lo ejecutado y las ejecuciones
   posteriores; a los 3 minutos se cancela lo no ejecutado (FR-028, FR-032).
-- **Falla del SL o del TP con la entrada ejecutada**: cierre a mercado y evento crítico (FR-030).
+- **Falla del SL o del TP con la entrada ejecutada**: cierre a mercado y evento crítico; si el
+  cierre a mercado también falla, se reintenta con backoff hasta cerrar (FR-030).
+- **Dos alertas casi simultáneas**: se procesan de a una en orden de llegada (FR-061).
+- **Reenvío de una alerta con TP calculado por indicadores**: el hash usa el texto del objetivo,
+  no el TP calculado, así que se detecta como duplicado (FR-006).
 - **El operador cancela a mano el SL o el TP de una posición abierta**: solo se registra un evento
   crítico; la posición no se toca y el SL/TP no se recoloca (FR-038).
 - **Mensajes que llegan mientras WhatsApp está desconectado o el proceso está caído**: se ignoran
@@ -357,7 +375,8 @@ key de producción en Binance.
   nuevos (FR-057).
 - **Arranque con configuración incompleta** (falta la clave de cifrado de la sesión, las
   credenciales de Binance del modo elegido o la key del proveedor de IA): el sistema no arranca y
-  termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance (FR-058).
+  termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance (FR-058). Lo
+  mismo si falta o es inválido un parámetro de la configuración del operador (FR-062).
 - **10 intentos fallidos consecutivos de reconexión**: evento crítico, el proceso termina y el
   reinicio automático arranca de nuevo el ciclo de reconexión (FR-055, FR-056); al volver aplica
   la reconciliación (FR-039) y solo se procesan los mensajes nuevos (FR-057).
@@ -386,7 +405,9 @@ key de producción en Binance.
   faltando, rechazar la alerta con el motivo "incompleta" (FR-005).
 - **FR-006** (RF-11): El sistema MUST asignar a cada alerta procesada (cargada o rechazada) un
   identificador único persistente, formado por el ID del mensaje de WhatsApp y un hash de
-  (ticker, Entrada, SL, TP).
+  (ticker, Entrada, SL, TP). El hash se calcula sobre los valores crudos de la alerta, antes del
+  mapeo de símbolo y del ajuste de precios: ticker, Entrada y SL tal como vienen, y como TP el
+  precio numérico del objetivo o, si no trae precio, el texto del objetivo.
 - **FR-007** (RF-29): El sistema MUST rechazar como duplicado, sin operarla, una alerta cuyo ID de
   mensaje coincida con el de cualquier alerta ya registrada, o cuyo hash de (ticker, Entrada, SL,
   TP) coincida con el de una alerta registrada en las últimas 24 h.
@@ -439,6 +460,10 @@ key de producción en Binance.
 
 **Dimensionamiento y límites (PRD-002)**
 
+- **FR-061** (Clarificación 2026-10-27): El sistema MUST procesar las alertas de a una, en orden de
+  llegada: cada alerta se evalúa por completo (y su entrada se coloca o se rechaza) antes de
+  empezar la siguiente, para que los límites de FR-025 y FR-026 se evalúen siempre contra la
+  exposición actualizada.
 - **FR-021** (RF-08): El sistema MUST calcular la cantidad dividiendo un riesgo fijo R en USDT,
   configurado por el operador, por |Entrada − SL|, redondeando hacia abajo al stepSize del símbolo
   y usando los precios ya ajustados (FR-011).
@@ -458,6 +483,8 @@ key de producción en Binance.
 
 **Colocación y reversión (PRD-002)**
 
+- **FR-060** (Clarificación 2026-10-27): El sistema MUST colocar cada operación en modo de margen
+  aislado, con el apalancamiento del símbolo tomado de la configuración del operador.
 - **FR-027** (RF-33): El sistema MUST colocar la entrada como una orden límite al precio de Entrada.
 - **FR-028** (RF-34): El sistema MUST colocar el SL y el TP apenas la entrada registre cualquier
   ejecución (total o parcial), cubriendo el total de la posición abierta, incluidas las
@@ -466,7 +493,9 @@ key de producción en Binance.
   tenga ejecución y el SL y el TP estén colocados y aceptados por Binance cubriendo la posición.
 - **FR-030** (RF-18, RF-39): Si la entrada tuvo ejecución y falla la colocación del SL o del TP, el
   sistema MUST cerrar la posición con una orden a mercado y registrar el cierre de emergencia como
-  evento crítico.
+  evento crítico. Si el cierre a mercado falla, el sistema MUST reintentarlo con el backoff de
+  FR-055 (1 s, 2 s, 4 s… hasta 60 s) hasta que la posición quede cerrada, registrando un evento
+  crítico en cada falla.
 - **FR-031** (RF-19): Si la entrada falla o no tiene ninguna ejecución a los 3 minutos de colocada,
   el sistema MUST cancelarla y no colocar SL ni TP.
 - **FR-032** (RF-35): Si a los 3 minutos la entrada tiene ejecución parcial, el sistema MUST
@@ -542,6 +571,12 @@ key de producción en Binance.
 - **FR-058** (Clarificación 2026-10-27): Si al arrancar falta la clave de cifrado de la sesión de
   WhatsApp, las credenciales de Binance del modo elegido o la key del proveedor de IA, el sistema
   MUST NOT arrancar: termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance.
+- **FR-062** (Clarificación 2026-10-27): Si al arrancar falta o es inválido algún parámetro de la
+  configuración del operador (riesgo R, máximo de posiciones simultáneas, capital comprometido
+  máximo, tamaño de posición máximo, apalancamiento máximo, apalancamiento del símbolo), el sistema
+  MUST NOT arrancar: termina indicando qué parámetro falta o es inválido. Todos los valores
+  numéricos MUST ser mayores que 0. El porcentaje máximo de distancia del SL usa 15 % si no se
+  configura (FR-013), y si se configura MUST ser mayor que 0.
 - **FR-054** (RNF-08): La key de Binance de producción MUST tener solo permiso de trading, con el
   retiro de fondos deshabilitado.
 
@@ -570,7 +605,8 @@ key de producción en Binance.
 - **Posición abierta / entrada pendiente**: estado local persistente que cuenta para los límites
   de posiciones y capital y se reconcilia con Binance al arrancar.
 - **Configuración del operador**: riesgo R, máximo de posiciones simultáneas, capital comprometido
-  máximo, tamaño de posición máximo, apalancamiento máximo, porcentaje máximo de distancia del SL.
+  máximo, tamaño de posición máximo, apalancamiento máximo, apalancamiento del símbolo (margen
+  aislado), porcentaje máximo de distancia del SL.
 - **Entrada de log**: registro por alerta con los campos de FR-043; también eventos de conexión y
   eventos críticos.
 - **Sesión de WhatsApp**: datos de autenticación de la cuenta vinculada, cifrados en disco.
