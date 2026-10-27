@@ -18,23 +18,11 @@ pnpm start         # levantar en modo LIVE (órdenes reales en Binance Futuros)
 pnpm test          # correr tests
 ```
 
-## Commits en el proyecto
-- Es muy importante realizar commits a medida que vamos modificando cosas.
-- Antes de realizar un commit es necesario validar que el software funcione o no
-  deje de compilar.
-- Cada feature o fix lleva sus tests, y el historial muestra el test antes que el código:
-  1. Primer commit (`test(...)`): los tests nuevos, que hoy fallan, marcados con
-     `it.fails` de Vitest. Así `pnpm test` sigue en verde (it.fails pasa mientras el test
-     falla) y la regla anterior se cumple.
-  2. Segundo commit (`feat(...)` o `fix(...)`): el código, cambiando esos `it.fails` por
-     `it`. Si el código ya existe y alguien olvida el cambio, `it.fails` falla y lo avisa.
-  - Si un test nuevo ya pasa antes de escribir el código, no prueba nada nuevo: revisarlo.
-
-## Qué NO hacer
-- No commitear la sesión de WhatsApp (auth local) ni ninguna API key al repo: `ANTHROPIC_API_KEY`
-  y las credenciales de Binance se leen solo de variables de entorno (RNF-02, RNF-03).
-- No habilitar permiso de retiro de fondos en la API key de Binance: debe tener únicamente
-  permiso de trading (RNF-08).
-- No colocar la entrada sin garantizar SL y TP: si la entrada se ejecuta y falla la
-  colocación de SL o TP, hay que cerrar la posición de inmediato en vez de dejarla
-  desprotegida (RF-10, RF-18, RF-34, RF-39).
+## Constitución
+Las reglas de diseño y de proceso viven en `.specify/memory/constitution.md` y mandan sobre este
+archivo. Recordatorio de las que no se negocian:
+- Commits chicos y frecuentes; antes de cada uno, compila y `pnpm test` en verde. Cada feature o
+  fix: primero `test(...)` con `it.fails`, después `feat(...)`/`fix(...)` pasándolos a `it`.
+- Ninguna API key ni la sesión de WhatsApp en el repo; la key de Binance solo con permiso de
+  trading (Principio V).
+- Nunca una entrada sin SL y TP: si falla alguno, se cierra la posición (Principio III).

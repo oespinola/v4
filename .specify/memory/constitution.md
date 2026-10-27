@@ -1,50 +1,111 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+<!--
+Sync Impact Report
+- Versión: (plantilla sin completar) → 1.0.0
+- Principios: todos nuevos (adopción inicial)
+  - I. Aislamiento de la IA
+  - II. Grounding obligatorio
+  - III. Posición siempre protegida (NO NEGOCIABLE) — movido desde AGENTS.md
+  - IV. Test-first en lo que importa
+  - V. Cero secretos y mínimo privilegio — ampliado con reglas de AGENTS.md
+  - VI. El PRD manda
+- Secciones agregadas: Flujo de desarrollo (movido desde AGENTS.md), Revisión y cumplimiento
+- Secciones eliminadas: ninguna
+- Plantillas:
+  - ✅ .specify/templates/tasks-template.md (tests obligatorios para la lógica crítica, Principio IV)
+  - ✅ .specify/templates/plan-template.md (sin cambios: los gates se derivan de esta constitución)
+  - ✅ .specify/templates/spec-template.md (sin cambios)
+  - ✅ AGENTS.md (reglas de proceso y de seguridad reemplazadas por referencia a la constitución)
+- TODOs diferidos: ninguno
+-->
+# Constitución de SignalBridge
 
 ## Core Principles
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+### I. Aislamiento de la IA
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+Toda llamada a modelos de IA DEBE vivir en un módulo dedicado, nunca mezclada con la lógica de
+negocio, y DEBE ser reemplazable por un mock en los tests.
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+Razón: la lógica de validación y de órdenes tiene que poder probarse sin red, sin costo y de forma
+determinista, y el proveedor o el modelo de IA tiene que poder cambiarse sin tocar las reglas.
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+### II. Grounding obligatorio
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+Ninguna orden DEBE usar datos que no salgan de la alerta (texto o imagen) o de una regla del PRD.
+Ante la duda (dato faltante, ambiguo o inconsistente), la alerta se rechaza con su motivo en el
+log, sin inventar ni completar valores.
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+Razón: una orden con un dato inventado opera dinero real; rechazar y dejar el motivo auditado
+siempre es más barato que una entrada equivocada.
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+### III. Posición siempre protegida (NO NEGOCIABLE)
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+Ninguna entrada DEBE quedar ejecutada sin su SL y su TP colocados. Si la entrada se ejecuta
+(total o parcialmente) y falla la colocación del SL o del TP, el sistema DEBE cerrar la posición
+de inmediato en vez de dejarla desprotegida (RF-10, RF-18, RF-34, RF-39).
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+Razón: una posición sin stop expone la cuenta a pérdidas sin límite, sin que el operador esté
+mirando el chat.
+
+### IV. Test-first en lo que importa
+
+La extracción y validación de alertas, el dimensionamiento, la colocación de entrada/SL/TP y la
+reversión ante fallas DEBEN desarrollarse con el ciclo rojo-verde-refactor: primero el test
+(commit con `it.fails`), después el código (commit que lo pasa a `it`). Cada feature o fix lleva
+sus tests.
+
+Razón: es la lógica donde un error se traduce directamente en pérdidas, y el historial de commits
+tiene que mostrar que cada regla tuvo un test que falló antes de existir el código.
+
+### V. Cero secretos y mínimo privilegio
+
+- Las credenciales (`ANTHROPIC_API_KEY` y las de Binance) DEBEN leerse solo de variables de
+  entorno (`.env`, que no se commitea). Ninguna key DEBE aparecer en el repo (RNF-02, RNF-03).
+- La sesión de WhatsApp (auth local) NO DEBE commitearse.
+- La API key de Binance DEBE tener únicamente permiso de trading, nunca de retiro de fondos
+  (RNF-08).
+
+Razón: el repo y sus copias no son un lugar seguro para secretos, y una key filtrada sin permiso
+de retiro limita el daño posible.
+
+### VI. El PRD manda
+
+No se agregan features fuera de los PRD vigentes en `docs/prd/`. Si algo falta, primero se cambia
+el PRD y el spec, después el código.
+
+Razón: el PRD es la única fuente de verdad sobre qué hace el sistema; código sin requisito no
+tiene criterio de aceptación contra el cual probarse.
+
+## Flujo de desarrollo
+
+- Se commitea a medida que se modifica el proyecto, en commits chicos.
+- Antes de cada commit DEBE validarse que el software compila y que `pnpm test` está en verde.
+- Cada feature o fix sigue dos commits, en este orden:
+  1. `test(...)`: los tests nuevos, que hoy fallan, marcados con `it.fails` de Vitest. Así
+     `pnpm test` sigue en verde (`it.fails` pasa mientras el test falla).
+  2. `feat(...)` o `fix(...)`: el código, cambiando esos `it.fails` por `it`. Si el código ya
+     existe y alguien olvida el cambio, `it.fails` falla y lo avisa.
+- Si un test nuevo ya pasa antes de escribir el código, no prueba nada nuevo: se revisa antes de
+  commitearlo.
+
+## Revisión y cumplimiento
+
+- Todo plan (`/speckit-plan`) DEBE pasar el "Constitution Check" contra los seis principios antes
+  de investigar y de nuevo después del diseño. Una violación solo se acepta justificada en la
+  tabla de complejidad del plan.
+- Todo cambio que toque la colocación de órdenes DEBE mostrar cómo cumple el Principio III, con
+  un test del camino de falla (SL o TP rechazado → cierre de la posición).
+- `AGENTS.md` contiene la guía operativa (stack, comandos); ante un conflicto, manda esta
+  constitución.
 
 ## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+- Los cambios a esta constitución los aprueba el instructor del proyecto y se registran con un
+  commit (`docs: amend constitution to vX.Y.Z ...`).
+- Versionado semántico: MAJOR al quitar o redefinir un principio; MINOR al agregar un principio o
+  sección, o ampliar materialmente una guía; PATCH en aclaraciones y redacción.
+- Cada enmienda actualiza el Sync Impact Report del encabezado y propaga los cambios a las
+  plantillas de `.specify/templates/` y a `AGENTS.md`.
+- La constitución se escribe en español.
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+**Version**: 1.0.0 | **Ratified**: 2026-10-27 | **Last Amended**: 2026-10-27
