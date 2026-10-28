@@ -65,7 +65,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 ### Filtro, extracción e identidad
 
 - [X] T021 [P] [US1] Escribir tests del filtro (AC-05, AC-35, AC-26): disparador sin mayúsculas ni tildes en cualquier posición, remitente autorizado normalizado — en `it.fails` — en test/unit/filter.test.ts
-- [ ] T022 [US1] Implementar el filtro y pasar T021 a `it` en src/domain/filter.ts
+- [X] T022 [US1] Implementar el filtro y pasar T021 a `it` en src/domain/filter.ts
 - [X] T023 [P] [US1] Escribir tests del parser regex sobre test/fixtures/alerts.ts (AC-20): ticker, Entrada, objetivo (precio o texto), SL y nivel de riesgo; devuelve solo lo que pudo sacar — en `it.fails` — en test/unit/parser.test.ts
 - [ ] T024 [US1] Implementar el parser y pasar T023 a `it` en src/domain/parser.ts
 - [X] T025 [P] [US1] Escribir tests de la extracción (AC-14, AC-21, FR-059): con texto completo no llama al extractor; con faltantes pide solo esos campos; lo del regex manda; extractor que falla o no completa → "incompleta" — en `it.fails` — en test/unit/extract.test.ts
