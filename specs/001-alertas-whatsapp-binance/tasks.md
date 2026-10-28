@@ -75,7 +75,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 ### Símbolo, precios y TP
 
-- [ ] T029 [P] [US1] Escribir tests de símbolos y precios (AC-01, AC-03, AC-40, AC-41, AC-42, AC-52): side por SL vs Entrada, `TICKERUSDT` o `1000TICKERUSDT` ×1000, inexistente, redondeo al tickSize (Entrada al más cercano, SL alejándose, TP acercándose) — en `it.fails` — en test/unit/symbols.test.ts
+- [X] T029 [P] [US1] Escribir tests de símbolos y precios (AC-01, AC-03, AC-40, AC-41, AC-42, AC-52): side por SL vs Entrada, `TICKERUSDT` o `1000TICKERUSDT` ×1000, inexistente, redondeo al tickSize (Entrada al más cercano, SL alejándose, TP acercándose) — en `it.fails` — en test/unit/symbols.test.ts
 - [ ] T030 [US1] Implementar mapeo, side y ajuste al tick y pasar T029 a `it` en src/domain/symbols.ts
 - [ ] T031 [P] [US1] Escribir tests de velas de 45 min (AC-69): agrupación de a tres velas de 15 min alineadas a 00:00 UTC, descarte del primer tramo incompleto, vela en curso con 1, 2 o 3 velas y cierre igual al último precio — en `it.fails` — en test/unit/candles.test.ts
 - [ ] T032 [US1] Implementar la agrupación 15 → 45 min y pasar T031 a `it` en src/domain/candles.ts
