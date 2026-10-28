@@ -99,7 +99,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T044 [US1] Implementar `processMessage` y `processEdit` hasta "válida/rechazada" y pasar T043 a `it` en src/pipeline.ts
 - [X] T045 [P] [US1] Escribir tests de la lógica pura del adaptador de WhatsApp (FR-057, FR-048): normaliza el remitente sin sufijo de dispositivo, descarta mensajes con timestamp anterior al momento de conexión, solo mensajes del grupo configurado, y con un cliente fake sin sesión guardada emite el QR (AC-10) — en `it.fails` — en test/unit/whatsapp.test.ts
 - [X] T046 [US1] Implementar el adaptador de WhatsApp (QR en terminal si no hay sesión, búsqueda del grupo por nombre con `evaluate`, `message_create`, `message_edit`, descarga de imagen; sesión temporal con `LocalAuth` en un directorio 0700, se reemplaza por la cifrada en T075) y pasar T045 a `it` en src/adapters/whatsapp.ts
-- [ ] T047 [US1] Armar `main.ts` en DRY: config → store → market data → WhatsApp → cola → pipeline, una línea por alerta en consola, en src/main.ts
+- [X] T047 [US1] Armar `main.ts` en DRY: config → store → market data → WhatsApp → cola → pipeline, una línea por alerta en consola, en src/main.ts
 
 **Checkpoint**: MVP de validación: en DRY, cada alerta queda válida o rechazada con su motivo, sin órdenes.
 
