@@ -152,12 +152,12 @@ describe('validación en el orden de FR-020', () => {
       return s;
     };
 
-    it.fails('BTC SHORT "80,489" / "81,489" / "78,489" con el mercado cerca de 80 000 se rechaza (AC-82)', async () => {
+    it('BTC SHORT "80,489" / "81,489" / "78,489" con el mercado cerca de 80 000 se rechaza (AC-82)', async () => {
       const { deps } = withBtc();
       expect(await reasonOf(BTC, deps)).toBe('entrada lejos del mercado');
     });
 
-    it.fails('una Entrada dentro del máximo es válida, y el máximo se configura', async () => {
+    it('una Entrada dentro del máximo es válida, y el máximo se configura', async () => {
       const { deps } = withBtc();
       expect(await reasonOf(alertText('BTC', '80489', '78489 usd', '81489'), deps)).toBe('válida');
       expect(await reasonOf(alertText('BTC', '72100', '70000 usd', '73000'), deps)).toBe('válida'); // a 9.9 %
@@ -166,7 +166,7 @@ describe('validación en el orden de FR-020', () => {
       expect(await reasonOf(BTC, loose.deps)).toBe('válida');
     });
 
-    it.fails('va después de "datos de mercado no disponibles" y antes de "TP inválido"', async () => {
+    it('va después de "datos de mercado no disponibles" y antes de "TP inválido"', async () => {
       const failing = withBtc();
       failing.market.closesError = new Error('sin red');
       expect(await reasonOf(BTC, failing.deps)).toBe('datos de mercado no disponibles');

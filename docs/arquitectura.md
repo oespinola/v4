@@ -112,7 +112,7 @@ flowchart TB
 flowchart TD
   A["Mensaje del grupo"] --> F{"¿'alerta de trading'?"}
   F -- no --> IG["Ignorada (no se loguea)"]
-  F -- sí --> V["Validación (FR-020):<br/>remitente → duplicado ID → incompleta → ticker inexistente →<br/>no disponible en Demo (DRY) → duplicado hash → SL = Entrada →<br/>SL fuera de rango → velas → TP inválido → ranking → top 3"]
+  F -- sí --> V["Validación (FR-020):<br/>remitente → duplicado ID → incompleta → ticker inexistente →<br/>no disponible en Demo (DRY) → duplicado hash → SL = Entrada →<br/>SL fuera de rango → velas → entrada lejos del mercado → TP inválido → ranking → top 3"]
   V -- falla --> R["rechazada + motivo"]
   V -- ok --> L["Carga: bajo mínimo → balance → excede máximos →<br/>símbolo ya en operación → límite de posiciones → límite de capital"]
   L -- falla --> R

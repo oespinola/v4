@@ -97,7 +97,7 @@ describe('config (FR-058, FR-062, FR-052, FR-004)', () => {
     expect(errorsOf(dryEnv({ MAX_SL_DISTANCE_PCT: '0' }))).toContain('MAX_SL_DISTANCE_PCT');
   });
 
-  it.fails('MAX_ENTRY_DISTANCE_PCT es 10 si no se configura, y debe ser > 0 si se configura (FR-068)', () => {
+  it('MAX_ENTRY_DISTANCE_PCT es 10 si no se configura, y debe ser > 0 si se configura (FR-068)', () => {
     const r = parseConfig(dryEnv({ MAX_ENTRY_DISTANCE_PCT: undefined }));
     expect(r.ok && r.config.maxEntryDistancePct).toBe(10);
     const set = parseConfig(dryEnv({ MAX_ENTRY_DISTANCE_PCT: '5' }));
