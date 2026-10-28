@@ -91,7 +91,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 ### Adaptadores y armado
 
-- [ ] T039 [P] [US1] Escribir tests del adaptador público con respuestas grabadas (AC-30, FR-017): `exchangeInfo`, `ticker/24hr` y `klines 15m` de producción, sin headers de credenciales, refresco cada 60 s con reloj fake, conserva la copia anterior si un refresco falla — en `it.fails` — en test/unit/binance-public.test.ts
+- [X] T039 [P] [US1] Escribir tests del adaptador público con respuestas grabadas (AC-30, FR-017): `exchangeInfo`, `ticker/24hr` y `klines 15m` de producción, sin headers de credenciales, refresco cada 60 s con reloj fake, conserva la copia anterior si un refresco falla — en `it.fails` — en test/unit/binance-public.test.ts
 - [ ] T040 [US1] Implementar `MarketData` con `fetch` y pasar T039 a `it` en src/adapters/binance-public.ts
 - [ ] T041 [P] [US1] Escribir tests del extractor de Claude con el SDK mockeado (FR-004, FR-059, Principio I): pide solo los campos faltantes, valida la respuesta con zod, timeout 8 s, sin reintentos, nunca lanza (error/timeout/respuesta inválida → `{}`) — en `it.fails` — en test/unit/claude-extractor.test.ts
 - [ ] T042 [US1] Implementar el extractor con `@anthropic-ai/sdk` (`claude-sonnet-5-5`, texto + imagen) y pasar T041 a `it` en src/adapters/claude-extractor.ts
