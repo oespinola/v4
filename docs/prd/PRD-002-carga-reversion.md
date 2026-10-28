@@ -46,6 +46,8 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
   posición abierta.
 - RF-39: El sistema debe registrar como evento crítico en el log cada cierre de
   emergencia de RF-18.
+- RF-51: El sistema debe rechazar con el motivo "símbolo ya en operación" una alerta
+  válida cuyo símbolo ya tenga una entrada pendiente o una posición abierta.
 
 ## Requerimientos No Funcionales
 - RNF-09: El tiempo desde que el mensaje llega al sistema hasta que la orden límite de
@@ -96,6 +98,12 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
   rechaza y loguea el motivo "límite de posiciones".
 - AC-55 (RF-34): Dada una orden de entrada sin ejecución, cuando registra una ejecución
   parcial, entonces el sistema coloca el SL y el TP cubriendo la posición abierta.
+- AC-70 (RF-51): Dada una posición abierta en un símbolo, cuando llega una alerta
+  válida del mismo símbolo, entonces el sistema la rechaza y loguea el motivo "símbolo
+  ya en operación".
+- AC-72 (RF-52): Dada una alerta válida, cuando falla la consulta del balance de la
+  cuenta para el control de apalancamiento, entonces el sistema la rechaza y loguea el
+  motivo "datos de mercado no disponibles".
 
 ## Fuera de Alcance
 - Recolocar una entrada que venció sin ejecutarse (RF-19).

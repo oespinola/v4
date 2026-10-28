@@ -43,6 +43,12 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - RF-49: Durante la comparación de RF-45, para cada entrada pendiente local cuyo plazo
   de 3 minutos venció, el sistema debe aplicar RF-19 o RF-35 según haya tenido o no
   ejecución.
+- RF-53: Durante la comparación de RF-45, para cada posición abierta en Binance cuya
+  operación local tuvo ejecución pero nunca llegó a "completa" (el SL o el TP no se
+  confirmaron, por ejemplo por una caída entre la ejecución y su colocación, o durante un
+  cierre de emergencia), el sistema debe colocar el SL y el TP que falten y, si la
+  colocación falla, cerrar la posición a mercado (RF-18). Si la operación ya estaba
+  "completa" y perdió su SL o su TP, se aplica RF-47.
 
 ## Requerimientos No Funcionales
 - RNF-11: El tiempo desde que una posición se cierra en Binance hasta que el sistema
@@ -86,6 +92,10 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - AC-67 (RNF-11): Dadas 20 cancelaciones manuales de prueba del SL o del TP de
   posiciones abiertas en DRY, cuando se mide el tiempo desde la cancelación hasta el
   registro del evento crítico, entonces todos son < 10 s.
+- AC-73 (RF-45, RF-53): Dado el proceso caído después de que la entrada tuvo ejecución
+  y antes de confirmarse el SL y el TP, cuando el sistema vuelve a arrancar, entonces,
+  antes de procesar cualquier alerta nueva, coloca el SL y el TP que faltan o, si
+  fallan, cierra la posición a mercado y registra el evento crítico.
 
 ## Fuera de Alcance
 - Mensajes de seguimiento de una alerta ya operada (cerrar, mover el SL, tomar

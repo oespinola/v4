@@ -71,9 +71,13 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - RF-38: El sistema debe evaluar las validaciones en este orden y registrar como
   motivo de rechazo solo la primera que falle: remitente no autorizado, duplicado (ID
   de WhatsApp), incompleta, duplicado (hash), ticker inexistente, SL igual a la
-  Entrada, SL fuera de rango, TP inválido, ranking no disponible, top 3
-  ganadores/perdedores, bajo mínimo, excede máximos, límite de posiciones, límite de
-  capital.
+  Entrada, SL fuera de rango, datos de mercado no disponibles (velas para el TP), TP
+  inválido, ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, datos de
+  mercado no disponibles (balance), excede máximos, símbolo ya en operación, límite de
+  posiciones, límite de capital.
+- RF-52: El sistema debe rechazar una alerta con el motivo "datos de mercado no
+  disponibles" si no puede obtener de Binance las velas necesarias para calcular el TP
+  (RF-24) o el balance necesario para el control de apalancamiento (RF-15).
 - RF-50: El sistema debe rechazar una alerta cuyo Stop Loss esté a una distancia de la
   Entrada mayor que un porcentaje máximo configurable (por defecto 15 %), calculada
   como |Entrada − SL| / Entrada.
@@ -165,6 +169,9 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-68 (RF-50): Dada una alerta LONG con Entrada 1.246 y SL 0.1222 y el máximo
   configurado en 15 %, cuando el sistema la valida, entonces la rechaza y loguea el
   motivo "SL fuera de rango".
+- AC-71 (RF-52): Dada una alerta cuyo objetivo es por indicadores, cuando falla la
+  obtención de las velas, entonces el sistema la rechaza y loguea el motivo "datos de
+  mercado no disponibles".
 
 ## Fuera de Alcance
 - Todo lo posterior a que la alerta queda válida: dimensionamiento, límites de

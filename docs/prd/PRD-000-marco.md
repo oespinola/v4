@@ -90,7 +90,9 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
 - RNF-04: El sistema debe detectar la desconexión de WhatsApp o de la API de Binance
   en < 30 s y reintentar la reconexión con backoff exponencial (1 s, 2 s, 4 s… hasta
   un máximo de 60 s entre intentos); cada interrupción se registra en el log, y tras
-  10 intentos fallidos consecutivos se registra como evento crítico.
+  10 intentos fallidos consecutivos se registra como evento crítico. Mientras haya un
+  cierre de emergencia en curso (RF-18), el proceso no termina por esos 10 intentos: el
+  cierre se sigue reintentando hasta que la posición quede cerrada.
 - RNF-05: Si el proceso se cae, debe reiniciarse automáticamente y retomar la ingesta
   en < 60 s.
 - RNF-06: (Retirado: pasó a Riesgos como política manual de habilitación de LIVE.)
@@ -109,7 +111,8 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   guarda un log con el motivo, que es uno de: incompleta, TP inválido, SL igual a la
   Entrada, SL fuera de rango, top 3 ganadores/perdedores, ranking no disponible,
   excede máximos, bajo mínimo, ticker inexistente, límite de posiciones, límite de
-  capital, remitente no autorizado, duplicado.
+  capital, remitente no autorizado, duplicado, símbolo ya en operación, datos de mercado
+  no disponibles.
 - AC-10 (RF-06): Dado que no hay una sesión de WhatsApp guardada, cuando se arranca el
   sistema, entonces muestra un código QR para vincular la cuenta.
 - AC-11 (RF-07, RF-25): Dado el sistema arrancado con `pnpm dev`, cuando llega una
@@ -139,6 +142,9 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   variables con nombres distintos.
 - AC-50 (RNF-10): Dado el sistema corriendo, cuando se revisan los permisos del log y
   del almacenamiento local, entonces son 0600 y el dueño es el usuario del proceso.
+- AC-74 (RNF-04, RF-18): Dado un cierre de emergencia en curso y la API de Binance
+  caída, cuando se acumulan 10 intentos fallidos consecutivos, entonces el sistema
+  registra el evento crítico pero no termina el proceso y sigue reintentando el cierre.
 
 ## Fuera de Alcance
 - Backtesting o análisis de performance histórica (no se calcula drawdown
