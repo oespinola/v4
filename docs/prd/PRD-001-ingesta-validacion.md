@@ -34,6 +34,10 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - RF-14: El sistema debe rechazar una señal cuyo Stop Loss sea igual a la Entrada.
 - RF-16: El sistema debe analizar la imagen adjunta cuando el texto no contenga todos
   los datos de RF-09, para completar los que falten.
+  El análisis de imagen es opcional: si no está configurada la key del proveedor de
+  IA, el sistema arranca igual, avisa al arrancar que el análisis de imagen está
+  apagado, y una alerta cuyo texto no trae todos los datos se rechaza como
+  "incompleta" (RF-17), sin analizar la imagen.
 - RF-17: El sistema debe rechazar una alerta a la que le falte cualquiera de los datos
   de RF-09 después de analizar texto e imagen.
 - RF-21: El sistema debe rechazar una alerta si la copia local del ranking de top 3
@@ -107,6 +111,11 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   rechaza y loguea el motivo "top 3 ganadores/perdedores".
 - AC-14 (RF-16): Dado un mensaje cuyo texto no trae todos los datos y la imagen sí,
   cuando el sistema lo procesa, entonces extrae los valores faltantes desde la imagen.
+- AC-75 (RF-16): Dado que no está configurada la key del proveedor de IA, cuando el
+  sistema arranca, entonces arranca igual y avisa que el análisis de imagen está apagado.
+- AC-76 (RF-16, RF-17): Dado que no está configurada la key del proveedor de IA, cuando
+  llega una alerta cuyo texto no trae todos los datos, entonces no analiza la imagen y
+  la rechaza y loguea el motivo "incompleta".
 - AC-17 (RF-11, RF-29): Dado que una alerta ya fue registrada, cuando el sistema vuelve
   a recibir el mismo mensaje de WhatsApp (por ejemplo, tras un reinicio), entonces no
   la opera y la loguea como "duplicado".
