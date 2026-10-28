@@ -80,7 +80,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T031 [P] [US1] Escribir tests de velas de 45 min (AC-69): agrupación de a tres velas de 15 min alineadas a 00:00 UTC, descarte del primer tramo incompleto, vela en curso con 1, 2 o 3 velas y cierre igual al último precio — en `it.fails` — en test/unit/candles.test.ts
 - [X] T032 [US1] Implementar la agrupación 15 → 45 min y pasar T031 a `it` en src/domain/candles.ts
 - [X] T033 [P] [US1] Escribir tests de indicadores (AC-33, AC-34): EMA y WMA contra valores conocidos, ASL21 = (EMA20 + WMA21) / 2, EMA55, TP = el del lado correcto más cercano a la Entrada, ninguno del lado correcto → "TP inválido", objetivo con precio → TP = precio sin calcular — en `it.fails` — en test/unit/indicators.test.ts
-- [ ] T034 [US1] Implementar indicadores y elección del TP y pasar T033 a `it` en src/domain/indicators.ts
+- [X] T034 [US1] Implementar indicadores y elección del TP y pasar T033 a `it` en src/domain/indicators.ts
 - [X] T035 [P] [US1] Escribir tests del ranking (AC-06, AC-07, AC-25, AC-38): solo perpetuos `TRADING`, orden por priceChangePercent, top 3 ganadores y perdedores, copia de más de 120 s → "ranking no disponible" — en `it.fails` — en test/unit/ranking.test.ts
 - [ ] T036 [US1] Implementar ranking y antigüedad y pasar T035 a `it` en src/domain/ranking.ts
 
