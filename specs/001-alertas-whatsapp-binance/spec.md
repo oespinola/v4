@@ -37,7 +37,8 @@ trazabilidad.
   aislado, con el apalancamiento del símbolo tomado de la configuración del operador.
 - Q: ¿Sobre qué valores se calcula el hash de deduplicación? → A: Sobre los valores crudos de la
   alerta: ticker, Entrada y SL tal como vienen, y como TP el precio numérico del objetivo o, si no
-  trae precio, el texto del objetivo.
+  trae precio, el texto del objetivo (reemplazada: el hash pasó a usar los valores mapeados; ver
+  Session 2026-10-28).
 - Q: ¿Cómo se procesan alertas que llegan casi a la vez? → A: De a una, en orden de llegada: cada
   alerta se evalúa por completo (y su entrada se coloca o se rechaza) antes de empezar la
   siguiente.
@@ -61,6 +62,11 @@ trazabilidad.
   enmendado). Sin ella el sistema arranca con un aviso de que el análisis de imagen está apagado,
   y una alerta cuyo texto no trae todos los datos se rechaza como "incompleta" sin analizar la
   imagen.
+- Q: ¿Qué alertas bloquean un reenvío por hash y sobre qué valores se calcula? → A: Solo las no
+  rechazadas (RF-29 enmendado): una rechazada no bloquea su reenvío, que se evalúa de nuevo. El
+  hash usa el símbolo mapeado y los precios ajustados al tickSize (RF-11 enmendado), así "PEPE
+  0.002404" y "1000PEPE 2.404" son la misma alerta; por eso "ticker inexistente" pasa antes que
+  "duplicado (hash)" en el orden de FR-020.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -149,20 +155,26 @@ verificar la clasificación y el motivo registrado de cada una, sin colocar ning
 24. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
     WhatsApp (por ejemplo, tras un reinicio), **Then** no la opera y la loguea como "duplicado"
     (AC-17).
-25. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
-    mensaje pero el mismo ticker, Entrada, SL y TP, **Then** no la opera y la loguea como
-    "duplicado" (AC-37).
+25. **Given** una alerta no rechazada registrada hace menos de 24 h, **When** llega un reenvío con
+    otro ID de mensaje pero el mismo ticker, Entrada, SL y TP, **Then** no la opera y la loguea
+    como "duplicado" (AC-37).
 26. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
     el mismo ticker, Entrada, SL y TP, **Then** no la rechaza como duplicado (AC-53).
-27. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
+27. **Given** una alerta rechazada hace menos de 24 h (por ejemplo, por "ranking no disponible"),
+    **When** llega un reenvío con otro ID de mensaje y los mismos valores, **Then** no lo rechaza
+    como duplicado y lo evalúa de nuevo (AC-77).
+28. **Given** una alerta no rechazada con ticker "PEPE" y Entrada 0.002404 registrada hace menos de
+    24 h, **When** llega otra con ticker "1000PEPE", Entrada 2.404 y SL y TP equivalentes,
+    **Then** la rechaza como "duplicado" (AC-78).
+29. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
     de la copia local vigente del ranking, **When** el sistema la valida, **Then** la rechaza con
     el motivo "top 3 ganadores/perdedores" (AC-06, AC-07).
-28. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
+30. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
     alerta, **Then** el sistema la rechaza con el motivo "ranking no disponible" (AC-25).
-29. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
+31. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
     actualiza la copia local del ranking desde la fuente pública de producción sin enviar
     credenciales (AC-30).
-30. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
+32. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
     de TRADING con el mayor porcentaje de cambio, **When** el sistema arma el ranking, **Then** ese
     contrato queda excluido y el top 3 sale de ordenar el resto por porcentaje de cambio (AC-38).
 
@@ -416,6 +428,10 @@ key de producción en Binance.
 - **Dos alertas casi simultáneas**: se procesan de a una en orden de llegada (FR-061).
 - **Reenvío de una alerta con TP calculado por indicadores**: el hash usa el texto del objetivo,
   no el TP calculado, así que se detecta como duplicado (FR-006).
+- **Reenvío de una alerta rechazada**: no es duplicado; se evalúa de nuevo, así una señal
+  rechazada por un problema del sistema (ranking o velas no disponibles) no se pierde (FR-007).
+- **La misma operación escrita con el ticker con y sin el prefijo 1000** ("PEPE 0.002404" y
+  "1000PEPE 2.404"): mismo hash, el segundo es duplicado (FR-006).
 - **El operador cancela a mano el SL o el TP de una posición abierta**: solo se registra un evento
   crítico; la posición no se toca y el SL/TP no se recoloca (FR-038).
 - **Mensajes que llegan mientras WhatsApp está desconectado o el proceso está caído**: se ignoran
@@ -459,12 +475,15 @@ key de producción en Binance.
   faltando, rechazar la alerta con el motivo "incompleta" (FR-005).
 - **FR-006** (RF-11): El sistema MUST asignar a cada alerta procesada (cargada o rechazada) un
   identificador único persistente, formado por el ID del mensaje de WhatsApp y un hash de
-  (ticker, Entrada, SL, TP). El hash se calcula sobre los valores crudos de la alerta, antes del
-  mapeo de símbolo y del ajuste de precios: ticker, Entrada y SL tal como vienen, y como TP el
-  precio numérico del objetivo o, si no trae precio, el texto del objetivo.
+  (símbolo, Entrada, SL, TP) calculado después del mapeo del ticker (FR-009) y del ajuste al
+  tickSize (FR-011): símbolo mapeado, Entrada y SL ajustados, y como TP el precio del objetivo
+  ajustado o, si no trae precio, el texto del objetivo. Si la alerta se rechaza antes de poder
+  mapearla (incompleta o ticker inexistente), el hash se calcula con los valores tal como vienen
+  (ticker, Entrada, SL y precio o texto del objetivo).
 - **FR-007** (RF-29): El sistema MUST rechazar como duplicado, sin operarla, una alerta cuyo ID de
-  mensaje coincida con el de cualquier alerta ya registrada, o cuyo hash de (ticker, Entrada, SL,
-  TP) coincida con el de una alerta registrada en las últimas 24 h.
+  mensaje coincida con el de cualquier alerta ya registrada, o cuyo hash (FR-006) coincida con el de
+  una alerta no rechazada registrada en las últimas 24 h. Una alerta rechazada no bloquea su
+  reenvío: el reenvío se evalúa de nuevo.
 - **FR-057** (Clarificación 2026-10-27): El sistema MUST procesar solo los mensajes que llegan
   mientras la conexión con WhatsApp está activa; los mensajes enviados al grupo durante una
   desconexión o una caída del proceso MUST NOT procesarse ni loguearse al reconectar o reiniciar.
@@ -513,7 +532,7 @@ key de producción en Binance.
 
 - **FR-020** (RF-38): El sistema MUST evaluar las validaciones en este orden y registrar como
   motivo solo la primera que falle: remitente no autorizado, duplicado (ID de WhatsApp),
-  incompleta, duplicado (hash), ticker inexistente, SL igual a la Entrada, SL fuera de rango,
+  incompleta, ticker inexistente, duplicado (hash), SL igual a la Entrada, SL fuera de rango,
   datos de mercado no disponibles (velas para el TP), TP inválido, ranking no disponible, top 3
   ganadores/perdedores, bajo mínimo, datos de mercado no disponibles (balance), excede máximos,
   símbolo ya en operación, límite de posiciones, límite de capital.

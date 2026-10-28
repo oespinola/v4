@@ -65,7 +65,7 @@ Sin violaciones. Gate superado.
 | Principio | Cumple | Revisión del diseño |
 |---|---|---|
 | I | ✓ | `contracts/ports.md` fija `FieldExtractor` como única entrada a la IA; timeout y "nunca lanza" están en el contrato. |
-| II | ✓ | `data-model.md`: el hash usa valores crudos; `tpSource` registra si el TP vino de la alerta o se calculó. |
+| II | ✓ | `data-model.md`: el hash usa el símbolo mapeado y los precios ajustados (crudos si se rechaza antes del mapeo); `tpSource` registra si el TP vino de la alerta o se calculó. |
 | III | ✓ | SL/TP con `closePosition` cubren ejecuciones posteriores sin recalcular (R-06). Tras `/speckit-analyze`: la reconciliación protege operaciones que quedaron con ejecución y sin SL/TP confirmados (FR-065), y un cierre de emergencia en curso impide la salida por 10 fallos (FR-055). Camino de falla con test de integración obligatorio (Revisión y cumplimiento de la constitución). Riesgo abierto: soporte de órdenes condicionales en la versión de CCXT, cubierto por un test contra Demo antes de LIVE. |
 | IV | ✓ | Puerto `Clock` inyectable para testear plazos (3 min, 24 h, 120 s) sin esperar. |
 | V | ✓ | `contracts/cli.md` lista todas las variables; salida 78 sin conectar si falta alguna. Riesgo abierto: perfil de Chromium descomprimido mientras corre (R-03); AC-29 se valida con el proceso detenido y es requisito antes de LIVE. |
@@ -97,7 +97,7 @@ src/
 │   ├── filter.ts           # FR-001, FR-002
 │   ├── parser.ts           # FR-003 (regex)
 │   ├── extract.ts          # regex → FieldExtractor, "incompleta" (FR-004, FR-005, FR-059)
-│   ├── identity.ts         # alertId y hash crudo (FR-006, FR-007)
+│   ├── identity.ts         # alertId y hash (FR-006, FR-007)
 │   ├── symbols.ts          # mapeo ×1000, tickSize (FR-009 a FR-011)
 │   ├── candles.ts          # velas de 15 min → 45 min alineadas a 00:00 UTC (FR-015)
 │   ├── indicators.ts       # EMA, WMA, ASL21/EMA55 (FR-015, FR-016)

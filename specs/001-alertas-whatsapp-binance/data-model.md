@@ -22,7 +22,7 @@ Si `text` no contiene "alerta de trading" (sin mayúsculas ni tildes) se descart
 |---|---|---|
 | alertId | string, PK | `<waMessageId>:<hash 16 hex>` (FR-006) |
 | waMessageId | string, único | duplicado por ID (FR-007) |
-| contentHash | string, indexado | hash de valores crudos: ticker, Entrada, SL y TP numérico o texto del objetivo (FR-006) |
+| contentHash | string, indexado | hash de símbolo mapeado, Entrada y SL ajustados y TP ajustado o texto del objetivo; con los valores crudos si se rechaza antes del mapeo (FR-006). Solo las alertas no rechazadas bloquean un reenvío (FR-007) |
 | receivedAt, classifiedAt | instantes | |
 | mode | `DRY` \| `LIVE` | |
 | sender | string | |
