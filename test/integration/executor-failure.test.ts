@@ -8,7 +8,7 @@ describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', () 
   let t: ReturnType<typeof setupExecutor>;
   afterEach(() => t.cleanup());
 
-  it.fails('SL rechazado con la entrada ejecutada: cierre a mercado en < 5 s y evento crítico (AC-16)', async () => {
+  it('SL rechazado con la entrada ejecutada: cierre a mercado en < 5 s y evento crítico (AC-16)', async () => {
     let slAt = 0;
     let closeAt = 0;
     t = setupExecutor({
@@ -29,6 +29,7 @@ describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', () 
     expect(t.exchange.callsTo('placeTakeProfit')).toHaveLength(0);
     // El resto de la entrada se cancela antes de cerrar, para que no vuelva a abrir posición.
     const order = t.exchange.calls.map((c) => c.method);
+    expect(t.exchange.callsTo('cancel')[0]?.args).toEqual([{ symbol: 'KAIAUSDT', id: 'E1' }]);
     expect(order.indexOf('cancel')).toBeLessThan(order.indexOf('closeAtMarket'));
     expect(t.store.getTrade(ALERT.alertId)?.state).toBe('cerrada');
     expect(t.logLines()).toEqual([
@@ -37,7 +38,7 @@ describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', () 
     ]);
   });
 
-  it.fails('TP rechazado tras aceptar el SL: cierra a mercado y después cancela el SL que quedó', async () => {
+  it('TP rechazado tras aceptar el SL: cierra a mercado y después cancela el SL que quedó', async () => {
     t = setupExecutor({ placeTakeProfit: reject('-4130 ya hay una orden closePosition') });
     await t.executor.open(ALERT, SIZED);
     t.fill(SIZED.quantity);
@@ -49,7 +50,7 @@ describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', () 
     expect(t.store.getAlert(ALERT.alertId)?.status).toBe('cerrada por emergencia');
   });
 
-  it.fails('si el cierre a mercado falla, reintenta con backoff sin parar en el 10.º fallo hasta cerrar (FR-030, AC-74)', async () => {
+  it('si el cierre a mercado falla, reintenta con backoff sin parar en el 10.º fallo hasta cerrar (FR-030, AC-74)', async () => {
     let failures = 12;
     const attempts: number[] = [];
     t = setupExecutor({
@@ -74,7 +75,7 @@ describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', () 
     expect(t.store.getAlert(ALERT.alertId)?.status).toBe('cerrada por emergencia');
   });
 
-  it.fails('nunca deja una operación "abierta" ni "completa" sin SL y TP aceptados', async () => {
+  it('nunca deja una operación "abierta" ni "completa" sin SL y TP aceptados', async () => {
     for (const impl of [{ placeStopLoss: reject('x') }, { placeTakeProfit: reject('x') }]) {
       t = setupExecutor(impl);
       const states: string[] = [];

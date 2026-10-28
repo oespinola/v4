@@ -6,7 +6,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
   let t: ReturnType<typeof setupExecutor>;
   afterEach(() => t.cleanup());
 
-  it.fails('prepara margen aislado y apalancamiento y coloca la entrada LIMIT al precio E (AC-43, FR-060)', async () => {
+  it('prepara margen aislado y apalancamiento y coloca la entrada LIMIT al precio E (AC-43, FR-060)', async () => {
     t = setupExecutor();
     const trade = await t.executor.open(ALERT, SIZED);
     expect(t.exchange.calls.map((c) => c.method)).toEqual(['prepareSymbol', 'placeLimitEntry']);
@@ -17,7 +17,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.store.getAlert(ALERT.alertId)?.status).toBe('entrada pendiente');
   });
 
-  it.fails('sin ejecución no envía SL ni TP (AC-44)', async () => {
+  it('sin ejecución no envía SL ni TP (AC-44)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     await t.clock.advance(POLL_MS * 10);
@@ -26,7 +26,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.exchange.callsTo('placeTakeProfit')).toHaveLength(0);
   });
 
-  it.fails('al primer fill guarda con_ejecución antes de pedir el SL (FR-065)', async () => {
+  it('al primer fill guarda con_ejecución antes de pedir el SL (FR-065)', async () => {
     const seen: (string | undefined)[] = [];
     t = setupExecutor({
       placeStopLoss: async () => {
@@ -40,7 +40,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(seen).toEqual(['con_ejecución']);
   });
 
-  it.fails('con un fill parcial coloca SL y TP del lado de la posición (AC-55)', async () => {
+  it('con un fill parcial coloca SL y TP del lado de la posición (AC-55)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.fill(1000);
@@ -49,7 +49,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.exchange.callsTo('placeTakeProfit')[0]?.args).toEqual(['KAIAUSDT', 'SHORT', 0.038]);
   });
 
-  it.fails('queda "completa" solo con SL y TP aceptados (AC-15)', async () => {
+  it('queda "completa" solo con SL y TP aceptados (AC-15)', async () => {
     let acceptTp: (() => void) | null = null;
     t = setupExecutor({
       placeTakeProfit: () =>
@@ -71,7 +71,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     ]);
   });
 
-  it.fails('sin ejecución a los 3 min cancela, no coloca SL/TP y queda "entrada no ejecutada" (AC-23)', async () => {
+  it('sin ejecución a los 3 min cancela, no coloca SL/TP y queda "entrada no ejecutada" (AC-23)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     await t.clock.advance(ENTRY_TIMEOUT_MS);
@@ -85,7 +85,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.exchange.callsTo('cancel')).toHaveLength(1);
   });
 
-  it.fails('si la entrada no se puede colocar, queda "entrada no ejecutada" sin operación (AC-23)', async () => {
+  it('si la entrada no se puede colocar, queda "entrada no ejecutada" sin operación (AC-23)', async () => {
     t = setupExecutor({ placeLimitEntry: async () => Promise.reject(new Error('-2019 margen insuficiente')) });
     expect(await t.executor.open(ALERT, SIZED)).toBeNull();
     expect(t.store.getTrade(ALERT.alertId)).toBeUndefined();
@@ -93,7 +93,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada', quantity: null })]);
   });
 
-  it.fails('si la entrada se ejecuta justo al cancelarla, igual la protege (Principio III)', async () => {
+  it('si la entrada se ejecuta justo al cancelarla, igual la protege (Principio III)', async () => {
     t = setupExecutor();
     t.exchange.impl.cancel = async () => {
       t.fill(500); // el fill llegó antes que la cancelación
@@ -107,7 +107,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.logLines()).toEqual([expect.objectContaining({ status: 'completa' })]);
   });
 
-  it.fails('con ejecución parcial a los 3 min cancela el resto y mantiene SL y TP (AC-45)', async () => {
+  it('con ejecución parcial a los 3 min cancela el resto y mantiene SL y TP (AC-45)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.fill(1000);
@@ -118,7 +118,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.exchange.callsTo('closeAtMarket')).toHaveLength(0);
   });
 
-  it.fails('ejecuciones posteriores al SL/TP solo actualizan la cantidad: no recoloca SL ni TP', async () => {
+  it('ejecuciones posteriores al SL/TP solo actualizan la cantidad: no recoloca SL ni TP', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.fill(1000);
@@ -130,7 +130,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.logLines().filter((l) => l.status === 'completa')).toHaveLength(1);
   });
 
-  it.fails('una entrada cancelada o rechazada por Binance sin ejecución queda "entrada no ejecutada"', async () => {
+  it('una entrada cancelada o rechazada por Binance sin ejecución queda "entrada no ejecutada"', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.entry.status = 'rejected';
@@ -139,7 +139,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada' })]);
   });
 
-  it.fails('si consultar la orden falla, sigue intentando en el próximo ciclo', async () => {
+  it('si consultar la orden falla, sigue intentando en el próximo ciclo', async () => {
     t = setupExecutor();
     const realOrder = t.exchange.impl.order!;
     let fails = 2;
