@@ -71,7 +71,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T025 [P] [US1] Escribir tests de la extracción (AC-14, AC-21, FR-059): con texto completo no llama al extractor; con faltantes pide solo esos campos; lo del regex manda; extractor que falla o no completa → "incompleta" — en `it.fails` — en test/unit/extract.test.ts
 - [X] T026 [US1] Implementar la orquestación regex → `FieldExtractor` y pasar T025 a `it` en src/domain/extract.ts
 - [X] T027 [P] [US1] Escribir tests de identidad (FR-006): `alertId = <waMessageId>:<hash 16 hex>`; hash sobre valores crudos; con objetivo sin precio entra el texto del objetivo — en `it.fails` — en test/unit/identity.test.ts
-- [ ] T028 [US1] Implementar identidad y hash y pasar T027 a `it` en src/domain/identity.ts
+- [X] T028 [US1] Implementar identidad y hash y pasar T027 a `it` en src/domain/identity.ts
 
 ### Símbolo, precios y TP
 
