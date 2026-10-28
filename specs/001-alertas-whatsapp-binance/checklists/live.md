@@ -42,10 +42,17 @@ autorizado (el operador) y sin `ANTHROPIC_API_KEY` (alertas con todo el texto, s
 - [ ] CHK009 Sección 5, cierre por SL con la app detenida y reconciliación al arrancar (AC-63).
   Resultado: _pendiente_. Con `RISK_R_USDT=10` y `MAX_POSITION_USDT=1000` el SL tiene que quedar a
   ≥ 1 % de la entrada; para la prueba se baja `RISK_R_USDT` a 2 (SL a ~0.2 %) y se restituye después.
-- [ ] CHK010 Sección 6: cortes de red (AC-47) y `kill -9` del proceso de la app, no del supervisor,
-  con relanzamiento e ingesta en < 60 s (AC-31) y sesión cifrada después de ese `kill -9` (AC-29).
-  Resultado: _pendiente_.
-- [ ] CHK011 Sección 7: `pnpm latency` y gitleaks sobre la corrida. Resultado: _pendiente_.
+- [ ] CHK010 Sección 6, cortes de red con esperas 1 s, 2 s, 4 s… (AC-47). Resultado: _pendiente_.
+- [x] CHK012 Sección 6, `kill -9` del proceso de la app (no del supervisor) a las 12:54:57.6 UTC: el
+  supervisor la relanza en 1 s y vuelve a escuchar el grupo a los 54.3 s; un mensaje enviado después
+  se clasifica (`rechazada`/`incompleta`) (AC-31). De esos 54.3 s, 40 s son de la reconciliación.
+- [ ] CHK013 Sección 6, sesión después del `kill -9` (AC-29): la sesión cifrada sigue en `0600` y el
+  perfil de trabajo en claro se rearma al arrancar. Resultado: _pendiente_: en `.wwebjs_auth/` queda
+  una carpeta `session` en claro de una corrida anterior (LocalAuth), que la app actual no usa.
+- [ ] CHK011 Sección 7: gitleaks sobre todo el historial, 0 hallazgos en 103 commits (AC-27).
+  `pnpm latency` dentro de los límites pero con lotes incompletos: clasificación solo texto p95 0.02 s
+  (n=7/20), entrada aceptada solo texto p95 2.68 s (n=3/20), con imagen sin muestras (falta
+  `ANTHROPIC_API_KEY`) (SC-001, SC-002). Resultado: _pendiente de completar los lotes en el período DRY_.
 
 Observaciones:
 - La cancelación por entrada no ejecutada y el evento `critical` "SL/TP perdido" quedan en
@@ -54,3 +61,4 @@ Observaciones:
   registrarse (src/domain/tracker.ts:101); AC-60 se confirmó mirando Demo, no el log.
 - En la base queda una alerta de una corrida anterior (~9 h antes) en `válida` sin trade asociado:
   revisar por qué no avanzó.
+- La reconciliación al arrancar tarda ~40 s y deja poco margen para AC-31 (< 60 s).
