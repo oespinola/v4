@@ -72,7 +72,7 @@ describe('pipeline de validación (US1)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ type: 'alert', status: 'rechazada', reason: 'remitente no autorizado' })]);
   });
 
-  it.fails('sin key de IA, una alerta con el texto incompleto se rechaza como "incompleta" (AC-76)', async () => {
+  it('sin key de IA, una alerta con el texto incompleto se rechaza como "incompleta" (AC-76)', async () => {
     const withoutIa = new Pipeline({
       store,
       clock,

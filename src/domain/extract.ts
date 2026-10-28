@@ -1,6 +1,7 @@
 // Extracción regex → IA (FR-003 a FR-005, FR-059). El regex manda; la IA solo completa lo que
 // falta, y solo entonces se descarga la imagen. Si la IA falla o no completa, la alerta queda
-// incompleta (Principio II: ante la duda, no se inventa).
+// incompleta (Principio II: ante la duda, no se inventa). Sin extractor (sin key de IA, FR-004)
+// no se analiza la imagen: lo que falte en el texto queda faltante.
 import type { FieldExtractor } from '../ports.ts';
 import { missingFields, parseText } from './parser.ts';
 import type { Field, RawFields } from './types.ts';
@@ -18,7 +19,7 @@ export async function extractFields(m: ExtractSource, extractor: FieldExtractor 
   const fromText = parseText(m.text);
   let missing = missingFields(fromText);
   if (missing.length === 0) return { complete: true, fields: fromText as RawFields };
-  if (extractor === null) throw new Error('no implementado');
+  if (extractor === null) return { complete: false, partial: fromText, missing };
 
   const image = await m.downloadImage().catch(() => null);
   const fromIa = await extractor.extract({ text: m.text, image, missing }).catch(() => ({}));

@@ -89,7 +89,7 @@ export function parseConfig(env: Env): ConfigResult {
   // Cada modo lee sus propias credenciales de Binance (FR-052).
   const prefix = mode === 'LIVE' ? 'BINANCE_LIVE' : 'BINANCE_DEMO';
 
-  const anthropicApiKey = read(env, 'ANTHROPIC_API_KEY', requiredText, errors);
+  const anthropicApiKey = env.ANTHROPIC_API_KEY?.trim() || null;
   const whatsappSessionKey = read(env, 'WHATSAPP_SESSION_KEY', sessionKey, errors);
   const whatsappGroupName = read(env, 'WHATSAPP_GROUP_NAME', requiredText, errors);
   const authorizedSenders = read(env, 'AUTHORIZED_SENDERS', senders, errors);
@@ -135,8 +135,10 @@ export function loadDotEnv(path = '.env'): void {
 }
 
 /** Avisos que no impiden arrancar (FR-004). */
-export function startupWarnings(_config: Config): string[] {
-  throw new Error('no implementado');
+export function startupWarnings(config: Config): string[] {
+  return config.anthropicApiKey === null
+    ? ['Sin ANTHROPIC_API_KEY: el análisis de imagen está apagado; una alerta con el texto incompleto se rechaza como "incompleta".']
+    : [];
 }
 
 /** Texto para la consola con todo lo que falta o es inválido. */

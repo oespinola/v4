@@ -7,7 +7,7 @@ import { ClaudeExtractor } from './adapters/claude-extractor.ts';
 import { SystemClock } from './adapters/clock.ts';
 import { Store } from './adapters/store.ts';
 import { WhatsAppSource } from './adapters/whatsapp.ts';
-import { CONFIG_EXIT_CODE, formatConfigErrors, loadDotEnv, parseConfig } from './config.ts';
+import { CONFIG_EXIT_CODE, formatConfigErrors, loadDotEnv, parseConfig, startupWarnings } from './config.ts';
 import { Pipeline, type ProcessOutcome } from './pipeline.ts';
 import { SerialQueue } from './queue.ts';
 
@@ -29,6 +29,7 @@ async function main(): Promise<void> {
   const clock = new SystemClock();
   const log = (line: string) => console.log(`[${clock.now().toISOString()}] ${line}`);
   log(`SignalBridge en modo ${config.mode}`);
+  for (const warning of startupWarnings(config)) log(`Aviso: ${warning}`);
 
   const store = Store.open(config.dataDir, clock);
   const market = new BinancePublicMarketData({
@@ -42,7 +43,7 @@ async function main(): Promise<void> {
     clock,
     mode: config.mode,
     authorizedSenders: config.authorizedSenders,
-    extractor: new ClaudeExtractor({ apiKey: config.anthropicApiKey ?? undefined }),
+    extractor: config.anthropicApiKey ? new ClaudeExtractor({ apiKey: config.anthropicApiKey }) : null,
     market,
     maxSlDistancePct: config.maxSlDistancePct,
   });

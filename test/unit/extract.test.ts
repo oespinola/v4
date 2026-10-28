@@ -57,7 +57,7 @@ describe('extracción regex → IA (FR-003 a FR-005, FR-059)', () => {
     expect(r).toMatchObject({ complete: false, missing: ['sl'] });
   });
 
-  it.fails('sin extractor (sin key de IA) queda incompleta sin descargar la imagen (AC-76)', async () => {
+  it('sin extractor (sin key de IA) queda incompleta sin descargar la imagen (AC-76)', async () => {
     const m = msg(noSl);
     const r = await extractFields(m, null);
     expect(r).toMatchObject({ complete: false, missing: ['sl'] });

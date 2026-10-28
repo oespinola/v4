@@ -116,7 +116,7 @@ describe('config (FR-058, FR-062, FR-052, FR-004)', () => {
     expect(errs).toEqual(expect.arrayContaining(required));
   });
 
-  it.fails('sin ANTHROPIC_API_KEY la configuración es válida, con la key en null (AC-75)', () => {
+  it('sin ANTHROPIC_API_KEY la configuración es válida, con la key en null (AC-75)', () => {
     for (const value of [undefined, '  ']) {
       const r = parseConfig(dryEnv({ ANTHROPIC_API_KEY: value }));
       expect(r.ok).toBe(true);
@@ -124,7 +124,7 @@ describe('config (FR-058, FR-062, FR-052, FR-004)', () => {
     }
   });
 
-  it.fails('sin key de IA avisa al arrancar que el análisis de imagen está apagado (AC-75)', () => {
+  it('sin key de IA avisa al arrancar que el análisis de imagen está apagado (AC-75)', () => {
     const without = parseConfig(dryEnv({ ANTHROPIC_API_KEY: undefined }));
     const withKey = parseConfig(dryEnv());
     if (!without.ok || !withKey.ok) throw new Error('config inválida');
