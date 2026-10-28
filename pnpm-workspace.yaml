@@ -1,0 +1,6 @@
+allowBuilds:
+  esbuild: true
+  puppeteer: true
+  # Solo imprimen avisos al instalar; no hacen falta para usar CCXT.
+  ccxt: false
+  bufferutil: false

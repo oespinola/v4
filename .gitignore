@@ -1,0 +1,18 @@
+node_modules/
+*.log
+
+# Credenciales (RNF-02, FR-053)
+.env
+.env.*
+!.env.example
+
+# Sesión de WhatsApp (RNF-03, FR-049)
+.wwebjs_auth/
+.wwebjs_cache/
+session/
+
+# Log y base local de alertas (RNF-10, FR-046)
+data/
+
+# Capturas de alertas reales: datos de terceros, no se suben al repo.
+AlertsSamples/
