@@ -13,7 +13,7 @@ const chrome = (pid: number, dir: string, extra = ''): ProcessInfo => ({
 });
 
 describe('Chromium huérfano (FR-056, AC-31)', () => {
-  it.fails('solo el proceso principal con exactamente la carpeta de sesión de la app', () => {
+  it('solo el proceso principal con exactamente la carpeta de sesión de la app', () => {
     const processes = [
       chrome(10, SESSION),
       { pid: 11, pgid: 10, args: `${chrome(10, SESSION).args} --type=renderer` }, // hijo de 10
@@ -46,7 +46,7 @@ describe('Chromium huérfano (FR-056, AC-31)', () => {
     };
   };
 
-  it.fails('AC-31: cierra el huérfano con SIGTERM a su grupo y después borra el lock', async () => {
+  it('AC-31: cierra el huérfano con SIGTERM a su grupo y después borra el lock', async () => {
     const { deps, seen } = fake({ diesAfter: 'SIGTERM' });
     await cleanupChromium(deps);
     expect(seen.kills).toEqual(['SIGTERM -10']);
@@ -54,14 +54,14 @@ describe('Chromium huérfano (FR-056, AC-31)', () => {
     expect(seen.logs).toEqual(['Chromium 10 seguía abierto con la sesión de WhatsApp: cerrado.']);
   });
 
-  it.fails('AC-31: si no se cierra en el plazo, SIGKILL', async () => {
+  it('AC-31: si no se cierra en el plazo, SIGKILL', async () => {
     const { deps, seen } = fake({ diesAfter: null });
     await cleanupChromium(deps);
     expect(seen.kills).toEqual(['SIGTERM -10', 'SIGKILL -10']);
     expect(seen.removed).toBe(true);
   });
 
-  it.fails('AC-31: el lock se borra solo si su proceso ya no existe', async () => {
+  it('AC-31: el lock se borra solo si su proceso ya no existe', async () => {
     const alive = { deps: { ...fake({ diesAfter: 'SIGTERM', lock: 99 }).deps, listProcesses: () => [], isAlive: () => true } };
     let removed = false;
     await cleanupChromium({ ...alive.deps, removeLock: () => void (removed = true) });
@@ -72,7 +72,7 @@ describe('Chromium huérfano (FR-056, AC-31)', () => {
     expect(gone.seen.removed).toBe(true);
   });
 
-  it.fails('sin huérfano ni lock no hace nada', async () => {
+  it('sin huérfano ni lock no hace nada', async () => {
     const { deps, seen } = fake({ diesAfter: 'SIGTERM', lock: undefined });
     await cleanupChromium({ ...deps, listProcesses: () => [], lockPid: () => undefined });
     expect(seen).toMatchObject({ kills: [], removed: false, logs: [] });
@@ -83,7 +83,7 @@ describe('Chromium huérfano con procesos reales (FR-056, AC-31)', { timeout: 20
   let dir: string;
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
-  it.fails('cierra un proceso suelto con esa carpeta de sesión, deja otro con otra carpeta y borra el lock', async () => {
+  it('cierra un proceso suelto con esa carpeta de sesión, deja otro con otra carpeta y borra el lock', async () => {
     dir = mkdtempSync(path.join(tmpdir(), 'signalbridge-chromium-'));
     const session = path.join(dir, 'session');
     mkdirSync(session);
