@@ -46,7 +46,7 @@ function fakeFetch(fail: { value: boolean } = { value: false }) {
 }
 
 describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
-  it.fails('arma la copia de símbolos con sus filtros como números', async () => {
+  it('arma la copia de símbolos con sus filtros como números', async () => {
     const f = fakeFetch();
     const md = new BinancePublicMarketData({ clock: new FakeClock(), fetch: f.fn });
     await md.refresh();
@@ -62,7 +62,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(md.symbol('NADAUSDT')).toBeUndefined();
   });
 
-  it.fails('arma el ranking solo con perpetuos en TRADING y lo fecha con el reloj', async () => {
+  it('arma el ranking solo con perpetuos en TRADING y lo fecha con el reloj', async () => {
     const clock = new FakeClock('2026-10-28T12:00:00Z');
     const md = new BinancePublicMarketData({ clock, fetch: fakeFetch().fn });
     await md.refresh();
@@ -70,7 +70,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(md.ranking()?.gainers).not.toContain('XUSDT');
   });
 
-  it.fails('consulta producción sin credenciales (AC-30)', async () => {
+  it('consulta producción sin credenciales (AC-30)', async () => {
     const f = fakeFetch();
     const md = new BinancePublicMarketData({ clock: new FakeClock(), fetch: f.fn });
     await md.refresh();
@@ -84,14 +84,14 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     }
   });
 
-  it.fails('pide 1500 velas de 15 min y devuelve los cierres de 45 min', async () => {
+  it('pide 1500 velas de 15 min y devuelve los cierres de 45 min', async () => {
     const f = fakeFetch();
     const md = new BinancePublicMarketData({ clock: new FakeClock(), fetch: f.fn });
     expect(await md.closes45m('KAIAUSDT')).toEqual([3, 6]);
     expect(f.calls[0]?.url).toContain('/fapi/v1/klines?symbol=KAIAUSDT&interval=15m&limit=1500');
   });
 
-  it.fails('refresca cada 60 s (AC-30)', async () => {
+  it('refresca cada 60 s (AC-30)', async () => {
     const clock = new FakeClock();
     const f = fakeFetch();
     const md = new BinancePublicMarketData({ clock, fetch: f.fn });
@@ -102,7 +102,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     md.stop();
   });
 
-  it.fails('si un refresco falla conserva la copia anterior y lo informa', async () => {
+  it('si un refresco falla conserva la copia anterior y lo informa', async () => {
     const clock = new FakeClock('2026-10-28T12:00:00Z');
     const fail = { value: false };
     const errors: unknown[] = [];
@@ -116,7 +116,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it.fails('closes45m rechaza si Binance falla (la validación lo traduce, FR-064)', async () => {
+  it('closes45m rechaza si Binance falla (la validación lo traduce, FR-064)', async () => {
     const md = new BinancePublicMarketData({ clock: new FakeClock(), fetch: fakeFetch({ value: true }).fn });
     await expect(md.closes45m('KAIAUSDT')).rejects.toThrow(/HTTP 503/);
   });
