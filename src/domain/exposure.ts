@@ -16,6 +16,9 @@ export interface ExposureInput {
 
 export type ExposureReason = Extract<RejectReason, 'símbolo ya en operación' | 'límite de posiciones' | 'límite de capital'>;
 
-export function checkExposure(_input: ExposureInput): ExposureReason | null {
-  throw new Error('no implementado');
+export function checkExposure(input: ExposureInput): ExposureReason | null {
+  if (input.symbolActive) return 'símbolo ya en operación';
+  if (input.current.positions + 1 > input.maxPositions) return 'límite de posiciones';
+  if (input.current.notional + input.notional > input.maxCapitalUsdt) return 'límite de capital';
+  return null;
 }
