@@ -79,7 +79,8 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   Entrada.
 - RF-38: El sistema debe evaluar las validaciones en este orden y registrar como
   motivo de rechazo solo la primera que falle: remitente no autorizado, duplicado (ID
-  de WhatsApp), incompleta, ticker inexistente, duplicado (hash), SL igual a la
+  de WhatsApp), incompleta, ticker inexistente, no disponible en Demo (solo DRY,
+  RF-55), duplicado (hash), SL igual a la
   Entrada, SL fuera de rango, datos de mercado no disponibles (velas para el TP), TP
   inválido, ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, datos de
   mercado no disponibles (balance), excede máximos, símbolo ya en operación, límite de

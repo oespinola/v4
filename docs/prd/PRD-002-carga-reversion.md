@@ -48,6 +48,13 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
   emergencia de RF-18.
 - RF-51: El sistema debe rechazar con el motivo "símbolo ya en operación" una alerta
   válida cuyo símbolo ya tenga una entrada pendiente o una posición abierta.
+- RF-54: En DRY, el sistema debe tomar el tickSize, el stepSize, la cantidad mínima y
+  el nocional mínimo de cada símbolo desde la información pública de símbolos de
+  Binance Demo (sin credenciales), refrescada cada 60 s, en lugar de la de producción;
+  el ranking (RF-23) y las velas (RF-24) se siguen leyendo de producción. En LIVE
+  todo sale de producción.
+- RF-55: En DRY, el sistema debe rechazar una alerta cuyo símbolo (RF-31) no sea un
+  perpetuo en estado TRADING en Binance Demo, con el motivo "no disponible en Demo".
 
 ## Requerimientos No Funcionales
 - RNF-09: El tiempo desde que el mensaje llega al sistema hasta que la orden límite de
@@ -104,6 +111,15 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
 - AC-72 (RF-52): Dada una alerta válida, cuando falla la consulta del balance de la
   cuenta para el control de apalancamiento, entonces el sistema la rechaza y loguea el
   motivo "datos de mercado no disponibles".
+- AC-79 (RF-54, RF-37): Dado el sistema en DRY y BERAUSDT con tickSize 0.0001 en
+  producción y 0.001 en Demo, cuando llega una alerta SHORT con Entrada 0.2299, SL
+  0.2337 y TP 0.2246, entonces las órdenes se cargan con Entrada 0.230, SL 0.234 y TP
+  0.225.
+- AC-80 (RF-55): Dado el sistema en DRY y un símbolo que existe en producción pero no
+  en Binance Demo, cuando llega una alerta de ese símbolo, entonces la rechaza y loguea
+  el motivo "no disponible en Demo".
+- AC-81 (RF-54): Dado el sistema en LIVE, cuando valida una alerta, entonces usa el
+  tickSize y el stepSize de producción y no consulta Binance Demo.
 
 ## Fuera de Alcance
 - Recolocar una entrada que venció sin ejecutarse (RF-19).
@@ -121,6 +137,11 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
   sin control aunque cada operación individual esté acotada (RF-15) → mitigación:
   límite configurable de posiciones simultáneas (RF-12) y de capital total
   comprometido (RF-20), contando también las entradas pendientes.
+- Riesgo: Binance Demo no tiene todos los símbolos de producción y algunos tienen otro
+  tickSize, así que una orden armada con los filtros de producción puede ser rechazada
+  en Demo → mitigación: reglas de órdenes de Demo (RF-54) y motivo propio para los
+  símbolos que no están (RF-55), para que el período DRY no cuente esas fallas como
+  fallas del sistema. En DRY los precios pueden quedar más redondeados que en LIVE.
 - Dependencias:
   - [PRD-001](PRD-001-ingesta-validacion.md): alerta válida con símbolo y precios
     ajustados.

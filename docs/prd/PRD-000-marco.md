@@ -112,7 +112,7 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   Entrada, SL fuera de rango, top 3 ganadores/perdedores, ranking no disponible,
   excede máximos, bajo mínimo, ticker inexistente, límite de posiciones, límite de
   capital, remitente no autorizado, duplicado, símbolo ya en operación, datos de mercado
-  no disponibles.
+  no disponibles, no disponible en Demo (solo DRY).
 - AC-10 (RF-06): Dado que no hay una sesión de WhatsApp guardada, cuando se arranca el
   sistema, entonces muestra un código QR para vincular la cuenta.
 - AC-11 (RF-07, RF-25): Dado el sistema arrancado con `pnpm dev`, cuando llega una
