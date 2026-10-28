@@ -189,7 +189,7 @@ export class FakeExchange implements Exchange {
   order: Exchange['order'] = (...a) => this.call('order', a);
   openOrders: Exchange['openOrders'] = (...a) => this.call('openOrders', a);
   openPositions: Exchange['openPositions'] = (...a) => this.call('openPositions', a);
-  closingFills: Exchange['closingFills'] = (...a) => this.call('closingFills', a);
+  closeOf: Exchange['closeOf'] = (...a) => this.call('closeOf', a);
 }
 
 // ── WhatsApp ──────────────────────────────────────────────────────────────────

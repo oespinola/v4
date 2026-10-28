@@ -1,7 +1,7 @@
 // Puertos entre el dominio y los adaptadores (contracts/ports.md). El dominio solo conoce estas
 // interfaces; cada una tiene un adaptador real en src/adapters y un fake en test/fakes
 // (Principio I y IV).
-import type { Field, RawFields, Side, SymbolFilters } from './domain/types.ts';
+import type { CloseCause, Field, RawFields, Side, SymbolFilters } from './domain/types.ts';
 
 // ── IA ────────────────────────────────────────────────────────────────────────
 
@@ -69,12 +69,24 @@ export interface PositionState {
   quantity: number;
 }
 
-export interface ClosingFill {
-  cause: 'TP' | 'SL' | 'liquidación' | 'otro';
-  orderId: string | null;
+/** Cierre total de la posición de una operación, según Binance (FR-033, FR-036). */
+export interface CloseInfo {
+  cause: CloseCause;
   at: Date;
+  /** PnL realizado del cierre, en USDT. */
   realizedPnl: number;
+  /** Comisiones en USDT de la entrada y del cierre. */
   fees: number;
+}
+
+/** Lo que hace falta para encontrar el cierre de una operación. */
+export interface TradeOrders {
+  symbol: string;
+  side: Side;
+  entryOrderId: string;
+  sl: OrderRef | null;
+  tp: OrderRef | null;
+  since: Date;
 }
 
 export interface Exchange {
@@ -94,7 +106,9 @@ export interface Exchange {
   /** Órdenes abiertas del símbolo (para detectar un SL/TP perdido). */
   openOrders(symbol: string): Promise<OrderRef[]>;
   openPositions(): Promise<PositionState[]>;
-  closingFills(symbol: string, since: Date): Promise<ClosingFill[]>;
+  /** Cierre de la posición de la operación; null si según Binance sigue abierta o todavía no lo
+   *  informa. */
+  closeOf(t: TradeOrders): Promise<CloseInfo | null>;
 }
 
 // ── WhatsApp ──────────────────────────────────────────────────────────────────

@@ -3,7 +3,7 @@
 // así cubren toda la posición, incluidas ejecuciones posteriores (FR-028). Demo Trading en DRY y
 // producción en LIVE los elige quien arma el cliente (FR-051).
 import ccxt from 'ccxt';
-import type { ClosingFill, Exchange, OrderRef, OrderState, OrderStatus, PositionState } from '../ports.ts';
+import type { CloseInfo, Exchange, OrderRef, OrderState, OrderStatus, PositionState, TradeOrders } from '../ports.ts';
 import type { Mode, Side } from '../domain/types.ts';
 
 /** Lo que se usa del cliente de CCXT (`binanceusdm`): sus métodos implícitos. */
@@ -220,27 +220,7 @@ export class BinanceTrading implements Exchange {
       .filter((p) => Number(p.positionAmt) !== 0)
       .map((p) => ({ symbol: p.symbol, side: sideOf(p), quantity: Math.abs(Number(p.positionAmt)) }));
 
-  /** Ejecuciones del símbolo desde `since`, agrupadas por orden, con PnL realizado y comisiones.
-   *  La causa (TP, SL, liquidación) la decide el seguimiento con los IDs de sus órdenes. */
-  closingFills = async (symbol: string, since: Date): Promise<ClosingFill[]> => {
-    const trades = await this.call<RawTrade[]>('fapiPrivateGetUserTrades', {
-      symbol,
-      startTime: since.getTime(),
-      limit: 1000,
-    });
-    const byOrder = new Map<string, ClosingFill>();
-    for (const t of trades) {
-      const id = String(t.orderId);
-      const prev = byOrder.get(id);
-      const at = new Date(Number(t.time));
-      byOrder.set(id, {
-        cause: 'otro',
-        orderId: id,
-        at: prev && prev.at > at ? prev.at : at,
-        realizedPnl: Number(((prev?.realizedPnl ?? 0) + Number(t.realizedPnl)).toFixed(8)),
-        fees: Number(((prev?.fees ?? 0) + Number(t.commission)).toFixed(8)),
-      });
-    }
-    return [...byOrder.values()];
+  closeOf = async (_t: TradeOrders): Promise<CloseInfo | null> => {
+    throw new Error('no implementado');
   };
 }

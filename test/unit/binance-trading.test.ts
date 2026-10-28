@@ -185,17 +185,49 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     ]);
   });
 
-  it('PnL realizado y comisiones desde los trades, por orden (FR-036)', async () => {
+  it.fails('el cierre de una operación sale de las ejecuciones, del SL/TP disparado y de la orden de cierre (FR-033, FR-036)', async () => {
+    const t0 = Date.parse('2026-10-28T12:00:00Z');
+    const trade = (orderId: number, side: string, qty: string, pnl: string, fee: string, dt: number) => ({
+      id: orderId * 10 + dt,
+      orderId,
+      side,
+      positionSide: 'BOTH',
+      qty,
+      realizedPnl: pnl,
+      commission: fee,
+      commissionAsset: 'USDT',
+      time: t0 + dt,
+    });
     const f = fakeClient({
       fapiPrivateGetUserTrades: () => [
-        { orderId: 333, realizedPnl: '5.1', commission: '0.05', commissionAsset: 'USDT', time: Date.parse('2026-10-28T15:00:00Z') },
-        { orderId: 333, realizedPnl: '4.06', commission: '0.04', commissionAsset: 'USDT', time: Date.parse('2026-10-28T15:00:01Z') },
+        trade(111, 'SELL', '4166', '0', '0.03', 1000),
+        trade(777, 'BUY', '4166', '9.16', '0.03', 60_000),
+      ],
+      fapiPrivateGetAlgoOrder: (p) => (p?.algoId === '901' ? { algoStatus: 'FINISHED', actualOrderId: '777' } : { algoStatus: 'CANCELED', actualOrderId: '' }),
+      fapiPrivateGetOrder: () => ({ orderId: 777, type: 'MARKET', clientOrderId: 'x' }),
+    });
+    const since = new Date(t0);
+    const close = await new BinanceTrading(f.client).closeOf({
+      symbol: 'KAIAUSDT',
+      side: 'SHORT',
+      entryOrderId: '111',
+      sl: { symbol: 'KAIAUSDT', id: '900', algo: true },
+      tp: { symbol: 'KAIAUSDT', id: '901', algo: true },
+      since,
+    });
+    expect(close).toEqual({ cause: 'TP', at: new Date(t0 + 60_000), realizedPnl: 9.16, fees: 0.06 });
+    expect(f.of('fapiPrivateGetUserTrades')[0]).toEqual({ symbol: 'KAIAUSDT', startTime: since.getTime(), limit: 1000 });
+    expect(f.of('fapiPrivateGetOrder')).toEqual([{ symbol: 'KAIAUSDT', orderId: '777' }]);
+  });
+
+  it.fails('si las ejecuciones no cierran la posición, closeOf devuelve null sin más consultas', async () => {
+    const f = fakeClient({
+      fapiPrivateGetUserTrades: () => [
+        { id: 1, orderId: 111, side: 'SELL', positionSide: 'BOTH', qty: '4166', realizedPnl: '0', commission: '0', commissionAsset: 'USDT', time: 1 },
       ],
     });
-    const since = new Date('2026-10-28T12:00:00Z');
-    expect(await new BinanceTrading(f.client).closingFills('KAIAUSDT', since)).toEqual([
-      { cause: 'otro', orderId: '333', at: new Date('2026-10-28T15:00:01Z'), realizedPnl: 9.16, fees: 0.09 },
-    ]);
-    expect(f.of('fapiPrivateGetUserTrades')[0]).toEqual({ symbol: 'KAIAUSDT', startTime: since.getTime(), limit: 1000 });
+    const r = await new BinanceTrading(f.client).closeOf({ symbol: 'KAIAUSDT', side: 'SHORT', entryOrderId: '111', sl: null, tp: null, since: new Date(0) });
+    expect(r).toBeNull();
+    expect(f.calls.map((c) => c.method)).toEqual(['fapiPrivateGetUserTrades']);
   });
 });
