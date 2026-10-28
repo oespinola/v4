@@ -224,7 +224,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 - [X] T082 [P] Escribir tests del cálculo de latencia (SC-001, SC-002, AC-46, AC-48): p95 de `classifiedMs` y `entryAcceptedMs` desde el JSONL, separado por "solo texto" y "con imagen" — en `it.fails` — en test/unit/latency.test.ts
 - [X] T083 Implementar el script de latencia y pasar T082 a `it` en scripts/latency.ts
-- [ ] T084 [P] Actualizar docs/arquitectura.md al estado real: módulos de PRD-002/003, puertos, supervisor y sesión cifrada
+- [X] T084 [P] Actualizar docs/arquitectura.md al estado real: módulos de PRD-002/003, puertos, supervisor y sesión cifrada
 - [ ] T085 Correr la validación de [quickstart.md](quickstart.md) en DRY (secciones 2 a 7), incluida la medición real de AC-31 (`kill -9` del proceso de la app, no del supervisor) y AC-29 después de ese `kill -9`, y anotar resultados y pendientes en specs/001-alertas-whatsapp-binance/checklists/live.md
 - [ ] T086 Verificación final: `pnpm typecheck`, `pnpm test` en verde y ningún `it.fails` pendiente (`grep -rn "it.fails" test/` vacío)
 
