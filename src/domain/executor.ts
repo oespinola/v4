@@ -122,7 +122,7 @@ export class Executor implements EmergencyState {
     const retry = new RetryCounter();
     for (;;) {
       try {
-        return await exchange.findEntry(symbol, clientOrderId);
+        return (await exchange.findEntry(symbol, clientOrderId))?.ref ?? null;
       } catch (e) {
         const step = retry.failure();
         store.logCritical({
@@ -133,6 +133,11 @@ export class Executor implements EmergencyState {
         await clock.sleep(step.waitMs);
       }
     }
+  }
+
+  /** Reconciliación (FR-070): alerta válida sin operación registrada. */
+  async recoverUnconfirmed(alert: Alert): Promise<void> {
+    throw new Error(`sin implementar (T092): ${alert.alertId}`);
   }
 
   /** Reconciliación (FR-041, FR-042, FR-065): retoma una operación `pendiente` o `con_ejecución`

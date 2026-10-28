@@ -81,7 +81,7 @@ export async function startApp(
 
   // FR-039: lo que pasó mientras el proceso estaba detenido, antes de cualquier alerta nueva.
   log('Reconciliando con Binance…');
-  await reconcile({ store, executor, tracker });
+  await reconcile({ store, mode: config.mode, executor, tracker });
   tracker.start();
 
   const pipeline = new Pipeline({
