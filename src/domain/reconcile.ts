@@ -11,6 +11,14 @@ export interface ReconcileDeps {
   tracker: Pick<Tracker, 'tick'>;
 }
 
-export async function reconcile(_deps: ReconcileDeps): Promise<void> {
-  throw new Error('no implementado');
+export async function reconcile({ store, executor, tracker }: ReconcileDeps): Promise<void> {
+  // Primero lo que quedó sin proteger, después las entradas pendientes.
+  for (const state of ['con_ejecución', 'pendiente'] as const) {
+    for (const trade of store.tradesInState(state)) {
+      const alert = store.getAlert(trade.alertId);
+      if (alert) await executor.resume(alert, trade);
+    }
+  }
+  // Cierres durante la caída de las operaciones abiertas, incluidas las recién protegidas (FR-040).
+  await tracker.tick();
 }

@@ -100,7 +100,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it.fails('posición cerrada por SL durante la caída: registra el cierre y cancela el TP huérfano (AC-63, FR-040)', async () => {
+  it('posición cerrada por SL durante la caída: registra el cierre y cancela el TP huérfano (AC-63, FR-040)', async () => {
     boot(trade({ state: 'abierta', filledQty: 4166, slOrderId: 'SL1', tpOrderId: 'TP1' }), 'completa', 30);
     close = { cause: 'SL', at: new Date('2026-10-28T12:20:00Z'), realizedPnl: -5, fees: 0.06 };
     await run();
@@ -109,7 +109,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'cerrada', closeCause: 'SL' })]);
   });
 
-  it.fails('entrada pendiente ejecutada durante la caída: coloca SL y TP antes de seguir (AC-65, FR-041)', async () => {
+  it('entrada pendiente ejecutada durante la caída: coloca SL y TP antes de seguir (AC-65, FR-041)', async () => {
     boot(trade({}), 'entrada pendiente', 1);
     entry = { status: 'filled', filledQty: 4166 };
     positions = [{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166 }];
@@ -120,7 +120,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'completa' })]);
   });
 
-  it.fails('entrada ejecutada pero SL rechazado: cierra a mercado con evento crítico (FR-041)', async () => {
+  it('entrada ejecutada pero SL rechazado: cierra a mercado con evento crítico (FR-041)', async () => {
     boot(trade({}), 'entrada pendiente', 1);
     entry = { status: 'filled', filledQty: 4166 };
     exchange.impl.placeStopLoss = async () => Promise.reject(new Error('-2021'));
@@ -130,7 +130,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines().map((l) => l.type)).toEqual(['critical', 'alert']);
   });
 
-  it.fails('entrada sin ejecución con el plazo vencido: la cancela y queda "entrada no ejecutada" (AC-66, FR-042)', async () => {
+  it('entrada sin ejecución con el plazo vencido: la cancela y queda "entrada no ejecutada" (AC-66, FR-042)', async () => {
     boot(trade({}), 'entrada pendiente', 10);
     await run();
     expect(exchange.callsTo('cancel').map((c) => c.args[0])).toEqual([ENTRY]);
@@ -138,7 +138,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada' })]);
   });
 
-  it.fails('entrada parcial con el plazo vencido: SL y TP sobre lo ejecutado y cancela el resto (FR-042, FR-032)', async () => {
+  it('entrada parcial con el plazo vencido: SL y TP sobre lo ejecutado y cancela el resto (FR-042, FR-032)', async () => {
     boot(trade({}), 'entrada pendiente', 10);
     entry = { status: 'partially_filled', filledQty: 1000 };
     await run();
@@ -147,7 +147,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(saved()).toMatchObject({ state: 'abierta', filledQty: 1000 });
   });
 
-  it.fails('entrada sin ejecución dentro del plazo: sigue el seguimiento y la cancela al vencer', async () => {
+  it('entrada sin ejecución dentro del plazo: sigue el seguimiento y la cancela al vencer', async () => {
     boot(trade({}), 'entrada pendiente', 1);
     await run();
     expect(saved()?.state).toBe('pendiente');
@@ -157,7 +157,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(saved()?.state).toBe('cerrada');
   });
 
-  it.fails('con ejecución y sin SL/TP confirmados: coloca solo lo que falta (AC-73, FR-065)', async () => {
+  it('con ejecución y sin SL/TP confirmados: coloca solo lo que falta (AC-73, FR-065)', async () => {
     boot(trade({ state: 'con_ejecución', filledQty: 4166, slOrderId: 'SL1' }), 'con ejecución', 5);
     entry = { status: 'filled', filledQty: 4166 };
     positions = [{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166 }];
@@ -169,7 +169,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'completa' })]);
   });
 
-  it.fails('con ejecución y el TP que falta falla: cierra a mercado, evento crítico y cancela el SL (AC-73)', async () => {
+  it('con ejecución y el TP que falta falla: cierra a mercado, evento crítico y cancela el SL (AC-73)', async () => {
     boot(trade({ state: 'con_ejecución', filledQty: 4166, slOrderId: 'SL1' }), 'con ejecución', 5);
     entry = { status: 'filled', filledQty: 4166 };
     positions = [{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166 }];
@@ -182,7 +182,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines().filter((l) => l.type === 'critical')).toEqual([expect.objectContaining({ kind: 'cierre de emergencia' })]);
   });
 
-  it.fails('con ejecución y la posición ya no está en Binance: se registra el cierre (FR-040)', async () => {
+  it('con ejecución y la posición ya no está en Binance: se registra el cierre (FR-040)', async () => {
     boot(trade({ state: 'con_ejecución', filledQty: 4166 }), 'con ejecución', 5);
     entry = { status: 'filled', filledQty: 4166 };
     close = { cause: 'cierre manual', at: new Date('2026-10-28T12:03:00Z'), realizedPnl: 1, fees: 0.06 };
@@ -192,7 +192,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'cerrada', closeCause: 'cierre manual' })]);
   });
 
-  it.fails('una operación abierta que perdió el SL: solo evento crítico, sin recolocarlo (FR-038)', async () => {
+  it('una operación abierta que perdió el SL: solo evento crítico, sin recolocarlo (FR-038)', async () => {
     boot(trade({ state: 'abierta', filledQty: 4166, slOrderId: 'SL1', tpOrderId: 'TP1' }), 'completa', 30);
     positions = [{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166 }];
     openOrders = [TP];
@@ -203,7 +203,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ type: 'critical', kind: 'SL/TP perdido' })]);
   });
 
-  it.fails('sin operaciones locales activas no consulta Binance', async () => {
+  it('sin operaciones locales activas no consulta Binance', async () => {
     boot(trade({ state: 'cerrada' }), 'completa', 30);
     await run();
     await clock.advance(POLL_MS + ENTRY_TIMEOUT_MS);

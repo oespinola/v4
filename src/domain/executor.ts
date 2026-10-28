@@ -106,8 +106,46 @@ export class Executor implements EmergencyState {
 
   /** Reconciliación (FR-041, FR-042, FR-065): retoma una operación `pendiente` o `con_ejecución`
    *  que quedó de antes de arrancar y resuelve lo que pasó mientras tanto. */
-  async resume(_alert: Alert, _trade: Trade): Promise<void> {
-    throw new Error('no implementado');
+  async resume(alert: Alert, trade: Trade): Promise<void> {
+    const { exchange, clock } = this.deps;
+    const t: Tracked = {
+      alert,
+      trade: { ...trade },
+      entryRef: { symbol: trade.symbol, id: trade.entryOrderId! },
+      poll: null,
+      timeout: null,
+      chain: Promise.resolve(),
+      protected: false,
+      done: false,
+    };
+    this.tracked.add(t);
+
+    if (trade.state === 'con_ejecución') {
+      const positions = await exchange.openPositions();
+      if (!positions.some((p) => p.symbol === trade.symbol && p.side === trade.side && p.quantity > 0)) {
+        // Se cerró durante la caída: lo registra el seguimiento como cualquier cierre (FR-040).
+        t.trade.state = 'abierta';
+        this.save(t);
+        this.stopTracking(t);
+        return;
+      }
+      // FR-065: solo lo que falta; un segundo SL/TP con closePosition lo rechaza Binance.
+      const open = new Set((await exchange.openOrders(trade.symbol)).map((o) => o.id));
+      const kept = (id: string | null): OrderRef | null =>
+        id && open.has(id) ? { symbol: trade.symbol, id, algo: true } : null;
+      await this.protect(t, { sl: kept(trade.slOrderId), tp: kept(trade.tpOrderId) });
+      if (t.done) return;
+    }
+
+    const remaining = trade.entryPlacedAt.getTime() + ENTRY_TIMEOUT_MS - clock.now().getTime();
+    if (remaining <= 0) {
+      await this.onTimeout(t); // FR-042: plazo vencido durante la caída
+      return;
+    }
+    await this.checkEntry(t); // FR-041: ¿se ejecutó mientras tanto?
+    if (t.done) return;
+    t.poll = clock.setInterval(() => this.enqueue(t, () => this.checkEntry(t)), POLL_MS);
+    t.timeout = clock.setTimeout(() => this.enqueue(t, () => this.onTimeout(t)), remaining);
   }
 
   emergencyInProgress(): boolean {
@@ -167,21 +205,26 @@ export class Executor implements EmergencyState {
   }
 
   /** FR-028, FR-029, FR-065: con_ejecución persistido antes de pedir SL y TP. */
-  private async protect(t: Tracked): Promise<void> {
+  private async protect(
+    t: Tracked,
+    existing: { sl: OrderRef | null; tp: OrderRef | null } = { sl: null, tp: null },
+  ): Promise<void> {
     const { exchange, store } = this.deps;
     t.trade.state = 'con_ejecución';
     this.save(t);
     this.setStatus(t, 'con ejecución');
-    const placed: OrderRef[] = [];
+    const placed: OrderRef[] = [existing.sl, existing.tp].filter((r): r is OrderRef => r !== null);
+    let failing = 'SL';
     try {
-      const sl = await exchange.placeStopLoss(t.trade.symbol, t.trade.side, t.trade.slPrice);
-      placed.push(sl);
+      const sl = existing.sl ?? (await exchange.placeStopLoss(t.trade.symbol, t.trade.side, t.trade.slPrice));
+      if (!existing.sl) placed.push(sl);
       t.trade.slOrderId = sl.id;
-      const tp = await exchange.placeTakeProfit(t.trade.symbol, t.trade.side, t.trade.tpPrice);
-      placed.push(tp);
+      failing = 'TP';
+      const tp = existing.tp ?? (await exchange.placeTakeProfit(t.trade.symbol, t.trade.side, t.trade.tpPrice));
+      if (!existing.tp) placed.push(tp);
       t.trade.tpOrderId = tp.id;
     } catch (e) {
-      await this.emergencyClose(t, placed, `falló la colocación del ${placed.length === 0 ? 'SL' : 'TP'}: ${errorText(e)}`);
+      await this.emergencyClose(t, placed, `falló la colocación del ${failing}: ${errorText(e)}`);
       return;
     }
     t.protected = true;
