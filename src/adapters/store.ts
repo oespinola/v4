@@ -5,6 +5,7 @@ import { appendFileSync, chmodSync, closeSync, existsSync, mkdirSync, openSync }
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Clock } from '../ports.ts';
+import { buildAlertLogRecord } from '../domain/log-record.ts';
 import type { Alert, Trade, TradeState } from '../domain/types.ts';
 
 export interface EditRecord {
@@ -161,6 +162,11 @@ export class Store {
   appendLog(type: LogType, payload: Record<string, unknown>): void {
     const line = JSON.stringify({ type, at: this.clock.now().toISOString(), ...payload });
     appendFileSync(this.logFile, `${line}\n`, { mode: 0o600 });
+  }
+
+  /** Registro `alert` de un estado final (contracts/log-record.md). */
+  logAlert(alert: Alert, trade: Trade | null = null): void {
+    this.appendLog('alert', { ...buildAlertLogRecord(alert, trade) });
   }
 
   close(): void {

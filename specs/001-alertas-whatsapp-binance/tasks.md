@@ -115,8 +115,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Independent Test**: AC-08, AC-09 y AC-50 con fakes.
 
-- [ ] T048 [P] [US4] Escribir tests del registro de log según [contracts/log-record.md](contracts/log-record.md) (AC-08, FR-043 a FR-045): todos los campos, `null` cuando no aplican, `status` y `reason` solo de las listas cerradas, `timings` de clasificación — en `it.fails` — en test/unit/log-record.test.ts
-- [ ] T049 [US4] Implementar el armado del registro desde `Alert` + `Trade` y usarlo en el store, y pasar T048 a `it`, en src/domain/log-record.ts
+- [X] T048 [P] [US4] Escribir tests del registro de log según [contracts/log-record.md](contracts/log-record.md) (AC-08, FR-043 a FR-045): todos los campos, `null` cuando no aplican, `status` y `reason` solo de las listas cerradas, `timings` de clasificación — en `it.fails` — en test/unit/log-record.test.ts
+- [X] T049 [US4] Implementar el armado del registro desde `Alert` + `Trade` y usarlo en el store, y pasar T048 a `it`, en src/domain/log-record.ts
 - [ ] T050 [US4] Escribir tests de integración del log (AC-09, AC-50): cada uno de los motivos de FR-045 producido por el pipeline queda en el JSONL; permisos 0600 del log y de la base; tipos `connection` y `critical` con su esquema — en `it.fails` — en test/integration/log.test.ts
 - [ ] T051 [US4] Completar el registro de eventos `connection` y `critical` en el store y pasar T050 a `it` en src/adapters/store.ts
 

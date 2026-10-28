@@ -23,26 +23,6 @@ export interface PipelineDeps {
 
 export type ProcessOutcome = { kind: 'ignored' } | { kind: 'alert'; alert: Alert };
 
-/** Campos del registro de log de una alerta (contracts/log-record.md). */
-export function alertLogPayload(a: Alert): Record<string, unknown> {
-  return {
-    alertId: a.alertId,
-    receivedAt: a.receivedAt.toISOString(),
-    sender: a.sender,
-    mode: a.mode,
-    ticker: a.ticker,
-    symbol: a.symbol,
-    side: a.side,
-    entry: a.entry,
-    sl: a.sl,
-    tp: a.tp,
-    tpSource: a.tpSource,
-    riskLevel: a.riskLevel,
-    status: a.status,
-    reason: a.reason,
-  };
-}
-
 function sameValue(a: unknown, b: unknown): boolean {
   return JSON.stringify(a) === JSON.stringify(b);
 }
@@ -95,7 +75,7 @@ export class Pipeline {
     // Un mismo ID de mensaje ya está en la base (FR-007): el duplicado solo se loguea.
     const duplicateById = !result.ok && result.reason === 'duplicado' && store.findByWaMessageId(m.waMessageId);
     if (!duplicateById) store.saveAlert(alert);
-    if (alert.status === 'rechazada') store.appendLog('alert', alertLogPayload(alert));
+    if (alert.status === 'rechazada') store.logAlert(alert);
     return { kind: 'alert', alert };
   }
 

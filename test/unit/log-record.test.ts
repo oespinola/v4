@@ -65,7 +65,7 @@ const KEYS = [
 ];
 
 describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-045)', () => {
-  it.fails('una operación cerrada lleva todos los campos de FR-043 (AC-08)', () => {
+  it('una operación cerrada lleva todos los campos de FR-043 (AC-08)', () => {
     const r = buildAlertLogRecord(alert({ status: 'cerrada' }), trade());
     expect(Object.keys(r)).toEqual(KEYS);
     expect(r).toEqual({
@@ -94,7 +94,7 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     });
   });
 
-  it.fails('una rechazada sin operación deja en null lo que no aplica, con todas las claves', () => {
+  it('una rechazada sin operación deja en null lo que no aplica, con todas las claves', () => {
     const r = buildAlertLogRecord(
       alert({ status: 'rechazada', reason: 'TP inválido', symbol: null, side: null, entry: null, sl: null, tp: null, tpSource: null }),
     );
@@ -114,12 +114,12 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     });
   });
 
-  it.fails('una operación completa todavía abierta no tiene cierre', () => {
+  it('una operación completa todavía abierta no tiene cierre', () => {
     const r = buildAlertLogRecord(alert(), trade({ state: 'abierta', closeCause: null, closedAt: null, realizedPnl: null, fees: null }));
     expect(r).toMatchObject({ status: 'completa', closeCause: null, closedAt: null, realizedPnl: null, quantity: 4166 });
   });
 
-  it.fails('acepta cada estado final y cada motivo de las listas cerradas (FR-044, FR-045)', () => {
+  it('acepta cada estado final y cada motivo de las listas cerradas (FR-044, FR-045)', () => {
     for (const status of FINAL_STATUSES.filter((s) => s !== 'rechazada')) {
       expect(buildAlertLogRecord(alert({ status }), trade()).status).toBe(status);
     }
@@ -128,18 +128,18 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     }
   });
 
-  it.fails('un estado de trabajo no se loguea: lanza error', () => {
+  it('un estado de trabajo no se loguea: lanza error', () => {
     for (const status of ['válida', 'entrada pendiente', 'con ejecución'] as const) {
       expect(() => buildAlertLogRecord(alert({ status }))).toThrow(/estado final/);
     }
   });
 
-  it.fails('el motivo va solo con "rechazada": sin motivo o con motivo en otro estado lanza error', () => {
+  it('el motivo va solo con "rechazada": sin motivo o con motivo en otro estado lanza error', () => {
     expect(() => buildAlertLogRecord(alert({ status: 'rechazada', reason: null }))).toThrow(/motivo/);
     expect(() => buildAlertLogRecord(alert({ status: 'completa', reason: 'TP inválido' }), trade())).toThrow(/motivo/);
   });
 
-  it.fails('sin hora de clasificación, classifiedMs es null', () => {
+  it('sin hora de clasificación, classifiedMs es null', () => {
     const r = buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado', classifiedAt: null }));
     expect(r.timings).toEqual({ classifiedMs: null, entryAcceptedMs: null });
   });
