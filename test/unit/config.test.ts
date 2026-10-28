@@ -97,6 +97,14 @@ describe('config (FR-058, FR-062, FR-052, FR-004)', () => {
     expect(errorsOf(dryEnv({ MAX_SL_DISTANCE_PCT: '0' }))).toContain('MAX_SL_DISTANCE_PCT');
   });
 
+  it('MAX_ENTRY_DISTANCE_PCT es 10 si no se configura, y debe ser > 0 si se configura (FR-068)', () => {
+    const r = parseConfig(dryEnv({ MAX_ENTRY_DISTANCE_PCT: undefined }));
+    expect(r.ok && r.config.maxEntryDistancePct).toBe(10);
+    const set = parseConfig(dryEnv({ MAX_ENTRY_DISTANCE_PCT: '5' }));
+    expect(set.ok && set.config.maxEntryDistancePct).toBe(5);
+    expect(errorsOf(dryEnv({ MAX_ENTRY_DISTANCE_PCT: '0' }))).toContain('MAX_ENTRY_DISTANCE_PCT');
+  });
+
   it('pide una clave de sesión de 32 bytes en hex o base64 (FR-049)', () => {
     expect(errorsOf(dryEnv({ WHATSAPP_SESSION_KEY: 'corta' }))).toContain('WHATSAPP_SESSION_KEY');
     const b64 = Buffer.alloc(32, 7).toString('base64');

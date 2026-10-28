@@ -1,6 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { senderOf, wireClient, type RawWaMessage, type WireHandlers } from '../../src/adapters/whatsapp.ts';
+import { isLogoutUrl, senderOf, startOrRelink, wireClient, type RawWaMessage, type WireHandlers } from '../../src/adapters/whatsapp.ts';
 import type { IncomingEdit, IncomingMessage } from '../../src/ports.ts';
 import { flush } from '../fakes/index.ts';
 
@@ -133,5 +133,57 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     client.emit('message_create', raw({ hasMedia: true, downloadMedia: async () => ({ data: Buffer.from('img').toString('base64'), mimetype: 'image/jpeg' }) }));
     await flush();
     expect(await got.messages[0]?.downloadImage()).toEqual(Buffer.from('img'));
+  });
+});
+
+describe('adaptador de WhatsApp: sesión cerrada por WhatsApp (FR-048)', () => {
+  const logoutError = new Error('Protocol error (Runtime.callFunctionOn): Execution context was destroyed.');
+
+  function steps(opts: { failures: Error[]; loggedOut: boolean }) {
+    const seen = { starts: 0, discarded: 0, logs: [] as string[] };
+    return {
+      seen,
+      steps: {
+        start: async () => {
+          seen.starts += 1;
+          const err = opts.failures.shift();
+          if (err) throw err;
+        },
+        loggedOut: async () => opts.loggedOut,
+        discardSession: async () => void (seen.discarded += 1),
+        log: (line: string) => seen.logs.push(line),
+      },
+    };
+  }
+
+  it('reconoce la página de logout de WhatsApp Web', () => {
+    expect(isLogoutUrl('https://web.whatsapp.com/?post_logout=1')).toBe(true);
+    expect(isLogoutUrl('https://web.whatsapp.com/')).toBe(false);
+    expect(isLogoutUrl(undefined)).toBe(false);
+  });
+
+  it('si el arranque cae en el logout, descarta la sesión y arranca de nuevo para pedir el QR', async () => {
+    const { steps: s, seen } = steps({ failures: [logoutError], loggedOut: true });
+    await startOrRelink(s);
+    expect(seen).toMatchObject({ starts: 2, discarded: 1 });
+    expect(seen.logs).toEqual(['WhatsApp cerró la sesión vinculada: se descarta y se pide un QR nuevo.']);
+  });
+
+  it('si el arranque falla por otra cosa, no toca la sesión y propaga el error', async () => {
+    const { steps: s, seen } = steps({ failures: [logoutError], loggedOut: false });
+    await expect(startOrRelink(s)).rejects.toThrow('Execution context was destroyed');
+    expect(seen).toMatchObject({ starts: 1, discarded: 0 });
+  });
+
+  it('vuelve a vincular una sola vez: si el segundo arranque también falla, propaga el error', async () => {
+    const { steps: s, seen } = steps({ failures: [logoutError, logoutError], loggedOut: true });
+    await expect(startOrRelink(s)).rejects.toThrow('Execution context was destroyed');
+    expect(seen).toMatchObject({ starts: 2, discarded: 1 });
+  });
+
+  it('si arranca bien, no descarta la sesión', async () => {
+    const { steps: s, seen } = steps({ failures: [], loggedOut: true });
+    await startOrRelink(s);
+    expect(seen).toMatchObject({ starts: 1, discarded: 0 });
   });
 });

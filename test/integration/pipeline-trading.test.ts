@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { Store } from '../../src/adapters/store.ts';
-import { Executor } from '../../src/domain/executor.ts';
+import { ENTRY_TIMEOUT_MS, Executor, POLL_MS } from '../../src/domain/executor.ts';
 import { Pipeline, type TradingDeps } from '../../src/pipeline.ts';
 import { SerialQueue } from '../../src/queue.ts';
 import { FakeClock, FakeExchange, FakeExtractor, FakeMarketData, filters, message } from '../fakes/index.ts';
@@ -40,6 +40,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
       extractor: new FakeExtractor({}),
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
       trading: {
         exchange,
         executor,
@@ -58,12 +59,16 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     clock = new FakeClock('2026-10-28T12:00:00Z');
     store = Store.open(path.join(root, 'data'), clock);
     market = new FakeMarketData([filters('KAIAUSDT'), filters('KITEUSDT')], { gainers: [], losers: [], refreshedAt: clock.now() });
+    market.closes.set('KAIAUSDT', [0.0402]); // precio de mercado, para FR-068
+    market.closes.set('KITEUSDT', [0.0402]);
     nextOrder = 1;
     exchange = new FakeExchange({
       walletBalanceUsdt: async () => 3000,
       prepareSymbol: async () => {},
       placeLimitEntry: async (o) => ({ symbol: o.symbol, id: `E${nextOrder++}` }),
+      findEntry: async () => null,
       order: async (r) => ({ ref: r, status: 'open', filledQty: 0 }),
+      cancel: async () => {},
     });
   });
 
@@ -76,7 +81,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
   it('una alerta válida se dimensiona y su entrada queda pendiente', async () => {
     const r = await pipeline().processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ kind: 'alert', alert: { status: 'entrada pendiente', symbol: 'KAIAUSDT' } });
-    expect(exchange.callsTo('placeLimitEntry')[0]?.args).toEqual([{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 }]);
+    expect(exchange.callsTo('placeLimitEntry')[0]?.args).toMatchObject([{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 }]);
     expect(store.activeTradeForSymbol('KAIAUSDT')).toMatchObject({ state: 'pendiente', quantity: 4166, notional: 167.4732 });
     expect(logLines()).toEqual([]); // pendiente es un estado de trabajo
   });
@@ -150,6 +155,27 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     expect(store.exposure()).toEqual({ positions: 0, notional: 0 });
   });
 
+  it('si la entrada no quedó en Binance, el reenvío un minuto después se evalúa de nuevo (AC-83)', async () => {
+    const place = exchange.impl.placeLimitEntry!;
+    exchange.impl.placeLimitEntry = async () => Promise.reject(new Error('RequestTimeout: binanceusdm POST /fapi/v1/order'));
+    const first = await pipeline().processMessage(message(KAIA, { sender: AUTH }));
+    expect(first).toMatchObject({ alert: { status: 'entrada no ejecutada' } });
+    exchange.impl.placeLimitEntry = place;
+    await clock.advance(60_000);
+    market.currentRanking = { gainers: [], losers: [], refreshedAt: clock.now() };
+    const resent = await pipeline().processMessage(message(KAIA, { sender: AUTH, waMessageId: 'wa-2' }));
+    expect(resent).toMatchObject({ alert: { status: 'entrada pendiente' } });
+  });
+
+  it('si la entrada se colocó y venció sin ejecutarse, el reenvío sigue siendo duplicado (AC-85)', async () => {
+    const p = pipeline();
+    await p.processMessage(message(KAIA, { sender: AUTH }));
+    await clock.advance(ENTRY_TIMEOUT_MS + POLL_MS);
+    expect(store.getAlert(logLines()[0]!.alertId as string)?.status).toBe('entrada no ejecutada');
+    const resent = await p.processMessage(message(KAIA, { sender: AUTH, waMessageId: 'wa-2' }));
+    expect(resent).toMatchObject({ alert: { status: 'rechazada', reason: 'duplicado' } });
+  });
+
   it('dos alertas casi simultáneas se evalúan en orden y la segunda ve la exposición de la primera (FR-061)', async () => {
     const p = pipeline({ maxPositions: 1 });
     const queue = new SerialQueue(() => {});
@@ -172,6 +198,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
       extractor: null,
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
     });
     const r = await p.processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ alert: { status: 'válida' } });

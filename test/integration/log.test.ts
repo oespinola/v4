@@ -44,6 +44,8 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
       losers: [],
       refreshedAt: clock.now(),
     });
+    market.closes.set('KAIAUSDT', [0.0402]); // precio de mercado, para FR-068
+    market.closes.set('TOPUSDT', [1]);
     pipeline = new Pipeline({
       store,
       clock,
@@ -52,6 +54,7 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
       extractor: new FakeExtractor({}),
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
     });
   });
 

@@ -182,6 +182,7 @@ export class FakeExchange implements Exchange {
   walletBalanceUsdt: Exchange['walletBalanceUsdt'] = (...a) => this.call('walletBalanceUsdt', a);
   prepareSymbol: Exchange['prepareSymbol'] = (...a) => this.call('prepareSymbol', a);
   placeLimitEntry: Exchange['placeLimitEntry'] = (...a) => this.call('placeLimitEntry', a);
+  findEntry: Exchange['findEntry'] = (...a) => this.call('findEntry', a);
   placeStopLoss: Exchange['placeStopLoss'] = (...a) => this.call('placeStopLoss', a);
   placeTakeProfit: Exchange['placeTakeProfit'] = (...a) => this.call('placeTakeProfit', a);
   closeAtMarket: Exchange['closeAtMarket'] = (...a) => this.call('closeAtMarket', a);

@@ -38,6 +38,7 @@ Sin sesión guardada, la app muestra el QR en la terminal (FR-048).
 | `MAX_LEVERAGE` | ambos | > 0 (FR-024) |
 | `SYMBOL_LEVERAGE` | ambos | entero > 0 (FR-060) |
 | `MAX_SL_DISTANCE_PCT` | ambos | > 0; por defecto 15 (FR-013) |
+| `MAX_ENTRY_DISTANCE_PCT` | ambos | > 0; por defecto 10 (FR-068) |
 | `SIGNALBRIDGE_DATA_DIR` | ambos | opcional; por defecto `data` |
 
 El modo lo fija el comando (`SIGNALBRIDGE_MODE=DRY|LIVE`), no el `.env`. Si falta o es inválida

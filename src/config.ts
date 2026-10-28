@@ -23,6 +23,7 @@ export interface Config {
   maxLeverage: number;
   symbolLeverage: number;
   maxSlDistancePct: number;
+  maxEntryDistancePct: number;
   dataDir: string;
 }
 
@@ -105,6 +106,10 @@ export function parseConfig(env: Env): ConfigResult {
     blankToUndefined(env.MAX_SL_DISTANCE_PCT) === undefined
       ? 15
       : read(env, 'MAX_SL_DISTANCE_PCT', positive, errors);
+  const maxEntryDistancePct =
+    blankToUndefined(env.MAX_ENTRY_DISTANCE_PCT) === undefined
+      ? 10
+      : read(env, 'MAX_ENTRY_DISTANCE_PCT', positive, errors);
   const dataDir = env.SIGNALBRIDGE_DATA_DIR?.trim() || 'data';
 
   if (errors.length > 0) return { ok: false, errors };
@@ -124,6 +129,7 @@ export function parseConfig(env: Env): ConfigResult {
       maxLeverage,
       symbolLeverage,
       maxSlDistancePct,
+      maxEntryDistancePct,
       dataDir,
     },
   };

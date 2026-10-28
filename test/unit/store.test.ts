@@ -119,6 +119,14 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.hasContentHashSince('0123456789abcdef', new Date('2026-10-28T00:00:00Z'))).toBe(true);
   });
 
+  it('una "entrada no ejecutada" que nunca quedó en Binance no bloquea el reenvío; una vencida sí (FR-007, FR-069)', () => {
+    const since = new Date('2026-10-28T00:00:00Z');
+    store.saveAlert(alert({ status: 'entrada no ejecutada' })); // sin operación: no se colocó
+    expect(store.hasContentHashSince('0123456789abcdef', since)).toBe(false);
+    store.saveTrade(trade({ state: 'cerrada' })); // se colocó y venció sin ejecutarse
+    expect(store.hasContentHashSince('0123456789abcdef', since)).toBe(true);
+  });
+
   it('guarda ediciones de alertas (FR-047)', () => {
     store.saveAlert(alert());
     store.saveEdit({

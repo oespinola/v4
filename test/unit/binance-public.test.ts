@@ -57,7 +57,11 @@ interface Call {
   init?: RequestInit;
 }
 
-function fakeFetch(fail: { value: boolean } = { value: false }, failDemo: { value: boolean } = { value: false }) {
+function fakeFetch(
+  fail: { value: boolean } = { value: false },
+  failDemo: { value: boolean } = { value: false },
+  klinesBody: unknown[] = klines,
+) {
   const calls: Call[] = [];
   const fn = async (url: string | URL | Request, init?: RequestInit) => {
     const u = String(url);
@@ -68,7 +72,7 @@ function fakeFetch(fail: { value: boolean } = { value: false }, failDemo: { valu
       if (u.includes('exchangeInfo')) return new Response(JSON.stringify(demoInfo), { status: 200 });
       return new Response('no', { status: 404 });
     }
-    const body = u.includes('exchangeInfo') ? exchangeInfo : u.includes('ticker/24hr') ? tickers : klines;
+    const body = u.includes('exchangeInfo') ? exchangeInfo : u.includes('ticker/24hr') ? tickers : klinesBody;
     return new Response(JSON.stringify(body), { status: 200 });
   };
   return { fn: fn as typeof fetch, calls };
@@ -161,7 +165,9 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
 
   it('en DRY la validación ajusta los precios al tick de Demo (AC-79)', async () => {
     const clock = new FakeClock();
-    const md = new BinancePublicMarketData({ clock, fetch: fakeFetch().fn, orderRulesUrl: DEMO_URL });
+    // Velas con el precio de BERA cerca de la Entrada (FR-068).
+    const beraKlines = klines.map(([t, o, h, l]) => [t, o, h, l, '0.2299']);
+    const md = new BinancePublicMarketData({ clock, fetch: fakeFetch(undefined, undefined, beraKlines).fn, orderRulesUrl: DEMO_URL });
     await md.refresh();
     const text = '*BERA - ALERTA DE TRADING*\nEntrada: 0.2299 usd\nObj.: 0.2246 usd\nSL: 0.2337 usd\nRiesgo Alto 🔴';
     const r = await validateAlert(
@@ -174,6 +180,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
         market: md,
         now: () => clock.now(),
         maxSlDistancePct: 15,
+        maxEntryDistancePct: 10,
       },
     );
     expect(r).toMatchObject({ ok: true, alert: { symbol: 'BERAUSDT', side: 'SHORT', entry: 0.23, sl: 0.234, tp: 0.225 } });

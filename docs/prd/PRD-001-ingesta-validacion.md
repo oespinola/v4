@@ -67,7 +67,10 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - RF-29: El sistema debe rechazar como duplicado, sin operarla, una alerta cuyo ID de
   mensaje de WhatsApp coincida con el de cualquier alerta ya registrada, o cuyo hash
   (RF-11) coincida con el de una alerta no rechazada registrada en las últimas 24 h.
-  Una alerta rechazada no bloquea su reenvío: el reenvío se evalúa de nuevo.
+  Una alerta rechazada no bloquea su reenvío: el reenvío se evalúa de nuevo. Tampoco lo
+  bloquea una alerta cuya orden de entrada nunca quedó en Binance (RF-57): falló por un
+  problema del sistema y la señal no se pierde. Una entrada que sí quedó en Binance y
+  venció sin ejecutarse (RF-19) sigue bloqueando el reenvío.
 - RF-31: El sistema debe mapear el ticker de la alerta al contrato perpetuo
   TICKERUSDT; si no existe, a 1000TICKERUSDT, multiplicando Entrada, SL y TP por 1000.
 - RF-32: El sistema debe rechazar una alerta cuyo ticker no exista en Futuros USDS-M
@@ -81,16 +84,24 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   motivo de rechazo solo la primera que falle: remitente no autorizado, duplicado (ID
   de WhatsApp), incompleta, ticker inexistente, no disponible en Demo (solo DRY,
   RF-55), duplicado (hash), SL igual a la
-  Entrada, SL fuera de rango, datos de mercado no disponibles (velas para el TP), TP
-  inválido, ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, datos de
+  Entrada, SL fuera de rango, datos de mercado no disponibles (velas), entrada lejos del
+  mercado (RF-56), TP inválido, ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, datos de
   mercado no disponibles (balance), excede máximos, símbolo ya en operación, límite de
   posiciones, límite de capital.
 - RF-52: El sistema debe rechazar una alerta con el motivo "datos de mercado no
-  disponibles" si no puede obtener de Binance las velas necesarias para calcular el TP
-  (RF-24) o el balance necesario para el control de apalancamiento (RF-15).
+  disponibles" si no puede obtener de Binance las velas necesarias para comparar la
+  Entrada con el precio de mercado (RF-56) o para calcular el TP (RF-24), o el balance necesario para el control de apalancamiento (RF-15).
 - RF-50: El sistema debe rechazar una alerta cuyo Stop Loss esté a una distancia de la
   Entrada mayor que un porcentaje máximo configurable (por defecto 15 %), calculada
   como |Entrada − SL| / Entrada.
+- RF-56: El sistema debe rechazar con el motivo "entrada lejos del mercado" una alerta
+  cuya Entrada, ya mapeada (RF-31) y ajustada al tick, esté a una distancia del precio
+  de mercado mayor que un porcentaje máximo configurable (por defecto 10 %), calculada
+  como |Entrada − precio| / precio, donde el precio es el cierre de la vela de 45 min en
+  curso (RF-24). Así un error de escala no llega a operarse: un separador de miles
+  leído como coma decimal ("80,489" en BTC se lee 80.489), un cero de más o de menos, o
+  un ticker mapeado al contrato equivocado. El sistema no intenta adivinar la lectura
+  correcta (ante la duda se rechaza).
 
 ## Requerimientos No Funcionales
 - RNF-01: El tiempo desde que el mensaje llega al sistema hasta que la alerta queda
@@ -176,6 +187,13 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-77 (RF-29): Dada una alerta rechazada hace menos de 24 h (por ejemplo, por
   "ranking no disponible"), cuando llega un reenvío con otro ID de mensaje y los mismos
   valores, entonces el sistema no lo rechaza como duplicado y lo evalúa de nuevo.
+- AC-83 (RF-29, RF-57): Dada una alerta cuya orden de entrada no se pudo colocar (por
+  ejemplo, un timeout de Binance) y que Binance confirma que no existe, cuando un minuto
+  después llega un reenvío con otro ID de mensaje y los mismos valores, entonces el
+  sistema no lo rechaza como duplicado y lo evalúa de nuevo.
+- AC-85 (RF-29, RF-19): Dada una alerta cuya entrada se colocó en Binance y venció sin
+  ninguna ejecución hace menos de 24 h, cuando llega un reenvío con otro ID de mensaje y
+  los mismos valores, entonces el sistema lo rechaza como "duplicado".
 - AC-78 (RF-11, RF-29): Dada una alerta no rechazada con ticker "PEPE" y Entrada
   0.002404 registrada hace menos de 24 h, cuando llega otra con ticker "1000PEPE",
   Entrada 2.404 y SL y TP equivalentes, entonces el sistema la rechaza como "duplicado".
@@ -190,6 +208,10 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-68 (RF-50): Dada una alerta LONG con Entrada 1.246 y SL 0.1222 y el máximo
   configurado en 15 %, cuando el sistema la valida, entonces la rechaza y loguea el
   motivo "SL fuera de rango".
+- AC-82 (RF-56): Dada una alerta BTC SHORT con Entrada "80,489", SL "81,489" y TP
+  "78,489", con BTCUSDT cotizando cerca de 80 000 y el máximo configurado en 10 %,
+  cuando el sistema la valida, entonces la rechaza y loguea el motivo "entrada lejos
+  del mercado", sin colocar órdenes.
 - AC-71 (RF-52): Dada una alerta cuyo objetivo es por indicadores, cuando falla la
   obtención de las velas, entonces el sistema la rechaza y loguea el motivo "datos de
   mercado no disponibles".
@@ -209,7 +231,12 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   que permite detectar rápido un cambio de formato y ajustar el parseo.
 - Riesgo: un ticker mapeado al contrato equivocado (por ejemplo, PEPEUSDT contra
   1000PEPEUSDT) operaría con precios desfasados ×1000 → mitigación: regla de mapeo
-  explícita (RF-31) y rechazo de tickers inexistentes (RF-32).
+  explícita (RF-31), rechazo de tickers inexistentes (RF-32) y de entradas lejos del
+  precio de mercado (RF-56).
+- Riesgo: un precio escrito con separador de miles ("80,489") se lee como decimal y
+  la alerta pasa con precios ×1000 más chicos, pero coherentes entre sí, así que el
+  control de distancia del SL (RF-50) no lo detecta → mitigación: comparar la Entrada
+  con el precio de mercado y rechazar si se aleja más del máximo (RF-56).
 - Riesgo: reprocesar una alerta ya operada —por un reinicio que relee el historial del
   grupo, o por un reenvío del mensaje— generaría una segunda operación no deseada →
   mitigación: registro persistente de alertas ya procesadas por ID de mensaje y hash

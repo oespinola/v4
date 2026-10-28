@@ -46,6 +46,7 @@ export function setupExecutor(impl: Partial<Exchange> = {}) {
   const exchange = new FakeExchange({
     prepareSymbol: async () => {},
     placeLimitEntry: async () => ref('E1'),
+    findEntry: async () => null,
     order: async (r) => ({ ref: r, status: entry.status, filledQty: entry.filledQty }),
     placeStopLoss: async () => ref('SL1'),
     placeTakeProfit: async () => ref('TP1'),

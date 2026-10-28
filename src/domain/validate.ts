@@ -27,6 +27,8 @@ export interface ValidationDeps {
   market: MarketData;
   now(): Date;
   maxSlDistancePct: number;
+  /** Distancia máxima de la Entrada al precio de mercado, en % (FR-068). */
+  maxEntryDistancePct: number;
 }
 
 export interface ValidAlert extends MappedSymbol {
@@ -88,20 +90,27 @@ export async function validateAlert(m: ValidationInput, deps: ValidationDeps): P
   // 8. SL fuera de rango (FR-013).
   if ((Math.abs(entry - sl) / entry) * 100 > deps.maxSlDistancePct) return reject('SL fuera de rango');
 
-  // 9. Datos de mercado (velas para el TP) y 10. TP inválido (FR-014 a FR-016, FR-064).
-  let picked: { tp: number; source: TpSource } | null;
+  // 9. Datos de mercado: las velas de 45 min, para comparar con el mercado y para el TP (FR-064).
+  let closes: number[];
   try {
-    picked = await takeProfitFor(scaleTarget(fields.target, mapped.factor), side, entry, () =>
-      deps.market.closes45m(mapped.symbol),
-    );
+    closes = await deps.market.closes45m(mapped.symbol);
   } catch {
     return reject('datos de mercado no disponibles');
   }
+  const price = closes.at(-1);
+  if (price === undefined) return reject('datos de mercado no disponibles');
+
+  // 10. Entrada lejos del mercado (FR-068): un error de escala ("80,489" leído como 80.489 en BTC)
+  // deja Entrada, SL y TP coherentes entre sí, pero lejos del precio. No se adivina otra lectura.
+  if ((Math.abs(entry - price) / price) * 100 > deps.maxEntryDistancePct) return reject('entrada lejos del mercado');
+
+  // 11. TP inválido (FR-014 a FR-016).
+  const picked = await takeProfitFor(scaleTarget(fields.target, mapped.factor), side, entry, async () => closes);
   if (!picked) return reject('TP inválido');
   const tp = adjustTp(side, picked.tp, tickSize);
   if (!isCorrectSide(side, entry, tp)) return reject('TP inválido');
 
-  // 11. Ranking no disponible y 12. top 3 (FR-018, FR-019).
+  // 12. Ranking no disponible y 13. top 3 (FR-018, FR-019).
   const ranking = deps.market.ranking();
   if (!ranking || !isRankingFresh(ranking, deps.now())) return reject('ranking no disponible');
   if (inTop3(ranking, mapped.symbol)) return reject('top 3 ganadores/perdedores');

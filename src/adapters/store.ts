@@ -28,7 +28,7 @@ export interface ConnectionEvent {
 
 /** Evento `critical` (contracts/log-record.md, FR-030, FR-038, FR-055). */
 export interface CriticalEvent {
-  kind: 'cierre de emergencia' | 'falla del cierre de emergencia' | 'SL/TP perdido' | 'reconexión agotada';
+  kind: 'cierre de emergencia' | 'falla del cierre de emergencia' | 'SL/TP perdido' | 'reconexión agotada' | 'entrada sin confirmar';
   alertId?: string | null;
   detail: string;
 }
@@ -113,10 +113,17 @@ export class Store {
     return row ? revive<Alert>(row.record as string) : undefined;
   }
 
-  /** Solo las alertas no rechazadas bloquean un reenvío (FR-007). */
+  /** Bloquean un reenvío las alertas no rechazadas, salvo una "entrada no ejecutada" cuya orden
+   *  nunca quedó en Binance: esa no tiene operación registrada (FR-007, FR-069). Una entrada que
+   *  venció sin ejecutarse sí la tiene y sigue bloqueando. */
   hasContentHashSince(hash: string, since: Date): boolean {
     const row = this.db
-      .prepare(`SELECT 1 FROM alerts WHERE content_hash = ? AND received_at >= ? AND status <> 'rechazada' LIMIT 1`)
+      .prepare(
+        `SELECT 1 FROM alerts a WHERE a.content_hash = ? AND a.received_at >= ? AND a.status <> 'rechazada'
+           AND NOT (a.status = 'entrada no ejecutada'
+                    AND NOT EXISTS (SELECT 1 FROM trades t WHERE t.alert_id = a.alert_id))
+         LIMIT 1`,
+      )
       .get(hash, since.getTime());
     return row !== undefined;
   }

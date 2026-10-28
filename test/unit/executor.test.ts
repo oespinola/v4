@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from 'vitest';
-import { ENTRY_TIMEOUT_MS, POLL_MS } from '../../src/domain/executor.ts';
+import { ENTRY_TIMEOUT_MS, POLL_MS, entryClientOrderId } from '../../src/domain/executor.ts';
 import { ALERT, SIZED, setupExecutor } from '../helpers/executor.ts';
 
 describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', () => {
@@ -11,7 +11,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     const trade = await t.executor.open(ALERT, SIZED);
     expect(t.exchange.calls.map((c) => c.method)).toEqual(['prepareSymbol', 'placeLimitEntry']);
     expect(t.exchange.callsTo('prepareSymbol')[0]?.args).toEqual(['KAIAUSDT', 2]);
-    expect(t.exchange.callsTo('placeLimitEntry')[0]?.args).toEqual([{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 }]);
+    expect(t.exchange.callsTo('placeLimitEntry')[0]?.args).toMatchObject([{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 }]);
     expect(trade).toMatchObject({ state: 'pendiente', entryOrderId: 'E1', quantity: 4166, notional: 167.4732, riskR: 5, symbolLeverage: 2 });
     expect(t.store.getTrade(ALERT.alertId)?.state).toBe('pendiente');
     expect(t.store.getAlert(ALERT.alertId)?.status).toBe('entrada pendiente');
@@ -91,6 +91,61 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.store.getTrade(ALERT.alertId)).toBeUndefined();
     expect(t.exchange.callsTo('placeStopLoss')).toHaveLength(0);
     expect(t.logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada', quantity: null })]);
+  });
+
+  describe('entrada confirmada por su identificador propio (FR-069)', () => {
+    const timeout = () => Promise.reject(new Error('RequestTimeout: binanceusdm POST /fapi/v1/order'));
+
+    it('la entrada lleva un identificador propio, el mismo para la misma alerta y válido para Binance', async () => {
+      t = setupExecutor();
+      await t.executor.open(ALERT, SIZED);
+      const id = entryClientOrderId(ALERT.alertId);
+      expect(t.exchange.callsTo('placeLimitEntry')[0]?.args).toMatchObject([{ clientOrderId: id }]);
+      expect(id).toMatch(/^[.A-Z:/a-z0-9_-]{1,36}$/);
+      expect(entryClientOrderId(ALERT.alertId)).toBe(id);
+      expect(entryClientOrderId('wa-2:0123456789abcdef')).not.toBe(id);
+    });
+
+    it('timeout al colocarla pero Binance la aceptó: la sigue y al ejecutarse la protege (AC-84)', async () => {
+      t = setupExecutor({ placeLimitEntry: timeout, findEntry: async (symbol) => ({ symbol, id: 'E7' }) });
+      const trade = await t.executor.open(ALERT, SIZED);
+      expect(t.exchange.callsTo('findEntry')[0]?.args).toEqual(['KAIAUSDT', entryClientOrderId(ALERT.alertId)]);
+      expect(trade).toMatchObject({ state: 'pendiente', entryOrderId: 'E7' });
+      expect(t.store.getAlert(ALERT.alertId)?.status).toBe('entrada pendiente');
+      t.fill(SIZED.quantity);
+      await t.clock.advance(POLL_MS);
+      expect(t.exchange.callsTo('placeStopLoss')).toHaveLength(1);
+      expect(t.exchange.callsTo('placeTakeProfit')).toHaveLength(1);
+    });
+
+    it('si Binance confirma que no existe, queda "entrada no ejecutada" sin operación', async () => {
+      t = setupExecutor({ placeLimitEntry: timeout, findEntry: async () => null });
+      expect(await t.executor.open(ALERT, SIZED)).toBeNull();
+      expect(t.exchange.callsTo('findEntry')).toHaveLength(1);
+      expect(t.store.getTrade(ALERT.alertId)).toBeUndefined();
+      expect(t.store.getAlert(ALERT.alertId)?.status).toBe('entrada no ejecutada');
+    });
+
+    it('si la consulta también falla, la reintenta con backoff y un evento crítico por falla', async () => {
+      let answers = 0;
+      t = setupExecutor({
+        placeLimitEntry: timeout,
+        findEntry: async () => {
+          if (++answers <= 2) throw new Error('RequestTimeout: binanceusdm GET /fapi/v1/order');
+          return null;
+        },
+      });
+      const opened = t.executor.open(ALERT, SIZED);
+      await t.clock.advance(1000);
+      await t.clock.advance(2000);
+      expect(await opened).toBeNull();
+      expect(t.exchange.callsTo('findEntry')).toHaveLength(3);
+      const critical = t.logLines().filter((l) => l.type === 'critical');
+      expect(critical).toEqual([
+        expect.objectContaining({ kind: 'entrada sin confirmar', alertId: ALERT.alertId }),
+        expect.objectContaining({ kind: 'entrada sin confirmar', alertId: ALERT.alertId }),
+      ]);
+    });
   });
 
   it('si la entrada se ejecuta justo al cancelarla, igual la protege (Principio III)', async () => {

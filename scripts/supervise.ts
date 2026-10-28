@@ -4,8 +4,9 @@
 // La app corre como proceso hijo en la misma terminal (mismo QR) y con el mismo Node y el mismo
 // cargador de tsx. Ctrl+C le llega a los dos: la app cierra con calma y el supervisor solo anota
 // que el operador pidió parar.
-import { spawn, spawnSync, type ChildProcess } from 'node:child_process';
+import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
+import { cleanupChromium, systemCleanupDeps } from '../src/chromium-lock.ts';
 import { supervise, type AppExit } from '../src/supervisor.ts';
 
 const mode = process.env.SIGNALBRIDGE_MODE;
@@ -15,6 +16,16 @@ if (mode !== 'DRY' && mode !== 'LIVE') {
 }
 // Perfil de trabajo de RemoteAuth (src/adapters/whatsapp.ts).
 const profileDir = path.resolve('.wwebjs_auth', 'RemoteAuth-signalbridge');
+// Un Chromium que sobrevivió a un kill -9 seguiría conectado con la misma sesión: el arranque
+// siguiente falla con "Execution context was destroyed". Se revisa también antes del primer
+// arranque, por si el supervisor anterior ya no está.
+const freeSession = async () => {
+  try {
+    await cleanupChromium(systemCleanupDeps(profileDir, (line) => console.error(line)));
+  } catch (err) {
+    console.error(`No se pudo revisar Chromium antes de arrancar: ${(err as Error).message}`);
+  }
+};
 
 let stop = false;
 let child: ChildProcess | null = null;
@@ -33,6 +44,7 @@ for (const signal of ['SIGTERM', 'SIGHUP'] as const) {
 }
 
 console.log(`Reinicio automático activo (modo ${mode}).`);
+await freeSession();
 const code = await supervise({
   runApp: () =>
     new Promise<AppExit>((resolve) => {
@@ -55,9 +67,6 @@ const code = await supervise({
   now: () => Date.now(),
   stopRequested: () => stop,
   log: (line) => console.error(line),
-  // Un Chromium que sobrevivió a un kill -9 seguiría conectado con la misma sesión.
-  beforeRestart: () => {
-    spawnSync('pkill', ['-f', `--user-data-dir=${profileDir}`]);
-  },
+  beforeRestart: freeSession,
 });
 process.exit(code);

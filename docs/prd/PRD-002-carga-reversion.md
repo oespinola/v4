@@ -29,6 +29,14 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
   sistema debe cerrar la posición con una orden a mercado.
 - RF-19: Si la orden de entrada falla o no tiene ninguna ejecución a los 3 minutos de
   colocada, el sistema debe cancelarla y no colocar SL ni TP.
+- RF-57: El sistema debe colocar cada orden de entrada con un identificador propio
+  derivado del ID de la alerta (RF-11). Si la colocación falla (error o timeout), antes
+  de darla por no ejecutada debe consultar a Binance por ese identificador: si la orden
+  existe, la sigue como cualquier entrada colocada (RF-34, RF-19); si Binance confirma que
+  no existe, la alerta queda "entrada no ejecutada" sin operación; si la consulta también
+  falla, la reintenta con espera exponencial (1 s, 2 s, 4 s… hasta 60 s), registrando un
+  evento crítico en cada falla, hasta obtener una respuesta. Así una orden que Binance
+  aceptó aunque la respuesta no llegó nunca queda sin seguir ni sin SL y TP.
 - RF-20: El sistema debe rechazar una alerta válida si abrirla haría que el nocional
   total de las posiciones abiertas y de las órdenes de entrada pendientes supere el
   máximo configurable de capital comprometido (USDT).
@@ -80,6 +88,10 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
 - AC-23 (RF-19): Dada una orden de entrada sin ninguna ejecución, cuando falla o pasan
   3 minutos desde que se colocó, entonces el sistema la cancela, no coloca SL ni TP y
   registra el estado "entrada no ejecutada".
+- AC-84 (RF-57): Dada una alerta válida cuya colocación de la entrada falla por timeout
+  pero Binance la aceptó, cuando el sistema consulta por el identificador de la entrada,
+  entonces la encuentra, la sigue como entrada pendiente y, al ejecutarse, coloca SL y
+  TP; no queda como "entrada no ejecutada".
 - AC-24 (RF-20): Dado un nocional total de posiciones abiertas y entradas pendientes C
   y un máximo M, cuando
   llega una alerta válida con nocional X y C + X > M, entonces el sistema la rechaza y
