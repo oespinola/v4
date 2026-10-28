@@ -174,6 +174,10 @@ export class BinanceTrading implements Exchange {
     return { symbol, id: String(order.orderId) };
   };
 
+  findEntry: Exchange['findEntry'] = async () => {
+    throw new Error('sin implementar (T090)');
+  };
+
   private async placeProtection(symbol: string, side: Side, type: string, trigger: number): Promise<OrderRef> {
     const order = await this.call<{ algoId: number }>('fapiPrivatePostAlgoOrder', {
       algoType: 'CONDITIONAL',

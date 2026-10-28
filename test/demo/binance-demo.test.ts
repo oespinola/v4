@@ -54,7 +54,7 @@ describe('Binance Demo Trading (R-06)', () => {
     // LONG a la mitad del precio: no se ejecuta. Cantidad para cubrir el nocional mínimo.
     const entry = roundToStep(price * 0.5, f.tickSize, 'nearest');
     const quantity = roundToStep(Math.max(f.minQty, (f.minNotional * 1.5) / entry), f.stepSize, 'up');
-    const entryRef = await ex.placeLimitEntry({ symbol: SYMBOL, side: 'LONG', quantity, price: entry });
+    const entryRef = await ex.placeLimitEntry({ symbol: SYMBOL, side: 'LONG', quantity, price: entry, clientOrderId: `sb-demo-${Date.now()}` });
     placed.push(entryRef);
     expect(await ex.order(entryRef)).toMatchObject({ status: 'open', filledQty: 0 });
     expect((await ex.openOrders(SYMBOL)).map((r) => r.id)).toContain(entryRef.id);

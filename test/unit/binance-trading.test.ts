@@ -77,20 +77,38 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
   it('entrada LIMIT GTC al precio, en one-way sin positionSide (FR-027)', async () => {
     const f = fakeClient({ ...oneWay, fapiPrivatePostOrder: () => ({ orderId: 111 }) });
     const ex = new BinanceTrading(f.client);
-    const ref = await ex.placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 });
+    const ref = await ex.placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402, clientOrderId: 'sb-1' });
     expect(ref).toEqual({ symbol: 'KAIAUSDT', id: '111' });
-    expect(f.of('fapiPrivatePostOrder')).toEqual([
+    expect(f.of('fapiPrivatePostOrder')).toMatchObject([
       { symbol: 'KAIAUSDT', side: 'SELL', type: 'LIMIT', timeInForce: 'GTC', quantity: '4166', price: '0.0402', newOrderRespType: 'RESULT' },
     ]);
-    await ex.placeLimitEntry({ symbol: 'KAIAUSDT', side: 'LONG', quantity: 1, price: 1 });
+    await ex.placeLimitEntry({ symbol: 'KAIAUSDT', side: 'LONG', quantity: 1, price: 1, clientOrderId: 'sb-2' });
     expect(f.of('fapiPrivateGetPositionSideDual')).toHaveLength(1); // el modo se lee una vez
     expect(f.of('fapiPrivatePostOrder')[1]).toMatchObject({ side: 'BUY' });
   });
 
   it('en una cuenta hedge manda positionSide', async () => {
     const f = fakeClient({ ...hedge, fapiPrivatePostOrder: () => ({ orderId: 111 }) });
-    await new BinanceTrading(f.client).placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 1, price: 1 });
+    await new BinanceTrading(f.client).placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 1, price: 1, clientOrderId: 'sb-1' });
     expect(f.of('fapiPrivatePostOrder')[0]).toMatchObject({ side: 'SELL', positionSide: 'SHORT' });
+  });
+
+  it.fails('la entrada lleva su identificador propio como newClientOrderId (FR-069)', async () => {
+    const f = fakeClient({ ...oneWay, fapiPrivatePostOrder: () => ({ orderId: 111 }) });
+    await new BinanceTrading(f.client).placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 1, price: 1, clientOrderId: 'sb-abc' });
+    expect(f.of('fapiPrivatePostOrder')[0]).toMatchObject({ newClientOrderId: 'sb-abc' });
+  });
+
+  it.fails('busca la entrada por su identificador propio: la orden, o null si Binance no la tiene (FR-069)', async () => {
+    const found = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 222 }) });
+    expect(await new BinanceTrading(found.client).findEntry('KAIAUSDT', 'sb-abc')).toEqual({ symbol: 'KAIAUSDT', id: '222' });
+    expect(found.of('fapiPrivateGetOrder')).toEqual([{ symbol: 'KAIAUSDT', origClientOrderId: 'sb-abc' }]);
+
+    const missing = fakeClient({ fapiPrivateGetOrder: binanceError(-2013) });
+    expect(await new BinanceTrading(missing.client).findEntry('KAIAUSDT', 'sb-abc')).toBeNull();
+
+    const down = fakeClient({ fapiPrivateGetOrder: binanceError(-1007) }); // timeout de Binance
+    await expect(new BinanceTrading(down.client).findEntry('KAIAUSDT', 'sb-abc')).rejects.toThrow();
   });
 
   it('SL STOP_MARKET y TP TAKE_PROFIT_MARKET condicionales con closePosition y precio de marca (R-06)', async () => {

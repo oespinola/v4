@@ -11,6 +11,11 @@ import type { Alert, AlertStatus, Trade } from './types.ts';
 export const POLL_MS = 2000;
 export const ENTRY_TIMEOUT_MS = 3 * 60_000;
 
+/** `newClientOrderId` de la entrada (FR-069). */
+export function entryClientOrderId(alertId: string): string {
+  return ''; // sin implementar (T090)
+}
+
 export interface ExecutorDeps {
   exchange: Exchange;
   store: Store;
@@ -56,7 +61,13 @@ export class Executor implements EmergencyState {
     let entryRef: OrderRef;
     try {
       await exchange.prepareSymbol(symbol, this.deps.symbolLeverage);
-      entryRef = await exchange.placeLimitEntry({ symbol, side, quantity: sized.quantity, price: alert.entry! });
+      entryRef = await exchange.placeLimitEntry({
+        symbol,
+        side,
+        quantity: sized.quantity,
+        price: alert.entry!,
+        clientOrderId: entryClientOrderId(alert.alertId),
+      });
     } catch {
       const failed: Alert = { ...alert, status: 'entrada no ejecutada' };
       store.saveAlert(failed);
