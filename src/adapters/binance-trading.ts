@@ -44,6 +44,7 @@ const toFill = (t: RawTrade): Fill => ({
 
 const NO_NEED_TO_CHANGE_MARGIN_TYPE = -4046;
 const UNKNOWN_ORDER = -2011; // al cancelar algo que ya no está abierto
+const ORDER_DOES_NOT_EXIST = -2013; // al consultar una orden que Binance no tiene
 
 const STATUS: Record<string, OrderStatus> = {
   NEW: 'open',
@@ -160,7 +161,7 @@ export class BinanceTrading implements Exchange {
     }
   };
 
-  placeLimitEntry: Exchange['placeLimitEntry'] = async ({ symbol, side, quantity, price }) => {
+  placeLimitEntry: Exchange['placeLimitEntry'] = async ({ symbol, side, quantity, price, clientOrderId }) => {
     const order = await this.call<{ orderId: number }>('fapiPrivatePostOrder', {
       symbol,
       side: openSide(side),
@@ -169,13 +170,20 @@ export class BinanceTrading implements Exchange {
       timeInForce: 'GTC',
       quantity: decimal(quantity),
       price: decimal(price),
+      newClientOrderId: clientOrderId,
       newOrderRespType: 'RESULT',
     });
     return { symbol, id: String(order.orderId) };
   };
 
-  findEntry: Exchange['findEntry'] = async () => {
-    throw new Error('sin implementar (T090)');
+  findEntry: Exchange['findEntry'] = async (symbol, clientOrderId) => {
+    try {
+      const order = await this.call<{ orderId: number }>('fapiPrivateGetOrder', { symbol, origClientOrderId: clientOrderId });
+      return { symbol, id: String(order.orderId) };
+    } catch (err) {
+      if (binanceCode(err) === ORDER_DOES_NOT_EXIST) return null;
+      throw err;
+    }
   };
 
   private async placeProtection(symbol: string, side: Side, type: string, trigger: number): Promise<OrderRef> {

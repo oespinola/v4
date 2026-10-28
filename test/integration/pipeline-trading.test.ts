@@ -155,7 +155,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     expect(store.exposure()).toEqual({ positions: 0, notional: 0 });
   });
 
-  it.fails('si la entrada no quedó en Binance, el reenvío un minuto después se evalúa de nuevo (AC-83)', async () => {
+  it('si la entrada no quedó en Binance, el reenvío un minuto después se evalúa de nuevo (AC-83)', async () => {
     const place = exchange.impl.placeLimitEntry!;
     exchange.impl.placeLimitEntry = async () => Promise.reject(new Error('RequestTimeout: binanceusdm POST /fapi/v1/order'));
     const first = await pipeline().processMessage(message(KAIA, { sender: AUTH }));

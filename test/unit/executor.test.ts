@@ -96,7 +96,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
   describe('entrada confirmada por su identificador propio (FR-069)', () => {
     const timeout = () => Promise.reject(new Error('RequestTimeout: binanceusdm POST /fapi/v1/order'));
 
-    it.fails('la entrada lleva un identificador propio, el mismo para la misma alerta y válido para Binance', async () => {
+    it('la entrada lleva un identificador propio, el mismo para la misma alerta y válido para Binance', async () => {
       t = setupExecutor();
       await t.executor.open(ALERT, SIZED);
       const id = entryClientOrderId(ALERT.alertId);
@@ -106,7 +106,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
       expect(entryClientOrderId('wa-2:0123456789abcdef')).not.toBe(id);
     });
 
-    it.fails('timeout al colocarla pero Binance la aceptó: la sigue y al ejecutarse la protege (AC-84)', async () => {
+    it('timeout al colocarla pero Binance la aceptó: la sigue y al ejecutarse la protege (AC-84)', async () => {
       t = setupExecutor({ placeLimitEntry: timeout, findEntry: async (symbol) => ({ symbol, id: 'E7' }) });
       const trade = await t.executor.open(ALERT, SIZED);
       expect(t.exchange.callsTo('findEntry')[0]?.args).toEqual(['KAIAUSDT', entryClientOrderId(ALERT.alertId)]);
@@ -118,7 +118,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
       expect(t.exchange.callsTo('placeTakeProfit')).toHaveLength(1);
     });
 
-    it.fails('si Binance confirma que no existe, queda "entrada no ejecutada" sin operación', async () => {
+    it('si Binance confirma que no existe, queda "entrada no ejecutada" sin operación', async () => {
       t = setupExecutor({ placeLimitEntry: timeout, findEntry: async () => null });
       expect(await t.executor.open(ALERT, SIZED)).toBeNull();
       expect(t.exchange.callsTo('findEntry')).toHaveLength(1);
@@ -126,7 +126,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
       expect(t.store.getAlert(ALERT.alertId)?.status).toBe('entrada no ejecutada');
     });
 
-    it.fails('si la consulta también falla, la reintenta con backoff y un evento crítico por falla', async () => {
+    it('si la consulta también falla, la reintenta con backoff y un evento crítico por falla', async () => {
       let answers = 0;
       t = setupExecutor({
         placeLimitEntry: timeout,

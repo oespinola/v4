@@ -3,6 +3,7 @@
 // operación queda `abierta` ("completa") solo con los dos aceptados. Si el SL o el TP fallan, cierra
 // a mercado y reintenta con backoff hasta lograrlo (FR-030). A los 3 minutos cancela lo no
 // ejecutado (FR-031, FR-032). Los eventos de cada operación corren de a uno.
+import { createHash } from 'node:crypto';
 import type { Store } from '../adapters/store.ts';
 import type { Clock, EmergencyState, Exchange, OrderRef, OrderState, TimerHandle } from '../ports.ts';
 import { RetryCounter } from './backoff.ts';
@@ -11,9 +12,10 @@ import type { Alert, AlertStatus, Trade } from './types.ts';
 export const POLL_MS = 2000;
 export const ENTRY_TIMEOUT_MS = 3 * 60_000;
 
-/** `newClientOrderId` de la entrada (FR-069). */
+/** `newClientOrderId` de la entrada (FR-069): el mismo para la misma alerta, y dentro de lo que
+ *  acepta Binance (hasta 36 caracteres de [.A-Z:/a-z0-9_-]; el ID de la alerta es más largo). */
 export function entryClientOrderId(alertId: string): string {
-  return ''; // sin implementar (T090)
+  return `sb-${createHash('sha256').update(alertId).digest('hex').slice(0, 32)}`;
 }
 
 export interface ExecutorDeps {
@@ -58,17 +60,16 @@ export class Executor implements EmergencyState {
     const { exchange, store, clock } = this.deps;
     const symbol = alert.symbol!;
     const side = alert.side!;
-    let entryRef: OrderRef;
+    const clientOrderId = entryClientOrderId(alert.alertId);
+    let entryRef: OrderRef | null;
     try {
       await exchange.prepareSymbol(symbol, this.deps.symbolLeverage);
-      entryRef = await exchange.placeLimitEntry({
-        symbol,
-        side,
-        quantity: sized.quantity,
-        price: alert.entry!,
-        clientOrderId: entryClientOrderId(alert.alertId),
-      });
-    } catch {
+      entryRef = await exchange.placeLimitEntry({ symbol, side, quantity: sized.quantity, price: alert.entry!, clientOrderId });
+    } catch (e) {
+      // Un error o un timeout no prueban que la orden no exista: Binance pudo aceptarla (FR-069).
+      entryRef = await this.confirmEntry(alert.alertId, symbol, clientOrderId, e);
+    }
+    if (!entryRef) {
       const failed: Alert = { ...alert, status: 'entrada no ejecutada' };
       store.saveAlert(failed);
       store.logAlert(failed);
@@ -113,6 +114,25 @@ export class Executor implements EmergencyState {
     t.poll = clock.setInterval(() => this.enqueue(t, () => this.checkEntry(t)), POLL_MS);
     t.timeout = clock.setTimeout(() => this.enqueue(t, () => this.onTimeout(t)), ENTRY_TIMEOUT_MS);
     return { ...trade };
+  }
+
+  /** FR-069: pregunta a Binance por la entrada que falló al colocarse, hasta que conteste. */
+  private async confirmEntry(alertId: string, symbol: string, clientOrderId: string, placeError: unknown): Promise<OrderRef | null> {
+    const { exchange, store, clock } = this.deps;
+    const retry = new RetryCounter();
+    for (;;) {
+      try {
+        return await exchange.findEntry(symbol, clientOrderId);
+      } catch (e) {
+        const step = retry.failure();
+        store.logCritical({
+          kind: 'entrada sin confirmar',
+          alertId,
+          detail: `la colocación falló (${errorText(placeError)}) y la consulta también, intento ${step.attempt}: ${errorText(e)}; reintento en ${step.waitMs} ms`,
+        });
+        await clock.sleep(step.waitMs);
+      }
+    }
   }
 
   /** Reconciliación (FR-041, FR-042, FR-065): retoma una operación `pendiente` o `con_ejecución`

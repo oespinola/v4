@@ -93,13 +93,13 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(f.of('fapiPrivatePostOrder')[0]).toMatchObject({ side: 'SELL', positionSide: 'SHORT' });
   });
 
-  it.fails('la entrada lleva su identificador propio como newClientOrderId (FR-069)', async () => {
+  it('la entrada lleva su identificador propio como newClientOrderId (FR-069)', async () => {
     const f = fakeClient({ ...oneWay, fapiPrivatePostOrder: () => ({ orderId: 111 }) });
     await new BinanceTrading(f.client).placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 1, price: 1, clientOrderId: 'sb-abc' });
     expect(f.of('fapiPrivatePostOrder')[0]).toMatchObject({ newClientOrderId: 'sb-abc' });
   });
 
-  it.fails('busca la entrada por su identificador propio: la orden, o null si Binance no la tiene (FR-069)', async () => {
+  it('busca la entrada por su identificador propio: la orden, o null si Binance no la tiene (FR-069)', async () => {
     const found = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 222 }) });
     expect(await new BinanceTrading(found.client).findEntry('KAIAUSDT', 'sb-abc')).toEqual({ symbol: 'KAIAUSDT', id: '222' });
     expect(found.of('fapiPrivateGetOrder')).toEqual([{ symbol: 'KAIAUSDT', origClientOrderId: 'sb-abc' }]);
