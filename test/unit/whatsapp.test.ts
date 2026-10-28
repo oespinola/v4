@@ -47,18 +47,18 @@ const ready = async (client: EventEmitter) => {
 };
 
 describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
-  it.fails('sin sesión guardada entrega el QR para vincular la cuenta (AC-10)', () => {
+  it('sin sesión guardada entrega el QR para vincular la cuenta (AC-10)', () => {
     const { client, got } = setup();
     client.emit('qr', 'QR-DATA');
     expect(got.qr).toEqual(['QR-DATA']);
   });
 
-  it.fails('normaliza el remitente sin sufijo de dispositivo; los propios usan la cuenta vinculada', () => {
+  it('normaliza el remitente sin sufijo de dispositivo; los propios usan la cuenta vinculada', () => {
     expect(senderOf(raw(), '5491100000009@c.us')).toBe('5491100000001');
     expect(senderOf(raw({ fromMe: true, author: undefined }), '5491100000009:2@c.us')).toBe('5491100000009');
   });
 
-  it.fails('entrega los mensajes del grupo con ID, remitente, texto y hora', async () => {
+  it('entrega los mensajes del grupo con ID, remitente, texto y hora', async () => {
     const { client, got } = setup();
     await ready(client);
     client.emit('message_create', raw());
@@ -68,7 +68,7 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     ]);
   });
 
-  it.fails('ignora mensajes de otros grupos y los que llegan antes de encontrar el grupo', async () => {
+  it('ignora mensajes de otros grupos y los que llegan antes de encontrar el grupo', async () => {
     const { client, got } = setup();
     client.emit('message_create', raw());
     await ready(client);
@@ -77,7 +77,7 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     expect(got.messages).toEqual([]);
   });
 
-  it.fails('descarta mensajes enviados antes de la conexión (período sin conexión, FR-057)', async () => {
+  it('descarta mensajes enviados antes de la conexión (período sin conexión, FR-057)', async () => {
     const { client, got } = setup();
     await ready(client);
     client.emit('message_create', raw({ timestamp: sec('2026-10-28T11:30:00Z') }));
@@ -86,7 +86,7 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     expect(got.messages.map((m) => m.waMessageId)).toEqual(['NEW']);
   });
 
-  it.fails('reenvía las ediciones del grupo con texto anterior y nuevo', async () => {
+  it('reenvía las ediciones del grupo con texto anterior y nuevo', async () => {
     const { client, got } = setup();
     await ready(client);
     client.emit('message_edit', raw(), 'nuevo', 'viejo');
@@ -94,14 +94,14 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     expect(got.edits).toEqual([expect.objectContaining({ waMessageId: 'ABC123', newText: 'nuevo', previousText: 'viejo' })]);
   });
 
-  it.fails('informa la conexión: ready = arriba, disconnected = abajo', async () => {
+  it('informa la conexión: ready = arriba, disconnected = abajo', async () => {
     const { client, got } = setup();
     await ready(client);
     client.emit('disconnected', 'NAVIGATION');
     expect(got.conn).toEqual([true, false]);
   });
 
-  it.fails('si no encuentra el grupo lo informa', async () => {
+  it('si no encuentra el grupo lo informa', async () => {
     const client = new EventEmitter();
     let missing = 0;
     wireClient(client, {
@@ -118,7 +118,7 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     expect(missing).toBe(1);
   });
 
-  it.fails('la descarga de imagen devuelve un Buffer desde el base64 de WhatsApp', async () => {
+  it('la descarga de imagen devuelve un Buffer desde el base64 de WhatsApp', async () => {
     const { client, got } = setup();
     await ready(client);
     client.emit('message_create', raw({ hasMedia: true, downloadMedia: async () => ({ data: Buffer.from('img').toString('base64'), mimetype: 'image/jpeg' }) }));
