@@ -22,13 +22,13 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Purpose**: proyecto Node/TypeScript que compila y corre tests vacíos.
 
-- [ ] T001 Crear `package.json` (`"type": "module"`, `engines.node >= 22.23`) con scripts `dev` (`SIGNALBRIDGE_MODE=DRY tsx src/main.ts`; pasa a `scripts/supervise.ts` en T079), `start` (ídem con `LIVE`), `test` (`vitest run`), `typecheck` (`tsc --noEmit`) y `latency` (`tsx scripts/latency.ts`), y las dependencias y versiones de `../v3/package.json` (whatsapp-web.js, qrcode-terminal, ccxt, @anthropic-ai/sdk, zod; dev: typescript, tsx, vitest, @types/node, @types/qrcode-terminal) en package.json
-- [ ] T002 [P] Crear `tsconfig.json` con las opciones de `../v3/tsconfig.json` (strict, NodeNext, `noUncheckedIndexedAccess`, `allowImportingTsExtensions`, `noEmit`; include `src`, `test`, `scripts`) en tsconfig.json
-- [ ] T003 [P] Crear `pnpm-workspace.yaml` con `allowBuilds` (esbuild y puppeteer en true; ccxt, bufferutil en false) como en `../v3/pnpm-workspace.yaml`
-- [ ] T004 [P] Crear `.gitignore` con `node_modules/`, `.env`, `data/`, `.wwebjs_auth/`, `.wwebjs_cache/` y el directorio de sesión de WhatsApp (FR-049)
-- [ ] T005 [P] Crear `.env.example` con todas las variables de [contracts/cli.md](contracts/cli.md), sin valores reales, en .env.example
-- [ ] T006 [P] Crear `vitest.config.ts` que excluya `test/demo/**` salvo que `BINANCE_DEMO_TESTS=1`, en vitest.config.ts
-- [ ] T007 Correr `pnpm install`, agregar un test trivial en test/unit/smoke.test.ts y confirmar que `pnpm typecheck` y `pnpm test` pasan
+- [X] T001 Crear `package.json` (`"type": "module"`, `engines.node >= 22.23`) con scripts `dev` (`SIGNALBRIDGE_MODE=DRY tsx src/main.ts`; pasa a `scripts/supervise.ts` en T079), `start` (ídem con `LIVE`), `test` (`vitest run`), `typecheck` (`tsc --noEmit`) y `latency` (`tsx scripts/latency.ts`), y las dependencias y versiones de `../v3/package.json` (whatsapp-web.js, qrcode-terminal, ccxt, @anthropic-ai/sdk, zod; dev: typescript, tsx, vitest, @types/node, @types/qrcode-terminal) en package.json
+- [X] T002 [P] Crear `tsconfig.json` con las opciones de `../v3/tsconfig.json` (strict, NodeNext, `noUncheckedIndexedAccess`, `allowImportingTsExtensions`, `noEmit`; include `src`, `test`, `scripts`) en tsconfig.json
+- [X] T003 [P] Crear `pnpm-workspace.yaml` con `allowBuilds` (esbuild y puppeteer en true; ccxt, bufferutil en false) como en `../v3/pnpm-workspace.yaml`
+- [X] T004 [P] Crear `.gitignore` con `node_modules/`, `.env`, `data/`, `.wwebjs_auth/`, `.wwebjs_cache/` y el directorio de sesión de WhatsApp (FR-049)
+- [X] T005 [P] Crear `.env.example` con todas las variables de [contracts/cli.md](contracts/cli.md), sin valores reales, en .env.example
+- [X] T006 [P] Crear `vitest.config.ts` que excluya `test/demo/**` salvo que `BINANCE_DEMO_TESTS=1`, en vitest.config.ts
+- [X] T007 Correr `pnpm install`, agregar un test trivial en test/unit/smoke.test.ts y confirmar que `pnpm typecheck` y `pnpm test` pasan
 
 **Checkpoint**: el repo compila y `pnpm test` está en verde.
 
