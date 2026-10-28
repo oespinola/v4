@@ -4,7 +4,7 @@ import { SerialQueue } from '../../src/queue.ts';
 const tick = () => new Promise<void>((r) => setImmediate(r));
 
 describe('cola de a una alerta (FR-061)', () => {
-  it.fails('procesa de a un trabajo, en orden de llegada', async () => {
+  it('procesa de a un trabajo, en orden de llegada', async () => {
     const q = new SerialQueue();
     const log: string[] = [];
     let running = 0;
@@ -23,7 +23,7 @@ describe('cola de a una alerta (FR-061)', () => {
     expect(log).toEqual(['inicio a', 'fin a', 'inicio b', 'fin b', 'inicio c', 'fin c']);
   });
 
-  it.fails('un error en un trabajo no frena los siguientes y se informa', async () => {
+  it('un error en un trabajo no frena los siguientes y se informa', async () => {
     const errors: unknown[] = [];
     const q = new SerialQueue((e) => errors.push(e));
     const done: string[] = [];
@@ -38,7 +38,7 @@ describe('cola de a una alerta (FR-061)', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it.fails('idle() espera a que se vacíe la cola', async () => {
+  it('idle() espera a que se vacíe la cola', async () => {
     const q = new SerialQueue();
     let finished = false;
     void q.push(async () => {

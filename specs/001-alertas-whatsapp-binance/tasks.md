@@ -45,9 +45,9 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T012 Escribir tests de configuración (FR-058, FR-062, FR-052): falta cada variable requerida, valores ≤ 0, `MAX_SL_DISTANCE_PCT` ausente = 15, credenciales del otro modo no requeridas, lista de todo lo que falta, código de salida 78 — en `it.fails` — en test/unit/config.test.ts
 - [X] T013 Implementar la carga de `.env` (`process.loadEnvFile`) y la validación con zod por modo, y pasar T012 a `it`, en src/config.ts
 - [X] T014 [P] Escribir tests de backoff (FR-055): secuencia 1, 2, 4, 8, 16, 32, 60, 60… s; señal de "agotado" al 10.º fallo consecutivo (quien la consume decide si sale: el cierre de emergencia la ignora, FR-055); reinicio del contador tras un éxito — en `it.fails` — en test/unit/backoff.test.ts
-- [ ] T015 Implementar el backoff puro y pasar T014 a `it` en src/domain/backoff.ts
+- [X] T015 Implementar el backoff puro y pasar T014 a `it` en src/domain/backoff.ts
 - [X] T016 [P] Escribir tests de la cola (FR-061): concurrencia 1, orden de llegada, un error en un trabajo no frena los siguientes — en `it.fails` — en test/unit/queue.test.ts
-- [ ] T017 Implementar la cola y pasar T016 a `it` en src/queue.ts
+- [X] T017 Implementar la cola y pasar T016 a `it` en src/queue.ts
 - [ ] T018 [P] Escribir tests del almacenamiento (FR-007, FR-046, data-model): `umask 077`, `data/` en 0700 y archivos en 0600, alta de alerta, búsqueda por `waMessageId`, búsqueda de `contentHash` en las últimas 24 h con reloj inyectado, alta/actualización de `trades`, conteo y nocional de operaciones `pendiente`, `con_ejecución` o `abierta`, búsqueda de operación activa por símbolo (FR-063), listado de las `con_ejecución` (FR-065), append al JSONL — en `it.fails` — en test/unit/store.test.ts
 - [ ] T019 Implementar el store con `node:sqlite` (tablas `alerts`, `edits`, `trades`) y el append JSONL, y pasar T018 a `it`, en src/adapters/store.ts
 - [ ] T020 [P] Implementar el reloj real (`now`, `setTimeout`, `setInterval`) que cumple `Clock` en src/adapters/clock.ts
