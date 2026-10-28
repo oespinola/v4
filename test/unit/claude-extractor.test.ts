@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { ClaudeExtractor, type ParseClient } from '../../src/adapters/claude-extractor.ts';
 import { fakeImage } from '../fixtures/alerts.ts';
 
-type Params = Record<string, unknown>;
+type Params = Parameters<ParseClient['parse']>[0];
 
 function fakeClient(response: unknown | (() => Promise<unknown>)) {
   const calls: Params[] = [];
@@ -27,22 +27,22 @@ const full = {
 };
 
 describe('extractor de Claude (FR-004, FR-059, Principio I)', () => {
-  it.fails('devuelve solo los campos pedidos como faltantes', async () => {
+  it('devuelve solo los campos pedidos como faltantes', async () => {
     const { client } = fakeClient(parsed(full));
     const ia = new ClaudeExtractor({ client });
     expect(await ia.extract({ text: 't', image: null, missing: ['sl', 'ticker'] })).toEqual({ sl: 0.0414, ticker: 'KAIA' });
   });
 
-  it.fails('convierte el objetivo por indicadores en texto', async () => {
+  it('convierte el objetivo por indicadores en texto', async () => {
     const { client } = fakeClient(parsed({ ...full, target_price: null, target_is_indicators_only: true, target_text: 'ASL21, EMA55' }));
     const ia = new ClaudeExtractor({ client });
     expect(await ia.extract({ text: 't', image: null, missing: ['target'] })).toEqual({ target: { text: 'ASL21, EMA55' } });
   });
 
-  it.fails('manda la imagen en base64 antes del texto, con el modelo, timeout corto y fallback', async () => {
+  it('manda la imagen en base64 antes del texto, con el modelo, timeout corto y fallback', async () => {
     const { client, calls } = fakeClient(parsed(full));
     await new ClaudeExtractor({ client }).extract({ text: 'texto', image: fakeImage, missing: ['sl'] });
-    const p = calls[0]!;
+    const p = calls[0]! as unknown as Record<string, unknown>;
     expect(p.model).toBe('claude-sonnet-5-5');
     expect(p.fallbacks).toBe('default');
     expect(p.betas).toEqual(['server-side-fallback-2026-07-01']);
@@ -51,22 +51,22 @@ describe('extractor de Claude (FR-004, FR-059, Principio I)', () => {
     expect(content[1]?.type).toBe('text');
   });
 
-  it.fails('descarta valores inválidos (negativos, ticker raro)', async () => {
+  it('descarta valores inválidos (negativos, ticker raro)', async () => {
     const { client } = fakeClient(parsed({ ...full, ticker: 'KA IA!', entry: -1 }));
     expect(await new ClaudeExtractor({ client }).extract({ text: 't', image: null, missing: ['ticker', 'entry'] })).toEqual({});
   });
 
-  it.fails('ante una negativa devuelve {}', async () => {
+  it('ante una negativa devuelve {}', async () => {
     const { client } = fakeClient(parsed(full, 'refusal'));
     expect(await new ClaudeExtractor({ client }).extract({ text: 't', image: null, missing: ['sl'] })).toEqual({});
   });
 
-  it.fails('ante una respuesta sin parsear devuelve {}', async () => {
+  it('ante una respuesta sin parsear devuelve {}', async () => {
     const { client } = fakeClient(parsed(null));
     expect(await new ClaudeExtractor({ client }).extract({ text: 't', image: null, missing: ['sl'] })).toEqual({});
   });
 
-  it.fails('nunca lanza: error o timeout devuelven {}', async () => {
+  it('nunca lanza: error o timeout devuelven {}', async () => {
     const { client } = fakeClient(async () => {
       throw new Error('Request timed out');
     });
