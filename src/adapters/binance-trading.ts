@@ -3,7 +3,7 @@
 // así cubren toda la posición, incluidas ejecuciones posteriores (FR-028). Demo Trading en DRY y
 // producción en LIVE los elige quien arma el cliente (FR-051).
 import type { ClosingFill, Exchange, OrderRef, OrderState, OrderStatus, PositionState } from '../ports.ts';
-import type { Side } from '../domain/types.ts';
+import type { Mode, Side } from '../domain/types.ts';
 
 /** Lo que se usa del cliente de CCXT (`binanceusdm`): sus métodos implícitos. */
 export type BinanceClient = Record<string, (params?: Record<string, unknown>) => Promise<unknown>>;
@@ -37,6 +37,22 @@ const STATUS: Record<string, OrderStatus> = {
   EXPIRED_IN_MATCH: 'canceled',
   REJECTED: 'rejected',
 };
+
+/** Lo que la fábrica usa de la clase de CCXT (inyectable en los tests). */
+export interface CcxtLike {
+  enableDemoTrading(enable: boolean): void;
+}
+export type CcxtConstructor = new (opts: { apiKey: string; secret: string; enableRateLimit: boolean }) => CcxtLike;
+
+/** Cliente de trading del modo (FR-051, FR-052): DRY contra Demo Trading con las credenciales de
+ *  Demo; LIVE contra producción con las de producción. */
+export function createExchange(
+  _mode: Mode,
+  _credentials: { apiKey: string; secret: string },
+  _Ctor?: CcxtConstructor,
+): { exchange: BinanceTrading; client: CcxtLike } {
+  throw new Error('no implementado');
+}
 
 /** Binance no acepta notación exponencial ("1e-7"): números siempre en decimal. */
 export function decimal(n: number): string {

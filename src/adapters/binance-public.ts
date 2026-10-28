@@ -20,6 +20,12 @@ const KLINES_TIMEOUT_MS = 5_000;
 /** 1500 velas de 15 min ≈ 500 de 45 min, de sobra para estabilizar EMA55 (FR-015). */
 const KLINES_LIMIT = 1500;
 
+/** Datos públicos del modo: ranking, velas y símbolos siempre de producción; en DRY, además, los
+ *  filtros de órdenes de Demo (FR-017, FR-066). */
+export function publicDataUrls(_mode: 'DRY' | 'LIVE'): { baseUrl: string; orderRulesUrl: string | undefined } {
+  throw new Error('no implementado');
+}
+
 export interface BinancePublicOptions {
   clock: Clock;
   fetch?: typeof fetch;
