@@ -104,6 +104,12 @@ export class Executor implements EmergencyState {
     return { ...trade };
   }
 
+  /** Reconciliación (FR-041, FR-042, FR-065): retoma una operación `pendiente` o `con_ejecución`
+   *  que quedó de antes de arrancar y resuelve lo que pasó mientras tanto. */
+  async resume(_alert: Alert, _trade: Trade): Promise<void> {
+    throw new Error('no implementado');
+  }
+
   emergencyInProgress(): boolean {
     return this.emergencies > 0;
   }
