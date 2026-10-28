@@ -39,6 +39,7 @@ interface Exchange {
   closeAtMarket(symbol: string, side: Side): Promise<OrderRef>;
   cancel(ref: OrderRef): Promise<void>;
   order(ref: OrderRef): Promise<OrderState>;
+  openOrders(symbol: string): Promise<OrderRef[]>;              // detectar SL/TP perdido (FR-038)
   openPositions(): Promise<PositionState[]>;
   closingFills(symbol: string, since: Date): Promise<ClosingFill[]>; // causa, PnL, comisiones
 }
