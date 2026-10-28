@@ -42,4 +42,5 @@ aplican van en `null` (FR-043).
 ## `type: "critical"`
 
 `kind` (`"cierre de emergencia"` \| `"falla del cierre de emergencia"` \| `"SL/TP perdido"` \|
-`"reconexión agotada"`), `alertId` si aplica y `detail` (FR-030, FR-038, FR-055).
+`"reconexión agotada"` \| `"entrada sin confirmar"`), `alertId` si aplica y `detail` (FR-030,
+FR-038, FR-055, FR-069).

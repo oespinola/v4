@@ -168,6 +168,9 @@ verificar la clasificación y el motivo registrado de cada una, sin colocar ning
 27. **Given** una alerta rechazada hace menos de 24 h (por ejemplo, por "ranking no disponible"),
     **When** llega un reenvío con otro ID de mensaje y los mismos valores, **Then** no lo rechaza
     como duplicado y lo evalúa de nuevo (AC-77).
+    Lo mismo si la alerta quedó "entrada no ejecutada" porque su orden de entrada nunca quedó en
+    Binance (AC-83); si la entrada se colocó y venció sin ejecutarse, el reenvío es duplicado
+    (AC-85).
 28. **Given** una alerta no rechazada con ticker "PEPE" y Entrada 0.002404 registrada hace menos de
     24 h, **When** llega otra con ticker "1000PEPE", Entrada 2.404 y SL y TP equivalentes,
     **Then** la rechaza como "duplicado" (AC-78).
@@ -245,6 +248,9 @@ enviadas y estados finales.
     símbolo, **Then** la rechaza con el motivo "símbolo ya en operación" (AC-70).
 16. **Given** una alerta válida, **When** falla la consulta del balance para el control de
     apalancamiento, **Then** la rechaza con el motivo "datos de mercado no disponibles" (AC-72).
+17. **Given** una alerta válida cuya colocación de la entrada falla por timeout pero Binance la
+    aceptó, **When** el sistema consulta por el identificador de la entrada, **Then** la sigue como
+    entrada pendiente y, al ejecutarse, coloca SL y TP, sin quedar "entrada no ejecutada" (AC-84).
 
 ---
 
@@ -450,6 +456,9 @@ key de producción en Binance.
   no el TP calculado, así que se detecta como duplicado (FR-006).
 - **Reenvío de una alerta rechazada**: no es duplicado; se evalúa de nuevo, así una señal
   rechazada por un problema del sistema (ranking o velas no disponibles) no se pierde (FR-007).
+- **Timeout al colocar la entrada**: Binance pudo haber aceptado la orden aunque la respuesta no
+  llegó. Se consulta por el identificador de la entrada: si existe, se sigue y se protege con SL y TP;
+  si no existe, queda "entrada no ejecutada" y un reenvío se evalúa de nuevo (FR-069, FR-007).
 - **La misma operación escrita con el ticker con y sin el prefijo 1000** ("PEPE 0.002404" y
   "1000PEPE 2.404"): mismo hash, el segundo es duplicado (FR-006).
 - **En DRY, un símbolo que está en producción pero no en Binance Demo**: se rechaza con el motivo
@@ -507,7 +516,9 @@ key de producción en Binance.
 - **FR-007** (RF-29): El sistema MUST rechazar como duplicado, sin operarla, una alerta cuyo ID de
   mensaje coincida con el de cualquier alerta ya registrada, o cuyo hash (FR-006) coincida con el de
   una alerta no rechazada registrada en las últimas 24 h. Una alerta rechazada no bloquea su
-  reenvío: el reenvío se evalúa de nuevo.
+  reenvío: el reenvío se evalúa de nuevo. Tampoco lo bloquea una alerta "entrada no ejecutada" cuya
+  orden de entrada nunca quedó en Binance (FR-069); una entrada colocada que venció sin ejecutarse
+  (FR-031) sí lo bloquea.
 - **FR-057** (Clarificación 2026-10-27): El sistema MUST procesar solo los mensajes que llegan
   mientras la conexión con WhatsApp está activa; los mensajes enviados al grupo durante una
   desconexión o una caída del proceso MUST NOT procesarse ni loguearse al reconectar o reiniciar.
@@ -613,6 +624,13 @@ key de producción en Binance.
   crítico en cada falla.
 - **FR-031** (RF-19): Si la entrada falla o no tiene ninguna ejecución a los 3 minutos de colocada,
   el sistema MUST cancelarla y no colocar SL ni TP.
+- **FR-069** (RF-57): El sistema MUST colocar cada orden de entrada con un identificador propio
+  (`newClientOrderId`) derivado del ID de la alerta (FR-006). Si la colocación falla (error o
+  timeout), antes de darla por no ejecutada MUST consultar a Binance por ese identificador: si la
+  orden existe, la sigue como cualquier entrada colocada (FR-028, FR-031); si Binance confirma que
+  no existe, la alerta queda "entrada no ejecutada" sin operación registrada; si la consulta también
+  falla, MUST reintentarla con la espera de FR-055 (1 s, 2 s, 4 s… hasta 60 s), registrando un
+  evento crítico en cada falla, hasta obtener una respuesta.
 - **FR-032** (RF-35): Si a los 3 minutos la entrada tiene ejecución parcial, el sistema MUST
   cancelar la parte no ejecutada y mantener el SL y el TP sobre la posición abierta.
 
