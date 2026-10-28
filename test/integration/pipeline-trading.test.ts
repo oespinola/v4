@@ -73,7 +73,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     rmSync(root, { recursive: true, force: true });
   });
 
-  it.fails('una alerta válida se dimensiona y su entrada queda pendiente', async () => {
+  it('una alerta válida se dimensiona y su entrada queda pendiente', async () => {
     const r = await pipeline().processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ kind: 'alert', alert: { status: 'entrada pendiente', symbol: 'KAIAUSDT' } });
     expect(exchange.callsTo('placeLimitEntry')[0]?.args).toEqual([{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 }]);
@@ -81,7 +81,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     expect(logLines()).toEqual([]); // pendiente es un estado de trabajo
   });
 
-  it.fails('el nivel de riesgo no cambia la cantidad (AC-36)', async () => {
+  it('el nivel de riesgo no cambia la cantidad (AC-36)', async () => {
     await pipeline().processMessage(message(KAIA, { sender: AUTH }));
     await pipeline().processMessage(message(alertText('KITE', '0.0402', '0.0380 usd', '0.0414', 'Riesgo Medio 🟡'), { sender: AUTH, waMessageId: 'wa-2' }));
     const [a, b] = exchange.callsTo('placeLimitEntry').map((c) => (c.args[0] as { quantity: number }).quantity);
@@ -102,7 +102,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     ['apalancamiento máximo', () => ({ maxLeverage: 0.01 }), 'excede máximos'],
   ];
   for (const [name, arrange, reason] of rejections) {
-    it.fails(`${name} → "${reason}", sin colocar órdenes`, async () => {
+    it(`${name} → "${reason}", sin colocar órdenes`, async () => {
       const limits = arrange() ?? {};
       const r = await pipeline(limits).processMessage(message(KAIA, { sender: AUTH }));
       expect(r).toMatchObject({ alert: { status: 'rechazada', reason } });
@@ -112,14 +112,14 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     });
   }
 
-  it.fails('bajo mínimo no consulta el balance (orden de FR-020)', async () => {
+  it('bajo mínimo no consulta el balance (orden de FR-020)', async () => {
     market.symbols.set('KAIAUSDT', filters('KAIAUSDT', { minQty: 5000 }));
     const r = await pipeline().processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ alert: { reason: 'bajo mínimo' } });
     expect(exchange.callsTo('walletBalanceUsdt')).toHaveLength(0);
   });
 
-  it.fails('un símbolo con entrada pendiente rechaza otra alerta del mismo símbolo (AC-70)', async () => {
+  it('un símbolo con entrada pendiente rechaza otra alerta del mismo símbolo (AC-70)', async () => {
     const p = pipeline();
     await p.processMessage(message(KAIA, { sender: AUTH }));
     const other = alertText('KAIA', '0.0410', '0.0390 usd', '0.0420');
@@ -128,21 +128,21 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     expect(exchange.callsTo('placeLimitEntry')).toHaveLength(1);
   });
 
-  it.fails('con una entrada pendiente y máximo 1 → "límite de posiciones" (AC-51)', async () => {
+  it('con una entrada pendiente y máximo 1 → "límite de posiciones" (AC-51)', async () => {
     const p = pipeline({ maxPositions: 1 });
     await p.processMessage(message(KAIA, { sender: AUTH }));
     const r = await p.processMessage(message(KITE, { sender: AUTH, waMessageId: 'wa-2' }));
     expect(r).toMatchObject({ alert: { status: 'rechazada', reason: 'límite de posiciones' } });
   });
 
-  it.fails('nocional comprometido + nuevo > máximo → "límite de capital" (AC-24)', async () => {
+  it('nocional comprometido + nuevo > máximo → "límite de capital" (AC-24)', async () => {
     const p = pipeline({ maxCapitalUsdt: 300 });
     await p.processMessage(message(KAIA, { sender: AUTH }));
     const r = await p.processMessage(message(KITE, { sender: AUTH, waMessageId: 'wa-2' }));
     expect(r).toMatchObject({ alert: { status: 'rechazada', reason: 'límite de capital' } });
   });
 
-  it.fails('si la entrada no se puede colocar, la alerta queda "entrada no ejecutada"', async () => {
+  it('si la entrada no se puede colocar, la alerta queda "entrada no ejecutada"', async () => {
     exchange.impl.placeLimitEntry = async () => Promise.reject(new Error('-2019'));
     const r = await pipeline().processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ alert: { status: 'entrada no ejecutada' } });
@@ -150,7 +150,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     expect(store.exposure()).toEqual({ positions: 0, notional: 0 });
   });
 
-  it.fails('dos alertas casi simultáneas se evalúan en orden y la segunda ve la exposición de la primera (FR-061)', async () => {
+  it('dos alertas casi simultáneas se evalúan en orden y la segunda ve la exposición de la primera (FR-061)', async () => {
     const p = pipeline({ maxPositions: 1 });
     const queue = new SerialQueue(() => {});
     const outcomes: unknown[] = [];

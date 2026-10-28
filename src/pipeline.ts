@@ -1,13 +1,16 @@
-// Pipeline: mensaje → alerta → validación (US1). Arma el registro de la alerta, lo guarda y, si es
-// un rechazo, lo loguea; las válidas siguen a la carga (US2). Las ediciones de alertas ya
+// Pipeline: mensaje → alerta → validación (US1) → carga (US2). Arma el registro de la alerta, lo
+// guarda y, si es un rechazo, lo loguea. Las válidas se dimensionan, pasan los límites de exposición
+// en el orden de FR-020 y van al ejecutor. Las ediciones de alertas ya
 // procesadas se registran para revisión manual, sin operarse (FR-047).
 import type { Store } from './adapters/store.ts';
 import type { Clock, Exchange, FieldExtractor, IncomingEdit, IncomingMessage, MarketData } from './ports.ts';
 import type { Executor } from './domain/executor.ts';
+import { checkExposure } from './domain/exposure.ts';
+import { sizePosition } from './domain/sizing.ts';
 import { isAlertText } from './domain/filter.ts';
 import { alertIdOf } from './domain/identity.ts';
 import { parseText } from './domain/parser.ts';
-import { FIELDS, type Alert, type Field, type Mode, type RawFields } from './domain/types.ts';
+import { FIELDS, type Alert, type Field, type Mode, type RawFields, type RejectReason, type SymbolFilters } from './domain/types.ts';
 import { validateAlert } from './domain/validate.ts';
 
 const DAY_MS = 24 * 60 * 60_000;
@@ -89,7 +92,41 @@ export class Pipeline {
     const duplicateById = !result.ok && result.reason === 'duplicado' && store.findByWaMessageId(m.waMessageId);
     if (!duplicateById) store.saveAlert(alert);
     if (alert.status === 'rechazada') store.logAlert(alert);
+    if (result.ok && this.deps.trading) {
+      return { kind: 'alert', alert: await this.load(alert, result.alert.filters, this.deps.trading) };
+    }
     return { kind: 'alert', alert };
+  }
+
+  /** FR-020 desde "bajo mínimo": dimensionamiento → exposición → entrada (FR-021 a FR-027, FR-063). */
+  private async load(alert: Alert, filters: SymbolFilters, t: TradingDeps): Promise<Alert> {
+    const { store } = this.deps;
+    const reject = (reason: RejectReason): Alert => {
+      const rejected: Alert = { ...alert, status: 'rechazada', reason };
+      store.saveAlert(rejected);
+      store.logAlert(rejected);
+      return rejected;
+    };
+    const sized = await sizePosition({
+      entry: alert.entry!,
+      sl: alert.sl!,
+      filters,
+      riskR: t.riskR,
+      maxPositionUsdt: t.maxPositionUsdt,
+      maxLeverage: t.maxLeverage,
+      walletBalance: () => t.exchange.walletBalanceUsdt(),
+    });
+    if (!sized.ok) return reject(sized.reason);
+    const exposureReason = checkExposure({
+      notional: sized.notional,
+      symbolActive: store.activeTradeForSymbol(alert.symbol!) !== undefined,
+      current: store.exposure(),
+      maxPositions: t.maxPositions,
+      maxCapitalUsdt: t.maxCapitalUsdt,
+    });
+    if (exposureReason) return reject(exposureReason);
+    await t.executor.open(alert, sized);
+    return store.getAlert(alert.alertId) ?? alert;
   }
 
   async processEdit(e: IncomingEdit): Promise<void> {
