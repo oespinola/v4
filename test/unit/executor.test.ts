@@ -107,7 +107,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     });
 
     it('timeout al colocarla pero Binance la aceptó: la sigue y al ejecutarse la protege (AC-84)', async () => {
-      t = setupExecutor({ placeLimitEntry: timeout, findEntry: async (symbol) => ({ symbol, id: 'E7' }) });
+      t = setupExecutor({ placeLimitEntry: timeout, findEntry: async (symbol) => ({ ref: { symbol, id: 'E7' }, quantity: SIZED.quantity, placedAt: t.clock.now() }) });
       const trade = await t.executor.open(ALERT, SIZED);
       expect(t.exchange.callsTo('findEntry')[0]?.args).toEqual(['KAIAUSDT', entryClientOrderId(ALERT.alertId)]);
       expect(trade).toMatchObject({ state: 'pendiente', entryOrderId: 'E7' });

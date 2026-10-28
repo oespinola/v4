@@ -100,8 +100,8 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
   });
 
   it('busca la entrada por su identificador propio: la orden, o null si Binance no la tiene (FR-069)', async () => {
-    const found = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 222 }) });
-    expect(await new BinanceTrading(found.client).findEntry('KAIAUSDT', 'sb-abc')).toEqual({ symbol: 'KAIAUSDT', id: '222' });
+    const found = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 222, origQty: '4166', time: Date.parse('2026-10-28T12:00:01Z') }) });
+    expect(await new BinanceTrading(found.client).findEntry('KAIAUSDT', 'sb-abc')).toMatchObject({ ref: { symbol: 'KAIAUSDT', id: '222' } });
     expect(found.of('fapiPrivateGetOrder')).toEqual([{ symbol: 'KAIAUSDT', origClientOrderId: 'sb-abc' }]);
 
     const missing = fakeClient({ fapiPrivateGetOrder: binanceError(-2013) });
@@ -109,6 +109,15 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
 
     const down = fakeClient({ fapiPrivateGetOrder: binanceError(-1007) }); // timeout de Binance
     await expect(new BinanceTrading(down.client).findEntry('KAIAUSDT', 'sb-abc')).rejects.toThrow();
+  });
+
+  it('la entrada encontrada trae la cantidad pedida y la hora de colocación (FR-070)', async () => {
+    const f = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 222, origQty: '4166', time: Date.parse('2026-10-28T12:00:01Z') }) });
+    expect(await new BinanceTrading(f.client).findEntry('KAIAUSDT', 'sb-abc')).toEqual({
+      ref: { symbol: 'KAIAUSDT', id: '222' },
+      quantity: 4166,
+      placedAt: new Date('2026-10-28T12:00:01Z'),
+    });
   });
 
   it('SL STOP_MARKET y TP TAKE_PROFIT_MARKET condicionales con closePosition y precio de marca (R-06)', async () => {

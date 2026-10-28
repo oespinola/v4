@@ -49,6 +49,13 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
   cierre de emergencia), el sistema debe colocar el SL y el TP que falten y, si la
   colocación falla, cerrar la posición a mercado (RF-18). Si la operación ya estaba
   "completa" y perdió su SL o su TP, se aplica RF-47.
+- RF-58: Durante la comparación de RF-45, para cada alerta válida del modo activo que no
+  tenga operación registrada (el proceso se cayó después de pedir la entrada y antes de
+  registrarla, o mientras confirmaba una colocación fallida, RF-57), el sistema debe
+  consultar a Binance por el identificador propio de su entrada. Si la orden existe, la
+  registra con la cantidad que informa Binance y aplica RF-48 o RF-49; si Binance
+  confirma que no existe, la registra como "entrada no ejecutada" y su reenvío se evalúa
+  de nuevo (RF-29).
 
 ## Requerimientos No Funcionales
 - RNF-11: El tiempo desde que una posición se cierra en Binance hasta que el sistema
@@ -96,6 +103,13 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
   y antes de confirmarse el SL y el TP, cuando el sistema vuelve a arrancar, entonces,
   antes de procesar cualquier alerta nueva, coloca el SL y el TP que faltan o, si
   fallan, cierra la posición a mercado y registra el evento crítico.
+- AC-86 (RF-45, RF-58): Dado el proceso caído después de pedir la entrada y antes de
+  registrarla, y una entrada que Binance aceptó y se ejecutó, cuando el sistema vuelve a
+  arrancar, entonces, antes de procesar alertas nuevas, la encuentra por su
+  identificador, registra la operación con la cantidad de Binance y coloca el SL y el TP.
+- AC-87 (RF-45, RF-58, RF-29): Dada una alerta válida sin operación cuya entrada no
+  existe en Binance, cuando el sistema vuelve a arrancar, entonces la registra como
+  "entrada no ejecutada" y un reenvío con los mismos valores se evalúa de nuevo.
 
 ## Fuera de Alcance
 - Mensajes de seguimiento de una alerta ya operada (cerrar, mover el SL, tomar

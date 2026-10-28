@@ -57,6 +57,14 @@ export interface EntryOrder {
   clientOrderId: string;
 }
 
+/** Entrada encontrada por su identificador propio (FR-069, FR-070). */
+export interface FoundEntry {
+  ref: OrderRef;
+  /** Cantidad pedida, según Binance. */
+  quantity: number;
+  placedAt: Date;
+}
+
 export type OrderStatus = 'open' | 'filled' | 'partially_filled' | 'canceled' | 'rejected';
 
 export interface OrderState {
@@ -98,7 +106,7 @@ export interface Exchange {
   prepareSymbol(symbol: string, leverage: number): Promise<void>;
   placeLimitEntry(order: EntryOrder): Promise<OrderRef>;
   /** Entrada colocada con ese identificador propio; null si Binance confirma que no existe (FR-069). */
-  findEntry(symbol: string, clientOrderId: string): Promise<OrderRef | null>;
+  findEntry(symbol: string, clientOrderId: string): Promise<FoundEntry | null>;
   /** SL de cierre de posición (STOP_MARKET, closePosition). */
   placeStopLoss(symbol: string, side: Side, price: number): Promise<OrderRef>;
   /** TP de cierre de posición (TAKE_PROFIT_MARKET, closePosition). */

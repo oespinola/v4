@@ -7,7 +7,7 @@ import { ENTRY_TIMEOUT_MS, Executor, POLL_MS } from '../../src/domain/executor.t
 import { reconcile } from '../../src/domain/reconcile.ts';
 import { TRACK_POLL_MS, Tracker } from '../../src/domain/tracker.ts';
 import type { Trade } from '../../src/domain/types.ts';
-import type { CloseInfo, OrderRef, OrderStatus, PositionState } from '../../src/ports.ts';
+import type { CloseInfo, FoundEntry, OrderRef, OrderStatus, PositionState } from '../../src/ports.ts';
 import { ALERT } from '../helpers/executor.ts';
 import { FakeClock, FakeExchange } from '../fakes/index.ts';
 
@@ -51,6 +51,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
   let positions: PositionState[];
   let openOrders: OrderRef[];
   let close: CloseInfo | null;
+  let found: FoundEntry | null;
   const prevUmask = process.umask();
 
   const logLines = () =>
@@ -59,16 +60,17 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
       .split('\n')
       .filter(Boolean)
       .map((l) => JSON.parse(l) as Record<string, unknown>);
-  const run = () => reconcile({ store, executor, tracker });
+  const run = () => reconcile({ store, mode: 'DRY', executor, tracker });
   const saved = () => store.getTrade(ALERT.alertId);
 
   /** El proceso vuelve a arrancar `minutes` después de colocar la entrada. */
-  function boot(t: Trade, alertStatus: 'entrada pendiente' | 'con ejecución' | 'completa', minutes: number) {
+  function boot(t: Trade | null, alertStatus: 'válida' | 'entrada pendiente' | 'con ejecución' | 'completa', minutes: number) {
     clock = new FakeClock(new Date(PLACED_AT.getTime() + minutes * 60_000));
     store = Store.open(path.join(root, 'data'), clock);
     store.saveAlert({ ...ALERT, status: alertStatus });
-    store.saveTrade(t);
+    if (t) store.saveTrade(t);
     exchange = new FakeExchange({
+      findEntry: async () => found,
       order: async (r) => ({ ref: r, status: entry.status, filledQty: entry.filledQty }),
       cancel: async (r) => {
         if (r.id === 'E1' && (entry.status === 'open' || entry.status === 'partially_filled')) entry.status = 'canceled';
@@ -90,6 +92,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     positions = [];
     openOrders = [];
     close = null;
+    found = null;
   });
 
   afterEach(() => {
@@ -98,6 +101,47 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     store.close();
     process.umask(prevUmask);
     rmSync(root, { recursive: true, force: true });
+  });
+
+  describe('alerta válida sin operación: la entrada pudo quedar en Binance sin registrar (FR-070)', () => {
+    it('entrada aceptada y ejecutada: registra la operación con la cantidad de Binance y la protege (AC-86)', async () => {
+      boot(null, 'válida', 5);
+      found = { ref: ENTRY, quantity: 4166, placedAt: PLACED_AT };
+      entry = { status: 'filled', filledQty: 4166 };
+      positions = [{ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166 }];
+      await run();
+      expect(exchange.calls[0]?.method).toBe('findEntry'); // antes que todo lo demás
+      expect(saved()).toMatchObject({ state: 'abierta', entryOrderId: 'E1', quantity: 4166, filledQty: 4166, entryPlacedAt: PLACED_AT });
+      expect(exchange.callsTo('placeStopLoss')).toHaveLength(1);
+      expect(exchange.callsTo('placeTakeProfit')).toHaveLength(1);
+      expect(logLines()).toEqual([expect.objectContaining({ status: 'completa' })]);
+    });
+
+    it('entrada aceptada sin ejecución: la cancela y queda "entrada no ejecutada", que bloquea el reenvío', async () => {
+      boot(null, 'válida', 5);
+      found = { ref: ENTRY, quantity: 4166, placedAt: PLACED_AT };
+      await run();
+      expect(exchange.callsTo('cancel').map((c) => c.args[0])).toEqual([ENTRY]);
+      expect(saved()?.state).toBe('cerrada');
+      expect(store.getAlert(ALERT.alertId)?.status).toBe('entrada no ejecutada');
+      expect(store.hasContentHashSince(ALERT.contentHash, ALERT.receivedAt)).toBe(true);
+    });
+
+    it('entrada inexistente: "entrada no ejecutada" sin operación, y el reenvío se evalúa de nuevo (AC-87)', async () => {
+      boot(null, 'válida', 5);
+      await run();
+      expect(saved()).toBeUndefined();
+      expect(store.getAlert(ALERT.alertId)?.status).toBe('entrada no ejecutada');
+      expect(logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada' })]);
+      expect(store.hasContentHashSince(ALERT.contentHash, ALERT.receivedAt)).toBe(false);
+    });
+
+    it('no busca las alertas del otro modo: están en otra cuenta', async () => {
+      boot(null, 'válida', 5);
+      await reconcile({ store, mode: 'LIVE', executor, tracker });
+      expect(exchange.callsTo('findEntry')).toHaveLength(0);
+      expect(store.getAlert(ALERT.alertId)?.status).toBe('válida');
+    });
   });
 
   it('posición cerrada por SL durante la caída: registra el cierre y cancela el TP huérfano (AC-63, FR-040)', async () => {

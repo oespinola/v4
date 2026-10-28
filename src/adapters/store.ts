@@ -6,7 +6,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type { Clock } from '../ports.ts';
 import { buildAlertLogRecord } from '../domain/log-record.ts';
-import type { Alert, Trade, TradeState } from '../domain/types.ts';
+import type { Alert, Mode, Trade, TradeState } from '../domain/types.ts';
 
 export interface EditRecord {
   alertId: string;
@@ -171,6 +171,20 @@ export class Store {
       .prepare(`SELECT record FROM trades WHERE symbol = ? AND state IN (${ACTIVE.map(() => '?').join(',')}) LIMIT 1`)
       .get(symbol, ...ACTIVE);
     return row ? revive<Trade>(row.record as string) : undefined;
+  }
+
+  /** Alertas válidas del modo sin operación registrada: el proceso se cayó antes de registrar su
+   *  entrada (FR-070). */
+  validAlertsWithoutTrade(mode: Mode): Alert[] {
+    return this.db
+      .prepare(
+        `SELECT record FROM alerts a WHERE a.status = 'válida'
+           AND NOT EXISTS (SELECT 1 FROM trades t WHERE t.alert_id = a.alert_id)
+         ORDER BY a.received_at`,
+      )
+      .all()
+      .map((r) => revive<Alert>(r.record as string))
+      .filter((a) => a.mode === mode);
   }
 
   tradesInState(state: TradeState): Trade[] {

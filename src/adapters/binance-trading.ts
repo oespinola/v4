@@ -178,8 +178,11 @@ export class BinanceTrading implements Exchange {
 
   findEntry: Exchange['findEntry'] = async (symbol, clientOrderId) => {
     try {
-      const order = await this.call<{ orderId: number }>('fapiPrivateGetOrder', { symbol, origClientOrderId: clientOrderId });
-      return { symbol, id: String(order.orderId) };
+      const order = await this.call<{ orderId: number; origQty: string; time: number }>('fapiPrivateGetOrder', {
+        symbol,
+        origClientOrderId: clientOrderId,
+      });
+      return { ref: { symbol, id: String(order.orderId) }, quantity: Number(order.origQty), placedAt: new Date(order.time) };
     } catch (err) {
       if (binanceCode(err) === ORDER_DOES_NOT_EXIST) return null;
       throw err;

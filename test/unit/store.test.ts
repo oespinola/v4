@@ -127,6 +127,16 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.hasContentHashSince('0123456789abcdef', since)).toBe(true);
   });
 
+  it('lista las alertas válidas del modo sin operación registrada (FR-070)', () => {
+    store.saveAlert(alert({ status: 'válida' })); // DRY, sin operación
+    store.saveAlert(alert({ alertId: 'wa-2:0123456789abcdef', waMessageId: 'wa-2', status: 'válida' }));
+    store.saveTrade(trade({ alertId: 'wa-2:0123456789abcdef' })); // ya tiene operación
+    store.saveAlert(alert({ alertId: 'wa-3:0123456789abcdef', waMessageId: 'wa-3', status: 'válida', mode: 'LIVE' }));
+    store.saveAlert(alert({ alertId: 'wa-4:0123456789abcdef', waMessageId: 'wa-4', status: 'rechazada', reason: 'TP inválido' }));
+    expect(store.validAlertsWithoutTrade('DRY').map((a) => a.alertId)).toEqual(['wa-1:0123456789abcdef']);
+    expect(store.validAlertsWithoutTrade('LIVE').map((a) => a.alertId)).toEqual(['wa-3:0123456789abcdef']);
+  });
+
   it('guarda ediciones de alertas (FR-047)', () => {
     store.saveAlert(alert());
     store.saveEdit({
