@@ -18,6 +18,21 @@ export interface EditRecord {
 
 export type LogType = 'alert' | 'edit' | 'connection' | 'critical';
 
+/** Evento `connection` (contracts/log-record.md, FR-055). */
+export interface ConnectionEvent {
+  service: 'whatsapp' | 'binance';
+  event: 'interrupción' | 'reintento' | 'reconectado';
+  attempt: number;
+  waitMs: number | null;
+}
+
+/** Evento `critical` (contracts/log-record.md, FR-030, FR-038, FR-055). */
+export interface CriticalEvent {
+  kind: 'cierre de emergencia' | 'falla del cierre de emergencia' | 'SL/TP perdido' | 'reconexión agotada';
+  alertId?: string | null;
+  detail: string;
+}
+
 /** Estados que ocupan cupo y bloquean el símbolo (FR-025, FR-026, FR-063). */
 const ACTIVE: TradeState[] = ['pendiente', 'con_ejecución', 'abierta'];
 
@@ -167,6 +182,14 @@ export class Store {
   /** Registro `alert` de un estado final (contracts/log-record.md). */
   logAlert(alert: Alert, trade: Trade | null = null): void {
     this.appendLog('alert', { ...buildAlertLogRecord(alert, trade) });
+  }
+
+  logConnection(_e: ConnectionEvent): void {
+    throw new Error('no implementado');
+  }
+
+  logCritical(_e: CriticalEvent): void {
+    throw new Error('no implementado');
   }
 
   close(): void {
