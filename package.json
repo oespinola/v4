@@ -7,11 +7,12 @@
     "node": ">=22.23.0"
   },
   "scripts": {
-    "dev": "SIGNALBRIDGE_MODE=DRY tsx src/main.ts",
-    "start": "SIGNALBRIDGE_MODE=LIVE tsx src/main.ts",
+    "dev": "SIGNALBRIDGE_MODE=DRY tsx scripts/supervise.ts",
+    "start": "SIGNALBRIDGE_MODE=LIVE tsx scripts/supervise.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "latency": "tsx scripts/latency.ts"
+    "latency": "tsx scripts/latency.ts",
+    "dev:once": "SIGNALBRIDGE_MODE=DRY tsx src/main.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.132.0",

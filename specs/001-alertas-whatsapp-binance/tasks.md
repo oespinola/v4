@@ -202,8 +202,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T075 [US7] Reemplazar `LocalAuth` por `RemoteAuth` con el store cifrado, borrar el perfil de trabajo al cerrar y también al arrancar antes de conectarse (por si quedó de un `kill -9`), en src/adapters/whatsapp.ts
 - [X] T076 [US7] Escribir tests del monitor de conexión (depende de T058, que expone `EmergencyState`; AC-47, FR-055): corte detectado < 30 s, eventos `connection` con esperas 1, 2, 4… 60 s, al 10.º fallo consecutivo evento crítico y salida con código 1, salvo con un cierre de emergencia en curso (evento crítico sin salida, AC-74); señal de Binance = fallo de la API de trading, contador separado por servicio y sin contar el refresco público (R-10) — en `it.fails` — en test/integration/reconnect.test.ts
 - [X] T077 [US7] Implementar el monitor de conexión para WhatsApp y Binance y pasar T076 a `it` en src/connection-monitor.ts
-- [ ] T078 [P] [US7] Escribir tests del supervisor (AC-31, FR-056, contracts/cli.md): relanza ante salida ≠ 0 y vuelve a ingerir en < 60 s, no relanza ante 0 ni ante 78 — en `it.fails` — en test/unit/supervisor.test.ts
-- [ ] T079 [US7] Implementar el supervisor (`src/supervisor.ts`) y su script de entrada, cambiar `dev` y `start` de package.json para que corran `scripts/supervise.ts`, y pasar T078 a `it`, en src/supervisor.ts y scripts/supervise.ts
+- [X] T078 [P] [US7] Escribir tests del supervisor (AC-31, FR-056, contracts/cli.md): relanza ante salida ≠ 0 y vuelve a ingerir en < 60 s, no relanza ante 0 ni ante 78 — en `it.fails` — en test/unit/supervisor.test.ts
+- [X] T079 [US7] Implementar el supervisor (`src/supervisor.ts`) y su script de entrada, cambiar `dev` y `start` de package.json para que corran `scripts/supervise.ts`, y pasar T078 a `it`, en src/supervisor.ts y scripts/supervise.ts
 
 **Checkpoint**: el sistema se recupera solo y la sesión no queda en texto plano con el proceso detenido.
 

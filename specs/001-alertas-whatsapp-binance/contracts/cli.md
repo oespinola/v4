@@ -6,6 +6,7 @@
 |---|---|---|
 | `pnpm dev` | Supervisor + app en modo DRY (Binance Demo Trading) | FR-050, FR-051 |
 | `pnpm start` | Supervisor + app en modo LIVE (producción) | FR-050, FR-051 |
+| `pnpm dev:once` | La app en DRY sin supervisor (para depurar; no se relanza) | — |
 | `pnpm test` | Tests (Vitest), sin red ni credenciales | Principio IV |
 | `pnpm typecheck` | `tsc --noEmit` | AGENTS.md |
 | `pnpm latency` | p95 de clasificación y de aceptación de la entrada sobre el log | SC-001, SC-002 |

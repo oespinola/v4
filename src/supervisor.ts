@@ -1,6 +1,7 @@
 // Reinicio automático (FR-056, contracts/cli.md): `pnpm dev` y `pnpm start` corren la app bajo este
 // supervisor (scripts/supervise.ts). Acá solo las decisiones; el proceso, las señales y el reloj se
 // pasan desde afuera.
+import { CONFIG_EXIT_CODE } from './config.ts';
 
 export const FIRST_DELAY_MS = 1000;
 /** Tope de la espera: con el arranque de WhatsApp, la ingesta vuelve en < 60 s (FR-056). */
@@ -25,11 +26,30 @@ export interface SupervisorDeps {
   beforeRestart?(): Promise<void> | void;
 }
 
-export function restartDelayMs(_attempt: number): number {
-  throw new Error('no implementado');
+/** 1, 2, 4… s hasta 15 s. */
+export function restartDelayMs(attempt: number): number {
+  return Math.min(FIRST_DELAY_MS * 2 ** (attempt - 1), MAX_DELAY_MS);
 }
 
+const describeExit = ({ code, signal }: AppExit) =>
+  code !== null ? `la app salió con código ${code}` : `la app terminó por la señal ${signal}`;
+
 /** Devuelve el código con el que debe salir el supervisor. */
-export async function supervise(_deps: SupervisorDeps): Promise<number> {
-  throw new Error('no implementado');
+export async function supervise(deps: SupervisorDeps): Promise<number> {
+  let attempt = 0;
+  for (;;) {
+    const startedAt = deps.now();
+    const exit = await deps.runApp();
+    const code = exit.code ?? 1;
+    // 0: cierre pedido; 78: configuración inválida, relanzar solo repetiría el error (FR-058).
+    if (exit.code === 0 || exit.code === CONFIG_EXIT_CODE || deps.stopRequested()) return code;
+
+    if (deps.now() - startedAt >= HEALTHY_RUN_MS) attempt = 0;
+    attempt += 1;
+    const delay = restartDelayMs(attempt);
+    deps.log(`Reinicio automático n.º ${attempt} en ${delay / 1000} s (${describeExit(exit)}).`);
+    await deps.wait(delay);
+    if (deps.stopRequested()) return code;
+    await deps.beforeRestart?.();
+  }
 }
