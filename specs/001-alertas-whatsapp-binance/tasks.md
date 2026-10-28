@@ -50,7 +50,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T017 Implementar la cola y pasar T016 a `it` en src/queue.ts
 - [X] T018 [P] Escribir tests del almacenamiento (FR-007, FR-046, data-model): `umask 077`, `data/` en 0700 y archivos en 0600, alta de alerta, búsqueda por `waMessageId`, búsqueda de `contentHash` en las últimas 24 h con reloj inyectado, alta/actualización de `trades`, conteo y nocional de operaciones `pendiente`, `con_ejecución` o `abierta`, búsqueda de operación activa por símbolo (FR-063), listado de las `con_ejecución` (FR-065), append al JSONL — en `it.fails` — en test/unit/store.test.ts
 - [X] T019 Implementar el store con `node:sqlite` (tablas `alerts`, `edits`, `trades`) y el append JSONL, y pasar T018 a `it`, en src/adapters/store.ts
-- [ ] T020 [P] Implementar el reloj real (`now`, `setTimeout`, `setInterval`) que cumple `Clock` en src/adapters/clock.ts
+- [X] T020 [P] Implementar el reloj real (`now`, `setTimeout`, `setInterval`) que cumple `Clock` en src/adapters/clock.ts
 
 **Checkpoint**: base lista; las historias pueden empezar.
 
