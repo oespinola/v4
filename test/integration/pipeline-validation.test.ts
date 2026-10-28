@@ -51,14 +51,14 @@ describe('pipeline de validación (US1)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it.fails('un mensaje sin disparador no deja rastro (AC-05)', async () => {
+  it('un mensaje sin disparador no deja rastro (AC-05)', async () => {
     const r = await pipeline.processMessage(message('hola a todos', { sender: AUTH }));
     expect(r.kind).toBe('ignored');
     expect(store.findByWaMessageId('wa-1')).toBeUndefined();
     expect(logLines()).toEqual([]);
   });
 
-  it.fails('una alerta válida queda guardada como "válida" con side, símbolo y precios', async () => {
+  it('una alerta válida queda guardada como "válida" con side, símbolo y precios', async () => {
     const r = await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ kind: 'alert', alert: { status: 'válida', symbol: 'KAIAUSDT', side: 'SHORT', tp: 0.038 } });
     const saved = store.findByWaMessageId('wa-1');
@@ -66,13 +66,13 @@ describe('pipeline de validación (US1)', () => {
     expect(saved?.classifiedAt).toEqual(clock.now());
   });
 
-  it.fails('una rechazada queda guardada y logueada con su motivo', async () => {
+  it('una rechazada queda guardada y logueada con su motivo', async () => {
     const r = await pipeline.processMessage(message(KAIA, { sender: '5491199999999' }));
     expect(r).toMatchObject({ kind: 'alert', alert: { status: 'rechazada', reason: 'remitente no autorizado' } });
     expect(logLines()).toEqual([expect.objectContaining({ type: 'alert', status: 'rechazada', reason: 'remitente no autorizado' })]);
   });
 
-  it.fails('el mismo mensaje tras un reinicio se rechaza como duplicado sin operarse (AC-17)', async () => {
+  it('el mismo mensaje tras un reinicio se rechaza como duplicado sin operarse (AC-17)', async () => {
     await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     const again = await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     expect(again).toMatchObject({ kind: 'alert', alert: { status: 'rechazada', reason: 'duplicado' } });
@@ -80,7 +80,7 @@ describe('pipeline de validación (US1)', () => {
     expect(logLines().at(-1)).toMatchObject({ status: 'rechazada', reason: 'duplicado' });
   });
 
-  it.fails('un reenvío con otro ID dentro de las 24 h es duplicado (AC-37)', async () => {
+  it('un reenvío con otro ID dentro de las 24 h es duplicado (AC-37)', async () => {
     await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     await clock.advance(23 * 60 * 60_000);
     market.currentRanking = { gainers: [], losers: [], refreshedAt: clock.now() };
@@ -88,7 +88,7 @@ describe('pipeline de validación (US1)', () => {
     expect(r).toMatchObject({ alert: { reason: 'duplicado' } });
   });
 
-  it.fails('pasadas las 24 h el mismo contenido ya no es duplicado (AC-53)', async () => {
+  it('pasadas las 24 h el mismo contenido ya no es duplicado (AC-53)', async () => {
     await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     await clock.advance(25 * 60 * 60_000);
     market.currentRanking = { gainers: [], losers: [], refreshedAt: clock.now() };
@@ -96,7 +96,7 @@ describe('pipeline de validación (US1)', () => {
     expect(r).toMatchObject({ alert: { status: 'válida' } });
   });
 
-  it.fails('la edición de una alerta procesada se registra sin operarse (FR-047)', async () => {
+  it('la edición de una alerta procesada se registra sin operarse (FR-047)', async () => {
     await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     const edited = KAIA.replace('SL: 0.0414', 'SL: 0.0420');
     await pipeline.processEdit({ waMessageId: 'wa-1', previousText: KAIA, newText: edited, editedAt: clock.now() });
@@ -106,7 +106,7 @@ describe('pipeline de validación (US1)', () => {
     expect(store.findByWaMessageId('wa-1')?.sl).toBe(0.0414);
   });
 
-  it.fails('la edición de un mensaje no procesado se ignora', async () => {
+  it('la edición de un mensaje no procesado se ignora', async () => {
     await pipeline.processEdit({ waMessageId: 'wa-9', previousText: 'a', newText: 'b', editedAt: clock.now() });
     expect(logLines()).toEqual([]);
   });
