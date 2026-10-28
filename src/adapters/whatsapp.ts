@@ -2,15 +2,22 @@
 // mensajes pasan (grupo, en vivo, remitente) es pura y se prueba con un EventEmitter (wireClient);
 // WhatsAppSource solo arma el cliente real.
 //
-// Sesión: por ahora LocalAuth en un directorio 0700; la sesión cifrada (FR-049) la reemplaza en
-// T075 y es requisito antes de habilitar LIVE.
+// Sesión (FR-049): RemoteAuth con el store cifrado de session-store.ts. Con el proceso detenido solo
+// queda la sesión cifrada: el perfil de trabajo de Chromium (en claro) se borra al cerrar y también
+// al arrancar, por si quedó de un `kill -9`.
 import { chmod, mkdir } from 'node:fs/promises';
 import qrcode from 'qrcode-terminal';
 import wwebjs from 'whatsapp-web.js';
 import { normalizeSender } from '../domain/filter.ts';
+import { EncryptedSessionStore, wipeWorkingProfile } from './session-store.ts';
 import type { IncomingEdit, IncomingMessage, MessageSource } from '../ports.ts';
 
-const { Client, LocalAuth } = wwebjs;
+const { Client, RemoteAuth } = wwebjs;
+
+const CLIENT_ID = 'signalbridge';
+const SESSION_NAME = `RemoteAuth-${CLIENT_ID}`;
+/** Respaldo periódico de la sesión cifrada mientras corre (RemoteAuth pide ≥ 60 s). */
+const BACKUP_EVERY_MS = 5 * 60_000;
 
 /** Lo que usamos de un mensaje de whatsapp-web.js. */
 export interface RawWaMessage {
@@ -102,6 +109,8 @@ export function wireClient(client: GroupEvents, h: WireHandlers): void {
 
 export interface WhatsAppOptions {
   authDir: string;
+  /** WHATSAPP_SESSION_KEY, 32 bytes (FR-049). */
+  sessionKey: Buffer;
   groupName: string;
   now(): Date;
   log(line: string): void;
@@ -128,6 +137,8 @@ export class WhatsAppSource implements MessageSource {
   private readonly editCbs: ((e: IncomingEdit) => void)[] = [];
   private readonly connCbs: ((up: boolean) => void)[] = [];
   private client: wwebjs.Client | null = null;
+  private auth: InstanceType<typeof RemoteAuth> | null = null;
+  private ready = false;
 
   constructor(private readonly opts: WhatsAppOptions) {}
 
@@ -144,8 +155,17 @@ export class WhatsAppSource implements MessageSource {
   async start(): Promise<void> {
     await mkdir(this.opts.authDir, { recursive: true, mode: 0o700 });
     await chmod(this.opts.authDir, 0o700);
+    await wipeWorkingProfile(this.opts.authDir, SESSION_NAME, CLIENT_ID);
+    const store = new EncryptedSessionStore({ dataPath: this.opts.authDir, key: this.opts.sessionKey });
+    const auth = new RemoteAuth({
+      clientId: CLIENT_ID,
+      dataPath: this.opts.authDir,
+      store,
+      backupSyncIntervalMs: BACKUP_EVERY_MS,
+    });
+    this.auth = auth;
     const client = new Client({
-      authStrategy: new LocalAuth({ dataPath: this.opts.authDir }),
+      authStrategy: auth,
       // El cierre lo hace la app (stop): si Puppeteer mata Chromium ante Ctrl+C a mitad del
       // arranque, la sesión queda a medio guardar.
       puppeteer: { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false },
@@ -162,18 +182,28 @@ export class WhatsAppSource implements MessageSource {
       onMessage: (m) => this.messageCbs.forEach((cb) => cb(m)),
       onEdit: (e) => this.editCbs.forEach((cb) => cb(e)),
       onConnectionChange: (up) => {
+        this.ready = up;
         this.opts.log(up ? `WhatsApp listo. Escuchando "${this.opts.groupName}".` : 'WhatsApp desconectado.');
         this.connCbs.forEach((cb) => cb(up));
       },
       onGroupMissing: () => this.opts.log(`No encontré el grupo "${this.opts.groupName}".`),
     });
     client.on('auth_failure', (msg: string) => this.opts.log(`Falló la autenticación de WhatsApp: ${msg}`));
+    client.on('remote_session_saved', () => this.opts.log('Sesión de WhatsApp guardada (cifrada).'));
     await client.initialize();
   }
 
-  /** Cierra Chromium con calma para que guarde la sesión. */
+  /** Guarda la sesión cifrada, cierra Chromium y borra el perfil de trabajo en claro. */
   async stop(): Promise<void> {
+    // RemoteAuth recién guarda 60 s después de vincular: si se cierra antes, se guarda acá.
+    const auth = this.auth as unknown as { storeRemoteSession?: () => Promise<void> } | null;
+    if (this.ready && auth?.storeRemoteSession) {
+      await auth.storeRemoteSession().catch((e: unknown) => this.opts.log(`No se pudo guardar la sesión: ${String(e)}`));
+    }
     if (this.client?.pupBrowser) await this.client.destroy();
     this.client = null;
+    this.auth = null;
+    this.ready = false;
+    await wipeWorkingProfile(this.opts.authDir, SESSION_NAME, CLIENT_ID);
   }
 }

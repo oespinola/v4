@@ -25,6 +25,7 @@ const factories: AppFactories = {
   whatsapp: (config, clock, log) =>
     new WhatsAppSource({
       authDir: path.resolve('.wwebjs_auth'),
+      sessionKey: config.whatsappSessionKey,
       groupName: config.whatsappGroupName,
       now: () => clock.now(),
       log,
