@@ -59,6 +59,11 @@ que la comparación entre métodos use el mismo resultado técnico.
   (`exchangeInfo`, `ticker/24hr`, `klines 15m`), sin credenciales, en ambos modos. Copia local de
   símbolos y ranking refrescada cada 60 s; si un refresco falla se conserva la anterior y FR-018
   controla la antigüedad. Velas solo cuando el TP es por indicadores.
+- **Filtros de órdenes en DRY (FR-066, FR-067)**: en DRY también se lee `exchangeInfo` público de
+  Binance Demo (`https://demo-fapi.binance.com`), con el mismo refresco. Cada símbolo de producción
+  toma de Demo `tickSize`, `stepSize`, `minQty` y `minNotional`; los que no son perpetuos TRADING en
+  Demo quedan marcados como no operables y se rechazan con "no disponible en Demo". Como en v3, que
+  vio a Demo rechazar (-4014) órdenes con el tick de producción. En LIVE no se consulta Demo.
 - **Velas de 45 min (FR-015)**: Binance no ofrece ese intervalo, así que se piden 1500 velas de 15 min
   (el máximo por llamada) y una función pura las agrupa en tramos de 45 min alineados a las 00:00 UTC
   (`floor(openTime / 45 min)`; 1440 min / 45 = 32 tramos exactos por día). Se descarta el primer tramo

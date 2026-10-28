@@ -19,7 +19,8 @@ Adaptador real: `claude-extractor.ts` (Claude con salida estructurada validada c
 
 ```ts
 interface MarketData {
-  symbol(name: string): SymbolFilters | undefined;   // copia local
+  symbol(name: string): SymbolFilters | undefined;   // copia local; en DRY con los filtros de órdenes de Demo (FR-066)
+  availableForOrders(name: string): boolean;          // en DRY, false si no es perpetuo TRADING en Demo (FR-067); en LIVE, true
   ranking(): { gainers: string[]; losers: string[]; refreshedAt: Date };
   closes45m(symbol: string): Promise<number[]>;       // de velas de 15 min agrupadas, incluye la vela en curso
 }

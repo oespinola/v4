@@ -67,6 +67,11 @@ trazabilidad.
   hash usa el símbolo mapeado y los precios ajustados al tickSize (RF-11 enmendado), así "PEPE
   0.002404" y "1000PEPE 2.404" son la misma alerta; por eso "ticker inexistente" pasa antes que
   "duplicado (hash)" en el orden de FR-020.
+- Q: En DRY, ¿de dónde salen el tickSize, el stepSize y los mínimos de cada símbolo, si Binance
+  Demo rechaza órdenes armadas con los de producción? → A: De la información pública de símbolos
+  de Binance Demo (RF-54); el ranking y las velas siguen saliendo de producción. Un símbolo que
+  existe en producción pero no en Demo se rechaza con el motivo nuevo "no disponible en Demo"
+  (RF-55). En LIVE todo sale de producción.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -261,6 +266,14 @@ consulta de balance, y qué credenciales lee cada uno.
    órdenes y la consulta de balance se envían a producción y ninguna a Demo Trading (AC-12).
 3. **Given** la configuración del sistema, **When** se revisan las credenciales que lee cada modo,
    **Then** DRY y LIVE leen credenciales de Binance con nombres distintos (AC-49).
+4. **Given** el sistema en DRY y BERAUSDT con tickSize 0.0001 en producción y 0.001 en Demo,
+   **When** llega una alerta SHORT con Entrada 0.2299, SL 0.2337 y TP 0.2246, **Then** las órdenes
+   se cargan con Entrada 0.230, SL 0.234 y TP 0.225 (AC-79).
+5. **Given** el sistema en DRY y un símbolo que existe en producción pero no en Binance Demo,
+   **When** llega una alerta de ese símbolo, **Then** la rechaza con el motivo "no disponible en
+   Demo" (AC-80).
+6. **Given** el sistema en LIVE, **When** valida una alerta, **Then** usa el tickSize y el stepSize
+   de producción y no consulta Binance Demo (AC-81).
 
 ---
 
@@ -432,6 +445,10 @@ key de producción en Binance.
   rechazada por un problema del sistema (ranking o velas no disponibles) no se pierde (FR-007).
 - **La misma operación escrita con el ticker con y sin el prefijo 1000** ("PEPE 0.002404" y
   "1000PEPE 2.404"): mismo hash, el segundo es duplicado (FR-006).
+- **En DRY, un símbolo que está en producción pero no en Binance Demo**: se rechaza con el motivo
+  "no disponible en Demo", no como falla del sistema (FR-067).
+- **En DRY, un símbolo con otro tickSize en Demo**: los precios se ajustan al tick de Demo, así
+  que pueden quedar más redondeados que en LIVE (FR-066).
 - **El operador cancela a mano el SL o el TP de una posición abierta**: solo se registra un evento
   crítico; la posición no se toca y el SL/TP no se recoloca (FR-038).
 - **Mensajes que llegan mientras WhatsApp está desconectado o el proceso está caído**: se ignoran
@@ -532,10 +549,10 @@ key de producción en Binance.
 
 - **FR-020** (RF-38): El sistema MUST evaluar las validaciones en este orden y registrar como
   motivo solo la primera que falle: remitente no autorizado, duplicado (ID de WhatsApp),
-  incompleta, ticker inexistente, duplicado (hash), SL igual a la Entrada, SL fuera de rango,
-  datos de mercado no disponibles (velas para el TP), TP inválido, ranking no disponible, top 3
-  ganadores/perdedores, bajo mínimo, datos de mercado no disponibles (balance), excede máximos,
-  símbolo ya en operación, límite de posiciones, límite de capital.
+  incompleta, ticker inexistente, no disponible en Demo (solo DRY), duplicado (hash), SL igual a
+  la Entrada, SL fuera de rango, datos de mercado no disponibles (velas para el TP), TP inválido,
+  ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, datos de mercado no disponibles
+  (balance), excede máximos, símbolo ya en operación, límite de posiciones, límite de capital.
 - **FR-064** (RF-52): El sistema MUST rechazar una alerta con el motivo "datos de mercado no
   disponibles" si no puede obtener de Binance las velas necesarias para calcular el TP (FR-015) o
   el balance necesario para el control de apalancamiento (FR-024).
@@ -628,7 +645,8 @@ key de producción en Binance.
 - **FR-045** (AC-09): El motivo de rechazo MUST ser uno de: incompleta, TP inválido, SL igual a la
   Entrada, SL fuera de rango, top 3 ganadores/perdedores, ranking no disponible, excede máximos,
   bajo mínimo, ticker inexistente, límite de posiciones, límite de capital, remitente no
-  autorizado, duplicado, símbolo ya en operación, datos de mercado no disponibles.
+  autorizado, duplicado, símbolo ya en operación, datos de mercado no disponibles, no disponible
+  en Demo (solo DRY).
 - **FR-046** (RNF-10): El log y el almacenamiento local (alertas procesadas, posiciones abiertas)
   MUST tener permisos 0600, legibles solo por el usuario del proceso.
 - **FR-047** (PRD-000, Fuera de Alcance): La edición de una alerta ya procesada MUST registrarse en
@@ -651,6 +669,12 @@ key de producción en Binance.
   Demo Trading; en LIVE, a Binance Futuros USDS-M de producción.
 - **FR-052** (RNF-07): Las credenciales de Binance de DRY y de LIVE MUST leerse de variables de
   entorno con nombres distintos.
+- **FR-066** (RF-54): En DRY, el tickSize, el stepSize, la cantidad mínima y el nocional mínimo de
+  cada símbolo MUST salir de la información pública de símbolos de Binance Demo (sin credenciales),
+  refrescada cada 60 s; el ranking (FR-017) y las velas (FR-015) siguen saliendo de producción. En
+  LIVE todo sale de producción y no se consulta Binance Demo.
+- **FR-067** (RF-55): En DRY, el sistema MUST rechazar con el motivo "no disponible en Demo" una
+  alerta cuyo símbolo (FR-009) no sea un perpetuo en estado TRADING en Binance Demo.
 
 **Seguridad (PRD-000)**
 
