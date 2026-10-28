@@ -21,7 +21,7 @@ flowchart LR
   end
   WA -- "QR / sesión local" --> W
   C -- "solo si el regex no alcanza" --> AN["API de Anthropic<br/>Sonnet 5.5"]
-  MD -- "públicos, sin credenciales" --> BN["Binance Futuros USDS-M<br/>exchangeInfo · ticker 24 h · velas 1 h"]
+  MD -- "públicos, sin credenciales" --> BN["Binance Futuros USDS-M<br/>exchangeInfo · ticker 24 h · velas 15 min → 45 min"]
   S --> D[("data/<br/>signalbridge.db · alerts.log")]
 ```
 
@@ -138,7 +138,7 @@ sequenceDiagram
   end
   P->>S: ¿mismo hash en 24 h?
   opt si el objetivo es por indicadores
-    P->>B: velas de 1 h (incluye la vela en curso)
+    P->>B: velas de 15 min (agrupadas en 45 min, incluye la vela en curso)
     B-->>P: cierres → ASL21 / EMA55
   end
   P->>S: guardar resultado (SQLite + JSONL)

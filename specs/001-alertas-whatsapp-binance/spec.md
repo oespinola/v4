@@ -113,26 +113,31 @@ verificar la clasificación y el motivo registrado de cada una, sin colocar ning
 18. **Given** una alerta cuyo objetivo es "ASL21, EMA55 y 0.002404 usd", **When** el sistema la
     procesa, **Then** el TP es 0.002404 y no calcula indicadores (AC-34).
 19. **Given** una alerta cuyo objetivo es "ASL21, EMA55" sin precio y un conjunto conocido de velas
-    de 1 h, **When** el sistema calcula el TP, **Then** es el valor de ASL21 o EMA55 del lado
+    de 45 min, **When** el sistema calcula el TP, **Then** es el valor de ASL21 o EMA55 del lado
     correcto que esté más cerca de la Entrada; si ninguno está del lado correcto, la rechaza con
     el motivo "TP inválido" (AC-33).
-20. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
+20. **Given** un conjunto conocido de velas de 15 min, **When** el sistema arma las velas de 45 min,
+    **Then** cada una agrupa tres velas de 15 min consecutivas alineadas a las 00:00 UTC (00:00,
+    00:45, 01:30…), con cierre igual al de la tercera, y la vela en curso agrupa las de 15 min ya
+    abiertas de su tramo (una, dos o tres), con cierre igual al último precio de la más reciente
+    (AC-69).
+21. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
     WhatsApp (por ejemplo, tras un reinicio), **Then** no la opera y la loguea como "duplicado"
     (AC-17).
-21. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
+22. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
     mensaje pero el mismo ticker, Entrada, SL y TP, **Then** no la opera y la loguea como
     "duplicado" (AC-37).
-22. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
+23. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
     el mismo ticker, Entrada, SL y TP, **Then** no la rechaza como duplicado (AC-53).
-23. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
+24. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
     de la copia local vigente del ranking, **When** el sistema la valida, **Then** la rechaza con
     el motivo "top 3 ganadores/perdedores" (AC-06, AC-07).
-24. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
+25. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
     alerta, **Then** el sistema la rechaza con el motivo "ranking no disponible" (AC-25).
-25. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
+26. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
     actualiza la copia local del ranking desde la fuente pública de producción sin enviar
     credenciales (AC-30).
-26. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
+27. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
     de TRADING con el mayor porcentaje de cambio, **When** el sistema arma el ranking, **Then** ese
     contrato queda excluido y el top 3 sale de ordenar el resto por porcentaje de cambio (AC-38).
 
@@ -433,8 +438,10 @@ key de producción en Binance.
 - **FR-015** (RF-24): Si el objetivo no trae un precio numérico, sin importar qué indicadores
   mencione, el sistema MUST calcular el TP como el más cercano a la Entrada entre ASL21 y EMA55,
   considerando solo los que estén del lado correcto, donde ASL21 = (EMA(cierre, 20) +
-  WMA(cierre, 21)) / 2 y EMA55 = EMA(cierre, 55), sobre las velas de 1 h del símbolo en Binance
-  Futuros USDS-M, incluyendo la vela en curso, obtenidas de la fuente pública sin credenciales.
+  WMA(cierre, 21)) / 2 y EMA55 = EMA(cierre, 55), sobre las velas de 45 min del símbolo en Binance
+  Futuros USDS-M (la temporalidad de las alertas), incluyendo la vela en curso, obtenidas de la
+  fuente pública sin credenciales. Como Binance no ofrece 45 min, cada vela de 45 min se arma
+  agrupando de a tres las velas de 15 min, alineadas a las 00:00 UTC, e incluyendo la vela en curso.
 - **FR-016** (RF-13, RF-36): El sistema MUST rechazar una señal cuyo TP no esté del lado correcto
   de la Entrada (por encima para LONG, por debajo para SHORT), y una alerta para la que, al
   calcular el TP, ni ASL21 ni EMA55 queden del lado correcto.
@@ -659,7 +666,7 @@ key de producción en Binance.
 
 - Servicio de WhatsApp y una cuenta vinculable con un número dedicado.
 - Proveedor de IA para extraer datos del texto y de la imagen.
-- Binance Futuros USDS-M: fuente pública (ticker 24 h, estado y filtros de símbolos, velas de 1 h),
+- Binance Futuros USDS-M: fuente pública (ticker 24 h, estado y filtros de símbolos, velas de 15 min),
   API de órdenes, balance, posiciones, PnL realizado y comisiones.
 - Binance Demo Trading para el modo DRY.
 - Cuenta de Binance con API key habilitada solo para trading (sin permiso de retiro).

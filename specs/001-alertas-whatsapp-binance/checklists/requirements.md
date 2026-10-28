@@ -34,8 +34,8 @@
 - Quedan 3 [NEEDS CLARIFICATION], a resolver con `/speckit-clarify`: mensajes durante una
   desconexión o caída (Edge Cases), arranque con configuración incompleta (Edge Cases) y qué
   balance usa el apalancamiento efectivo (FR-024).
-- Cobertura: los 67 criterios de aceptación vigentes de PRD-000 a PRD-003 están en los escenarios
-  (AC-32 está retirado en el PRD).
+- Cobertura: los 68 criterios de aceptación vigentes de PRD-000 a PRD-003 están en los escenarios
+  (AC-32 está retirado en el PRD; AC-69 se agregó el 2026-10-28 con el cambio a velas de 45 min).
 - Binance, tickSize/stepSize, ASL21/EMA55 y los permisos 0600/0700 se mantienen porque son
   vocabulario del dominio y requisitos fijados por el PRD, no decisiones de implementación.
 - Items marked incomplete require spec updates before `/speckit-clarify` or `/speckit-plan`

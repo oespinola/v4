@@ -49,8 +49,10 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   indicadores mencione, el sistema debe calcular el Take Profit como el más cercano a
   la Entrada entre ASL21 y EMA55, considerando solo los que estén del lado correcto de
   la Entrada (RF-13), donde ASL21 = (EMA(cierre, 20) + WMA(cierre, 21)) / 2 y
-  EMA55 = EMA(cierre, 55), sobre las velas de 1 h del símbolo en Binance Futuros
-  USDS-M, incluyendo la vela en curso (endpoint público, sin credenciales).
+  EMA55 = EMA(cierre, 55), sobre las velas de 45 min del símbolo en Binance Futuros
+  USDS-M, la temporalidad de las alertas, incluyendo la vela en curso (endpoint público,
+  sin credenciales). Binance no ofrece 45 min: se arman agrupando de a tres las velas de
+  15 min, alineadas a las 00:00 UTC e incluyendo la vela en curso.
 - RF-28: Si el objetivo de la alerta trae un precio numérico, el sistema debe usar ese
   precio como Take Profit.
 - RF-29: El sistema debe rechazar como duplicado, sin operarla, una alerta cuyo ID de
@@ -121,7 +123,7 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   refresco, entonces actualiza la copia local desde el endpoint público de producción
   sin enviar credenciales.
 - AC-33 (RF-24, RF-36): Dada una alerta cuyo objetivo es "ASL21, EMA55" sin precio, y
-  un conjunto conocido de velas de 1 h, cuando el sistema calcula el TP, entonces es
+  un conjunto conocido de velas de 45 min, cuando el sistema calcula el TP, entonces es
   el valor de ASL21 o EMA55 del lado correcto que esté más cerca de la Entrada; si
   ninguno está del lado correcto, la rechaza con el motivo "TP inválido".
 - AC-34 (RF-28): Dada una alerta cuyo objetivo es "ASL21, EMA55 y 0.002404 usd",
@@ -155,6 +157,11 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-54 (RF-38): Dada una alerta de un remitente no autorizado a la que además le faltan
   datos, cuando el sistema la valida, entonces loguea un único motivo: "remitente no
   autorizado".
+- AC-69 (RF-24): Dado un conjunto conocido de velas de 15 min, cuando el sistema arma
+  las velas de 45 min, entonces cada una agrupa tres velas de 15 min consecutivas
+  alineadas a las 00:00 UTC (00:00, 00:45, 01:30…), con cierre igual al de la tercera, y
+  la vela en curso agrupa las de 15 min ya abiertas de su tramo (una, dos o tres), con
+  cierre igual al último precio de la más reciente.
 - AC-68 (RF-50): Dada una alerta LONG con Entrada 1.246 y SL 0.1222 y el máximo
   configurado en 15 %, cuando el sistema la valida, entonces la rechaza y loguea el
   motivo "SL fuera de rango".
@@ -183,6 +190,6 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   - [PRD-000](PRD-000-marco.md): log (RF-05) y modos DRY/LIVE.
   - API de Anthropic Claude (parseo de texto y de imagen).
   - Endpoints públicos de Binance Futuros USDS-M (ticker 24 h, estado y filtros de
-    símbolos, velas de 1 h).
+    símbolos, velas de 15 min para armar las de 45 min).
   - Almacenamiento local persistente para el registro de alertas ya procesadas
     (idempotencia, RF-11/RF-29).
