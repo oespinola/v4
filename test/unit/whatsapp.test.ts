@@ -156,32 +156,32 @@ describe('adaptador de WhatsApp: sesión cerrada por WhatsApp (FR-048)', () => {
     };
   }
 
-  it.fails('reconoce la página de logout de WhatsApp Web', () => {
+  it('reconoce la página de logout de WhatsApp Web', () => {
     expect(isLogoutUrl('https://web.whatsapp.com/?post_logout=1')).toBe(true);
     expect(isLogoutUrl('https://web.whatsapp.com/')).toBe(false);
     expect(isLogoutUrl(undefined)).toBe(false);
   });
 
-  it.fails('si el arranque cae en el logout, descarta la sesión y arranca de nuevo para pedir el QR', async () => {
+  it('si el arranque cae en el logout, descarta la sesión y arranca de nuevo para pedir el QR', async () => {
     const { steps: s, seen } = steps({ failures: [logoutError], loggedOut: true });
     await startOrRelink(s);
     expect(seen).toMatchObject({ starts: 2, discarded: 1 });
     expect(seen.logs).toEqual(['WhatsApp cerró la sesión vinculada: se descarta y se pide un QR nuevo.']);
   });
 
-  it.fails('si el arranque falla por otra cosa, no toca la sesión y propaga el error', async () => {
+  it('si el arranque falla por otra cosa, no toca la sesión y propaga el error', async () => {
     const { steps: s, seen } = steps({ failures: [logoutError], loggedOut: false });
     await expect(startOrRelink(s)).rejects.toThrow('Execution context was destroyed');
     expect(seen).toMatchObject({ starts: 1, discarded: 0 });
   });
 
-  it.fails('vuelve a vincular una sola vez: si el segundo arranque también falla, propaga el error', async () => {
+  it('vuelve a vincular una sola vez: si el segundo arranque también falla, propaga el error', async () => {
     const { steps: s, seen } = steps({ failures: [logoutError, logoutError], loggedOut: true });
     await expect(startOrRelink(s)).rejects.toThrow('Execution context was destroyed');
     expect(seen).toMatchObject({ starts: 2, discarded: 1 });
   });
 
-  it.fails('si arranca bien, no descarta la sesión', async () => {
+  it('si arranca bien, no descarta la sesión', async () => {
     const { steps: s, seen } = steps({ failures: [], loggedOut: true });
     await startOrRelink(s);
     expect(seen).toMatchObject({ starts: 1, discarded: 0 });

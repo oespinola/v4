@@ -109,7 +109,7 @@ export function wireClient(client: GroupEvents, h: WireHandlers): void {
 /** WhatsApp Web salta a esta dirección cuando la sesión vinculada ya no vale (el dispositivo se
  *  desvinculó desde el teléfono, o WhatsApp la cerró). */
 export function isLogoutUrl(url: string | undefined): boolean {
-  throw new Error('sin implementar');
+  return url?.includes('post_logout=1') ?? false;
 }
 
 /** Arranca el cliente; si falla porque WhatsApp cerró la sesión, la descarta y arranca una vez más,
@@ -121,7 +121,29 @@ export async function startOrRelink(steps: {
   discardSession(): Promise<void>;
   log(line: string): void;
 }): Promise<void> {
-  throw new Error('sin implementar');
+  try {
+    await steps.start();
+  } catch (err) {
+    if (!(await steps.loggedOut())) throw err;
+    steps.log('WhatsApp cerró la sesión vinculada: se descarta y se pide un QR nuevo.');
+    await steps.discardSession();
+    await steps.start();
+  }
+}
+
+/** La redirección al logout llega casi junto con el error del arranque: se la espera un poco. */
+async function landedOnLogout(client: wwebjs.Client | null): Promise<boolean> {
+  for (let i = 0; i < 15; i++) {
+    let url: string | undefined;
+    try {
+      url = client?.pupPage?.url();
+    } catch {
+      return false; // la página ya se cerró
+    }
+    if (isLogoutUrl(url)) return true;
+    await new Promise((r) => setTimeout(r, 200));
+  }
+  return false;
 }
 
 // ── Cliente real ──────────────────────────────────────────────────────────────
@@ -157,6 +179,7 @@ export class WhatsAppSource implements MessageSource {
   private readonly connCbs: ((up: boolean) => void)[] = [];
   private client: wwebjs.Client | null = null;
   private auth: InstanceType<typeof RemoteAuth> | null = null;
+  private store: EncryptedSessionStore | null = null;
   private ready = false;
 
   constructor(private readonly opts: WhatsAppOptions) {}
@@ -172,10 +195,24 @@ export class WhatsAppSource implements MessageSource {
   }
 
   async start(): Promise<void> {
+    await startOrRelink({
+      start: () => this.launch(),
+      loggedOut: () => landedOnLogout(this.client),
+      discardSession: async () => {
+        if (this.client?.pupBrowser) await this.client.destroy().catch(() => {});
+        await this.store?.delete({ session: SESSION_NAME });
+        await wipeWorkingProfile(this.opts.authDir, SESSION_NAME, CLIENT_ID);
+      },
+      log: this.opts.log,
+    });
+  }
+
+  private async launch(): Promise<void> {
     await mkdir(this.opts.authDir, { recursive: true, mode: 0o700 });
     await chmod(this.opts.authDir, 0o700);
     await wipeWorkingProfile(this.opts.authDir, SESSION_NAME, CLIENT_ID);
     const store = new EncryptedSessionStore({ dataPath: this.opts.authDir, key: this.opts.sessionKey });
+    this.store = store;
     const auth = new RemoteAuth({
       clientId: CLIENT_ID,
       dataPath: this.opts.authDir,
@@ -228,6 +265,7 @@ export class WhatsAppSource implements MessageSource {
     if (this.client?.pupBrowser) await this.client.destroy();
     this.client = null;
     this.auth = null;
+    this.store = null;
     this.ready = false;
     await wipeWorkingProfile(this.opts.authDir, SESSION_NAME, CLIENT_ID);
   }
