@@ -18,8 +18,8 @@ export type ExtractResult =
 export async function extractFields(m: ExtractSource, extractor: FieldExtractor | null): Promise<ExtractResult> {
   const fromText = parseText(m.text);
   let missing = missingFields(fromText);
-  if (missing.length === 0) return { complete: true, fields: fromText as RawFields };
-  if (extractor === null) return { complete: false, partial: fromText, missing };
+  if (missing.length === 0) return { complete: true, fields: fromText as RawFields, usedImage: false };
+  if (extractor === null) return { complete: false, partial: fromText, missing, usedImage: false };
 
   const image = await m.downloadImage().catch(() => null);
   const fromIa = await extractor.extract({ text: m.text, image, missing }).catch(() => ({}));
@@ -30,6 +30,6 @@ export async function extractFields(m: ExtractSource, extractor: FieldExtractor 
   }
   missing = missingFields(merged);
   return missing.length === 0
-    ? { complete: true, fields: merged as RawFields }
-    : { complete: false, partial: merged, missing };
+    ? { complete: true, fields: merged as RawFields, usedImage: true }
+    : { complete: false, partial: merged, missing, usedImage: true };
 }

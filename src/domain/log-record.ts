@@ -63,7 +63,7 @@ export function buildAlertLogRecord(alert: Alert, trade: Trade | null = null): A
     timings: {
       classifiedMs: msSince(alert.receivedAt, alert.classifiedAt),
       entryAcceptedMs: msSince(alert.receivedAt, trade?.entryPlacedAt),
-      withImage: false,
+      withImage: alert.usedImage ?? false,
     },
   };
 }

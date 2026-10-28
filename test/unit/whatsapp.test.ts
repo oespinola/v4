@@ -68,7 +68,7 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     ]);
   });
 
-  it.fails('marca la hora de llegada al sistema con el reloj, no la del teléfono (SC-001)', async () => {
+  it('marca la hora de llegada al sistema con el reloj, no la del teléfono (SC-001)', async () => {
     const { client, got } = setup();
     await ready(client);
     client.emit('message_create', raw());

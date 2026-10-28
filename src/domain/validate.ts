@@ -39,15 +39,16 @@ export interface ValidAlert extends MappedSymbol {
 }
 
 export type ValidationResult =
-  | { ok: true; hash: string; alert: ValidAlert }
-  | { ok: false; hash: string; reason: RejectReason; partial: Partial<RawFields> };
+  | { ok: true; hash: string; alert: ValidAlert; usedImage: boolean }
+  | { ok: false; hash: string; reason: RejectReason; partial: Partial<RawFields>; usedImage: boolean };
 
 const scaleTarget = (t: Target, factor: number): Target => ('price' in t ? { price: scale(t.price, factor) } : t);
 
 export async function validateAlert(m: ValidationInput, deps: ValidationDeps): Promise<ValidationResult> {
   let partial: Partial<RawFields> = parseText(m.text);
   let hash = contentHash(partial);
-  const reject = (reason: RejectReason): ValidationResult => ({ ok: false, hash, reason, partial });
+  let usedImage = false;
+  const reject = (reason: RejectReason): ValidationResult => ({ ok: false, hash, reason, partial, usedImage });
 
   // 1. Remitente y 2. duplicado por ID: antes de gastar en la IA.
   if (!isAuthorized(m.sender, deps.authorizedSenders)) return reject('remitente no autorizado');
@@ -55,6 +56,7 @@ export async function validateAlert(m: ValidationInput, deps: ValidationDeps): P
 
   // 3. Incompleta (regex, y la IA solo si falta algo).
   const extraction = await extractFields(m, deps.extractor);
+  usedImage = extraction.usedImage ?? false;
   if (!extraction.complete) {
     partial = extraction.partial;
     hash = contentHash(partial);
@@ -104,5 +106,5 @@ export async function validateAlert(m: ValidationInput, deps: ValidationDeps): P
   if (!ranking || !isRankingFresh(ranking, deps.now())) return reject('ranking no disponible');
   if (inTop3(ranking, mapped.symbol)) return reject('top 3 ganadores/perdedores');
 
-  return { ok: true, hash, alert: { ...mapped, fields, side, entry, sl, tp, tpSource: picked.source } };
+  return { ok: true, hash, usedImage, alert: { ...mapped, fields, side, entry, sl, tp, tpSource: picked.source } };
 }

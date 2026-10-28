@@ -139,7 +139,7 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     expect(() => buildAlertLogRecord(alert({ status: 'completa', reason: 'TP inválido' }), trade())).toThrow(/motivo/);
   });
 
-  it.fails('marca si hubo que analizar la imagen, para separar los lotes de SC-001/SC-002', () => {
+  it('marca si hubo que analizar la imagen, para separar los lotes de SC-001/SC-002', () => {
     expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado', usedImage: true })).timings.withImage).toBe(true);
     expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado' })).timings.withImage).toBe(false);
   });

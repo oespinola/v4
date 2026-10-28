@@ -57,12 +57,13 @@ export function senderOf(m: RawWaMessage, ownId: string): string {
 /** Parte única del ID: es la misma venga el mensaje de cualquier dispositivo. */
 const idOf = (m: RawWaMessage) => m.id.id ?? m.id._serialized;
 
-function toIncoming(m: RawWaMessage, ownId: string): IncomingMessage {
+function toIncoming(m: RawWaMessage, ownId: string, arrivedAt: Date): IncomingMessage {
   return {
     waMessageId: idOf(m),
     sender: senderOf(m, ownId),
     text: m.body, // en mensajes con imagen, wwebjs ya trae acá el caption
     timestamp: new Date(m.timestamp * 1000),
+    arrivedAt,
     downloadImage: async () => {
       if (!m.hasMedia) return null;
       const media = await m.downloadMedia();
@@ -97,7 +98,7 @@ export function wireClient(client: GroupEvents, h: WireHandlers): void {
   // message_create incluye los mensajes de la propia cuenta vinculada (el evento "message" los
   // omite); así el operador puede probar mandando alertas él mismo.
   client.on('message_create', (m: RawWaMessage) => {
-    if (inGroup(m) && isLive(m)) h.onMessage(toIncoming(m, h.ownId()));
+    if (inGroup(m) && isLive(m)) h.onMessage(toIncoming(m, h.ownId(), h.now()));
   });
   client.on('message_edit', (m: RawWaMessage, newBody: unknown, prevBody: unknown) => {
     if (!inGroup(m)) return;

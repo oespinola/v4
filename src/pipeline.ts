@@ -50,7 +50,8 @@ export class Pipeline {
     // FR-001: la charla del grupo no se procesa ni se loguea.
     if (!isAlertText(m.text)) return { kind: 'ignored' };
     const { store, clock } = this.deps;
-    const receivedAt = clock.now();
+    // Desde que llegó al sistema, no desde que salió de la cola (SC-001, SC-002).
+    const receivedAt = m.arrivedAt ?? clock.now();
 
     const result = await validateAlert(m, {
       authorizedSenders: this.deps.authorizedSenders,
@@ -86,6 +87,7 @@ export class Pipeline {
       tpSource: result.ok ? result.alert.tpSource : null,
       status: result.ok ? 'válida' : 'rechazada',
       reason: result.ok ? null : result.reason,
+      usedImage: result.usedImage,
     };
 
     // Un mismo ID de mensaje ya está en la base (FR-007): el duplicado solo se loguea.
