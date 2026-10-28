@@ -184,12 +184,12 @@ export class Store {
     this.appendLog('alert', { ...buildAlertLogRecord(alert, trade) });
   }
 
-  logConnection(_e: ConnectionEvent): void {
-    throw new Error('no implementado');
+  logConnection(e: ConnectionEvent): void {
+    this.appendLog('connection', { service: e.service, event: e.event, attempt: e.attempt, waitMs: e.waitMs });
   }
 
-  logCritical(_e: CriticalEvent): void {
-    throw new Error('no implementado');
+  logCritical(e: CriticalEvent): void {
+    this.appendLog('critical', { kind: e.kind, alertId: e.alertId ?? null, detail: e.detail });
   }
 
   close(): void {

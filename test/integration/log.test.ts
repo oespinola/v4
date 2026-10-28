@@ -116,7 +116,7 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
     expect(logLines()).toEqual([]);
   });
 
-  it.fails('registra eventos de conexión con su esquema (FR-055)', () => {
+  it('registra eventos de conexión con su esquema (FR-055)', () => {
     store.logConnection({ service: 'whatsapp', event: 'interrupción', attempt: 0, waitMs: null });
     store.logConnection({ service: 'binance', event: 'reintento', attempt: 3, waitMs: 4000 });
     expect(logLines()).toEqual([
@@ -125,7 +125,7 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
     ]);
   });
 
-  it.fails('registra eventos críticos con su esquema, con alertId en null si no aplica (FR-030, FR-038, FR-055)', () => {
+  it('registra eventos críticos con su esquema, con alertId en null si no aplica (FR-030, FR-038, FR-055)', () => {
     store.logCritical({ kind: 'reconexión agotada', detail: '10 intentos fallidos con Binance' });
     store.logCritical({ kind: 'SL/TP perdido', alertId: 'wa-1:0123456789abcdef', detail: 'falta el SL' });
     expect(logLines()).toEqual([
