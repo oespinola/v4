@@ -215,7 +215,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Independent Test**: AC-27 y AC-28.
 
-- [ ] T080 [US8] Correr `gitleaks detect --source . --log-opts="--all"` sobre el árbol y todo el historial, corregir cualquier hallazgo y dejar el comando en la sección 7 de specs/001-alertas-whatsapp-binance/quickstart.md (AC-27)
+- [X] T080 [US8] Correr `gitleaks detect --source . --log-opts="--all"` sobre el árbol y todo el historial, corregir cualquier hallazgo y dejar el comando en la sección 7 de specs/001-alertas-whatsapp-binance/quickstart.md (AC-27)
 - [ ] T081 [US8] Verificar en Binance que la key de producción tiene solo trading (sin retiro) y registrar fecha y resultado en specs/001-alertas-whatsapp-binance/checklists/live.md (AC-28)
 
 ---

@@ -71,9 +71,14 @@ Con una alerta válida cuya Entrada esté cerca del precio de mercado:
 ## 7. Latencia y secretos
 
 ```bash
-pnpm latency                                   # p95 < 3 s / 10 s y < 5 s / 12 s (SC-001, SC-002)
-gitleaks detect --source . --log-opts="--all"  # 0 hallazgos (AC-27)
+pnpm latency                                      # p95 < 3 s / 10 s y < 5 s / 12 s (SC-001, SC-002)
+gitleaks git --log-opts="--all" --redact .        # todo el historial: 0 hallazgos (AC-27)
 ```
+
+`gitleaks git` revisa los commits de todas las ramas, incluido el árbol versionado actual (gitleaks 8.30;
+`detect` es el nombre viejo del mismo comando). Un `gitleaks dir .` también lee lo que no se versiona
+(`.env`, `.wwebjs_auth/`, `.wwebjs_cache/`) y ahí sí encuentra credenciales: es esperado, porque esos
+archivos están en `.gitignore`.
 
 ## 8. Antes de LIVE (política manual, no la controla el sistema)
 
