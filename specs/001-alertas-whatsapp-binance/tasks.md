@@ -38,10 +38,10 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Purpose**: tipos, puertos, fakes, configuración, persistencia, cola y backoff que usan todas las historias.
 
-- [ ] T008 [P] Definir tipos del dominio (`Side`, `Field`, `RawFields`, `Target`, `Alert`, `Trade`, `AlertStatus`, `RejectReason` con todos los motivos de FR-045, `CloseCause`) según [data-model.md](data-model.md) en src/domain/types.ts
-- [ ] T009 [P] Definir los puertos `FieldExtractor`, `MarketData`, `Exchange`, `MessageSource` y `Clock` según [contracts/ports.md](contracts/ports.md) en src/ports.ts
-- [ ] T010 [P] Crear fakes de los puertos (reloj controlable con avance manual de tiempo, extractor programable, market data con tickers/velas/filtros fijos, exchange con ejecuciones y fallas programables, fuente de mensajes con conexión on/off) en test/fakes/index.ts
-- [ ] T011 [P] Copiar las alertas anonimizadas de `../v3/test/fixtures/alerts.ts` en test/fixtures/alerts.ts y sumar 2 capturas de `../AlertsSamples` (una de Tomy y una de Cris) sin teléfonos ni nombres visibles, revisadas a mano, en test/fixtures/images/
+- [X] T008 [P] Definir tipos del dominio (`Side`, `Field`, `RawFields`, `Target`, `Alert`, `Trade`, `AlertStatus`, `RejectReason` con todos los motivos de FR-045, `CloseCause`) según [data-model.md](data-model.md) en src/domain/types.ts
+- [X] T009 [P] Definir los puertos `FieldExtractor`, `MarketData`, `Exchange`, `MessageSource` y `Clock` según [contracts/ports.md](contracts/ports.md) en src/ports.ts
+- [X] T010 [P] Crear fakes de los puertos (reloj controlable con avance manual de tiempo, extractor programable, market data con tickers/velas/filtros fijos, exchange con ejecuciones y fallas programables, fuente de mensajes con conexión on/off) en test/fakes/index.ts
+- [X] T011 [P] Copiar las alertas anonimizadas de `../v3/test/fixtures/alerts.ts` en test/fixtures/alerts.ts y agregar una imagen sintética (`fakeImage`); las capturas reales de `../AlertsSamples` no se suben al repo (datos de terceros, como ya decidía el .gitignore de v3)
 - [ ] T012 Escribir tests de configuración (FR-058, FR-062, FR-052): falta cada variable requerida, valores ≤ 0, `MAX_SL_DISTANCE_PCT` ausente = 15, credenciales del otro modo no requeridas, lista de todo lo que falta, código de salida 78 — en `it.fails` — en test/unit/config.test.ts
 - [ ] T013 Implementar la carga de `.env` (`process.loadEnvFile`) y la validación con zod por modo, y pasar T012 a `it`, en src/config.ts
 - [ ] T014 [P] Escribir tests de backoff (FR-055): secuencia 1, 2, 4, 8, 16, 32, 60, 60… s; señal de "agotado" al 10.º fallo consecutivo (quien la consume decide si sale: el cierre de emergencia la ignora, FR-055); reinicio del contador tras un éxito — en `it.fails` — en test/unit/backoff.test.ts
