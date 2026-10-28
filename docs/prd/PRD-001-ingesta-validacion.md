@@ -67,7 +67,10 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - RF-29: El sistema debe rechazar como duplicado, sin operarla, una alerta cuyo ID de
   mensaje de WhatsApp coincida con el de cualquier alerta ya registrada, o cuyo hash
   (RF-11) coincida con el de una alerta no rechazada registrada en las últimas 24 h.
-  Una alerta rechazada no bloquea su reenvío: el reenvío se evalúa de nuevo.
+  Una alerta rechazada no bloquea su reenvío: el reenvío se evalúa de nuevo. Tampoco lo
+  bloquea una alerta cuya orden de entrada nunca quedó en Binance (RF-57): falló por un
+  problema del sistema y la señal no se pierde. Una entrada que sí quedó en Binance y
+  venció sin ejecutarse (RF-19) sigue bloqueando el reenvío.
 - RF-31: El sistema debe mapear el ticker de la alerta al contrato perpetuo
   TICKERUSDT; si no existe, a 1000TICKERUSDT, multiplicando Entrada, SL y TP por 1000.
 - RF-32: El sistema debe rechazar una alerta cuyo ticker no exista en Futuros USDS-M
@@ -184,6 +187,13 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-77 (RF-29): Dada una alerta rechazada hace menos de 24 h (por ejemplo, por
   "ranking no disponible"), cuando llega un reenvío con otro ID de mensaje y los mismos
   valores, entonces el sistema no lo rechaza como duplicado y lo evalúa de nuevo.
+- AC-83 (RF-29, RF-57): Dada una alerta cuya orden de entrada no se pudo colocar (por
+  ejemplo, un timeout de Binance) y que Binance confirma que no existe, cuando un minuto
+  después llega un reenvío con otro ID de mensaje y los mismos valores, entonces el
+  sistema no lo rechaza como duplicado y lo evalúa de nuevo.
+- AC-85 (RF-29, RF-19): Dada una alerta cuya entrada se colocó en Binance y venció sin
+  ninguna ejecución hace menos de 24 h, cuando llega un reenvío con otro ID de mensaje y
+  los mismos valores, entonces el sistema lo rechaza como "duplicado".
 - AC-78 (RF-11, RF-29): Dada una alerta no rechazada con ticker "PEPE" y Entrada
   0.002404 registrada hace menos de 24 h, cuando llega otra con ticker "1000PEPE",
   Entrada 2.404 y SL y TP equivalentes, entonces el sistema la rechaza como "duplicado".
