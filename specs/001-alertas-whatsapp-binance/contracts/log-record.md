@@ -28,7 +28,7 @@ aplican van en `null` (FR-043).
 | realizedPnl, fees | number \| null |
 | status | `"completa"` \| `"rechazada"` \| `"cerrada por emergencia"` \| `"entrada no ejecutada"` \| `"cerrada"` \| `"liquidada"` |
 | reason | uno de FR-045 si `status = "rechazada"`, si no `null` |
-| timings | `{ classifiedMs, entryAcceptedMs }` para SC-001/SC-002 |
+| timings | `{ classifiedMs, entryAcceptedMs, withImage }` para SC-001/SC-002: ms desde que el mensaje llegó al sistema, y si hubo que analizar la imagen |
 
 ## `type: "edit"`
 

@@ -12,8 +12,8 @@ export interface ExtractSource {
 }
 
 export type ExtractResult =
-  | { complete: true; fields: RawFields }
-  | { complete: false; partial: Partial<RawFields>; missing: Field[] };
+  | { complete: true; fields: RawFields; usedImage?: boolean }
+  | { complete: false; partial: Partial<RawFields>; missing: Field[]; usedImage?: boolean };
 
 export async function extractFields(m: ExtractSource, extractor: FieldExtractor | null): Promise<ExtractResult> {
   const fromText = parseText(m.text);

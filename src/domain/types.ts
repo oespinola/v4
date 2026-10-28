@@ -81,6 +81,8 @@ export interface Alert {
   tpSource: TpSource | null;
   status: AlertStatus;
   reason: RejectReason | null;
+  /** Hubo que analizar la imagen (FR-004): separa los lotes de SC-001 y SC-002. */
+  usedImage?: boolean;
 }
 
 export type TradeState = 'pendiente' | 'con_ejecución' | 'abierta' | 'cerrada';

@@ -68,6 +68,15 @@ describe('adaptador de WhatsApp: lógica pura (FR-048, FR-057)', () => {
     ]);
   });
 
+  it.fails('marca la hora de llegada al sistema con el reloj, no la del teléfono (SC-001)', async () => {
+    const { client, got } = setup();
+    await ready(client);
+    client.emit('message_create', raw());
+    await flush();
+    expect(got.messages[0]?.arrivedAt).toBeInstanceOf(Date);
+    expect(got.messages[0]?.arrivedAt?.getTime()).not.toBe(got.messages[0]?.timestamp.getTime());
+  });
+
   it('ignora mensajes de otros grupos y los que llegan antes de encontrar el grupo', async () => {
     const { client, got } = setup();
     client.emit('message_create', raw());

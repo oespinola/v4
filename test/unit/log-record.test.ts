@@ -90,7 +90,7 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
       fees: 0.17,
       status: 'cerrada',
       reason: null,
-      timings: { classifiedMs: 1250, entryAcceptedMs: 2000 },
+      timings: { classifiedMs: 1250, entryAcceptedMs: 2000, withImage: false },
     });
   });
 
@@ -110,7 +110,7 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
       closedAt: null,
       realizedPnl: null,
       fees: null,
-      timings: { classifiedMs: 1250, entryAcceptedMs: null },
+      timings: { classifiedMs: 1250, entryAcceptedMs: null, withImage: false },
     });
   });
 
@@ -139,8 +139,13 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     expect(() => buildAlertLogRecord(alert({ status: 'completa', reason: 'TP inválido' }), trade())).toThrow(/motivo/);
   });
 
+  it.fails('marca si hubo que analizar la imagen, para separar los lotes de SC-001/SC-002', () => {
+    expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado', usedImage: true })).timings.withImage).toBe(true);
+    expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado' })).timings.withImage).toBe(false);
+  });
+
   it('sin hora de clasificación, classifiedMs es null', () => {
     const r = buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado', classifiedAt: null }));
-    expect(r.timings).toEqual({ classifiedMs: null, entryAcceptedMs: null });
+    expect(r.timings).toEqual({ classifiedMs: null, entryAcceptedMs: null, withImage: false });
   });
 });

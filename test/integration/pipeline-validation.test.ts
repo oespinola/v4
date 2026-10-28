@@ -51,6 +51,27 @@ describe('pipeline de validación (US1)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
+  it.fails('mide desde que el mensaje llegó al sistema, no desde que salió de la cola (SC-001)', async () => {
+    const arrivedAt = new Date('2026-10-28T11:59:58Z');
+    const r = await pipeline.processMessage(message(KAIA, { sender: '5491199999999', arrivedAt }));
+    expect(r).toMatchObject({ alert: { receivedAt: arrivedAt } });
+    expect(logLines()[0]).toMatchObject({ receivedAt: arrivedAt.toISOString(), timings: { classifiedMs: 2000 } });
+  });
+
+  it.fails('marca la alerta que necesitó la imagen', async () => {
+    const withIa = new Pipeline({
+      store,
+      clock,
+      mode: 'DRY',
+      authorizedSenders: [AUTH],
+      extractor: new FakeExtractor({ sl: 0.0414 }),
+      market,
+      maxSlDistancePct: 15,
+    });
+    const r = await withIa.processMessage(message(KAIA.replace(/\nSL: .*/, ''), { sender: AUTH }));
+    expect(r).toMatchObject({ alert: { status: 'válida', usedImage: true } });
+  });
+
   it('un mensaje sin disparador no deja rastro (AC-05)', async () => {
     const r = await pipeline.processMessage(message('hola a todos', { sender: AUTH }));
     expect(r.kind).toBe('ignored');

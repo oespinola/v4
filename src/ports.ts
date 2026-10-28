@@ -118,6 +118,8 @@ export interface IncomingMessage {
   sender: string;
   text: string;
   timestamp: Date;
+  /** Cuándo llegó al sistema (lo marca el adaptador): base de SC-001 y SC-002. */
+  arrivedAt?: Date;
   /** Descarga la imagen adjunta, si hay (solo se pide cuando el texto no alcanza). */
   downloadImage(): Promise<Buffer | null>;
 }

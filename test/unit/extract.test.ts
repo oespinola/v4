@@ -64,6 +64,13 @@ describe('extracción regex → IA (FR-003 a FR-005, FR-059)', () => {
     expect(m.downloads()).toBe(0);
   });
 
+  it.fails('informa si hubo que analizar la imagen (SC-001)', async () => {
+    expect((await extractFields(msg(alerts.kaia), new FakeExtractor())).usedImage).toBe(false);
+    expect((await extractFields(msg(noSl), new FakeExtractor({ sl: 0.0414 }))).usedImage).toBe(true);
+    expect((await extractFields(msg(noSl), new FakeExtractor({}))).usedImage).toBe(true);
+    expect((await extractFields(msg(noSl), null)).usedImage).toBe(false);
+  });
+
   it('si falla la descarga de la imagen, igual le pasa el texto a la IA', async () => {
     const ia = new FakeExtractor({ sl: 0.0414 });
     const r = await extractFields(

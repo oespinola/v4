@@ -25,7 +25,7 @@ export interface AlertLogRecord {
   fees: number | null;
   status: FinalStatus;
   reason: RejectReason | null;
-  timings: { classifiedMs: number | null; entryAcceptedMs: number | null };
+  timings: { classifiedMs: number | null; entryAcceptedMs: number | null; withImage: boolean };
 }
 
 const isFinal = (s: string): s is FinalStatus => (FINAL_STATUSES as readonly string[]).includes(s);
@@ -63,6 +63,7 @@ export function buildAlertLogRecord(alert: Alert, trade: Trade | null = null): A
     timings: {
       classifiedMs: msSince(alert.receivedAt, alert.classifiedAt),
       entryAcceptedMs: msSince(alert.receivedAt, trade?.entryPlacedAt),
+      withImage: false,
     },
   };
 }
