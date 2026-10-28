@@ -33,8 +33,9 @@ que la comparación entre métodos use el mismo resultado técnico.
 - **Rationale**: `LocalAuth` deja el perfil de Chromium en texto plano; `RemoteAuth` delega el guardado
   en un store intercambiable, que es el punto natural para cifrar sin forkear la librería.
 - **Riesgo a verificar en implementación**: mientras el proceso corre, Chromium necesita el perfil
-  descomprimido; ese directorio de trabajo va en `0700` y se borra al cerrar. AC-29 se verifica con el
-  proceso detenido. Si no se logra, queda como bloqueo para habilitar LIVE (Riesgos del PRD-000).
+  descomprimido; ese directorio de trabajo va en `0700`, se borra al cerrar y, como una caída
+  abrupta (`kill -9`, o la salida por 10 fallos) no llega a borrarlo, también se borra al arrancar
+  antes de conectarse. AC-29 se verifica con el proceso detenido, incluido después de un `kill -9`. Si no se logra, queda como bloqueo para habilitar LIVE (Riesgos del PRD-000).
 - **Alternatives considered**: cifrar el disco completo (fuera del control del sistema); `LocalAuth` +
   cifrado manual del directorio al cerrar (no cubre caídas abruptas).
 
@@ -113,12 +114,21 @@ que la comparación entre métodos use el mismo resultado técnico.
   aparte y no bloquean la cola.
 - **Rationale**: los límites de posiciones y capital se evalúan siempre contra la exposición actual, y
   dos reenvíos simultáneos no pasan juntos el control de duplicados.
+- **Un símbolo, una operación (FR-063)**: con una sola operación por símbolo, los SL/TP con
+  `closePosition` de R-06 no pueden cerrar la posición de otra operación, y la causa, el PnL y las
+  comisiones de cada cierre se atribuyen sin ambigüedad (R-07).
 
-## R-10. Reconexión, salida y reinicio (FR-012/FR-055, FR-056, FR-030)
+## R-10. Reconexión, salida y reinicio (FR-055, FR-056, FR-030)
 
 - **Decision**: una función pura de backoff (1, 2, 4… máx. 60 s) compartida por WhatsApp, Binance y el
   reintento del cierre de emergencia. Tras 10 fallos consecutivos de reconexión: evento crítico y
-  `exit(1)`. `pnpm dev`/`pnpm start` corren un supervisor que relanza la app si sale con código ≠ 0
+  `exit(1)`, salvo que haya un cierre de emergencia en curso: en ese caso se registra el evento
+  crítico y no se sale, y el bucle del cierre ignora la señal de "agotado" del backoff hasta cerrar
+  la posición. Si el proceso cae igual, la reconciliación de FR-065 retoma la protección.
+- **Señal de desconexión**: WhatsApp, por el estado del cliente (`disconnected`/`change_state`).
+  Binance, por el fallo de las llamadas a la API de trading (el polling de órdenes cada 2 s funciona
+  como latido, R-07); los fallos del refresco de datos públicos no cuentan para los 10 intentos,
+  porque su efecto ya lo cubre FR-018 ("ranking no disponible"). Cada servicio lleva su contador. `pnpm dev`/`pnpm start` corren un supervisor que relanza la app si sale con código ≠ 0
   (reinicio < 60 s) y no la relanza si sale por configuración inválida (código propio, para no entrar
   en un bucle con FR-058/FR-062).
 - **Rationale**: mismo patrón que v3 (`scripts/supervise.ts`); no depende de systemd para cumplir

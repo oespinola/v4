@@ -76,13 +76,21 @@ Una por alerta válida que llegó a colocar entrada.
 | entryOrderId, slOrderId, tpOrderId | string \| null | IDs de Binance |
 | entryPlacedAt | instante | inicio del plazo de 3 min (FR-031) |
 | filledQty | decimal | |
-| state | `pendiente` \| `abierta` \| `cerrada` | `pendiente` y `abierta` cuentan para FR-025/FR-026 |
-| closeCause | `TP` \| `SL` \| `liquidación` \| `cierre manual` \| `emergencia` \| null | FR-033 |
+| state | `pendiente` \| `con_ejecución` \| `abierta` \| `cerrada` | `pendiente`: entrada sin ejecución; `con_ejecución`: hubo ejecución pero el SL y el TP todavía no están confirmados; `abierta`: "completa" (FR-029). Los tres primeros cuentan para FR-025/FR-026 y FR-063 |
+| closeCause | `TP` \| `SL` \| `liquidación` \| `cierre manual` \| null | FR-033; el cierre de emergencia se registra por el estado "cerrada por emergencia" |
 | closedAt | instante \| null | |
 | realizedPnl, fees | decimal \| null | según Binance (FR-036) |
 
-Reglas de exposición: posiciones = cantidad de `trades` en `pendiente` o `abierta` (FR-025); capital
-comprometido = suma de `notional` de esos mismos (FR-026). Una operación pasa a `cerrada` apenas se
+Reglas de exposición: posiciones = cantidad de `trades` en `pendiente`, `con_ejecución` o `abierta`
+(FR-025); capital comprometido = suma de `notional` de esos mismos (FR-026); un símbolo con alguno de
+esos estados rechaza nuevas alertas como "símbolo ya en operación" (FR-063).
+
+Estados terminales: una entrada no ejecutada y un cierre de emergencia también terminan en `cerrada`
+(con `closeCause` null); el estado de la alerta (FR-044) dice cuál de los dos fue.
+
+Reconciliación (FR-065): una operación local en `con_ejecución` al arrancar nunca quedó protegida →
+se colocan el SL y el TP que falten o se cierra a mercado; una en `abierta` sin SL o TP → solo evento
+crítico (FR-038). Una operación pasa a `cerrada` apenas se
 detecta el cierre y deja de contar (FR-035).
 
 ## Ranking top 3 (en memoria)

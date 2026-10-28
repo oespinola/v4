@@ -22,7 +22,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Purpose**: proyecto Node/TypeScript que compila y corre tests vacíos.
 
-- [ ] T001 Crear `package.json` (`"type": "module"`, `engines.node >= 22.23`) con scripts `dev` (`SIGNALBRIDGE_MODE=DRY tsx scripts/supervise.ts`), `start` (ídem con `LIVE`), `test` (`vitest run`), `typecheck` (`tsc --noEmit`) y `latency` (`tsx scripts/latency.ts`), y las dependencias y versiones de `../v3/package.json` (whatsapp-web.js, qrcode-terminal, ccxt, @anthropic-ai/sdk, zod; dev: typescript, tsx, vitest, @types/node, @types/qrcode-terminal) en package.json
+- [ ] T001 Crear `package.json` (`"type": "module"`, `engines.node >= 22.23`) con scripts `dev` (`SIGNALBRIDGE_MODE=DRY tsx src/main.ts`; pasa a `scripts/supervise.ts` en T079), `start` (ídem con `LIVE`), `test` (`vitest run`), `typecheck` (`tsc --noEmit`) y `latency` (`tsx scripts/latency.ts`), y las dependencias y versiones de `../v3/package.json` (whatsapp-web.js, qrcode-terminal, ccxt, @anthropic-ai/sdk, zod; dev: typescript, tsx, vitest, @types/node, @types/qrcode-terminal) en package.json
 - [ ] T002 [P] Crear `tsconfig.json` con las opciones de `../v3/tsconfig.json` (strict, NodeNext, `noUncheckedIndexedAccess`, `allowImportingTsExtensions`, `noEmit`; include `src`, `test`, `scripts`) en tsconfig.json
 - [ ] T003 [P] Crear `pnpm-workspace.yaml` con `allowBuilds` (esbuild y puppeteer en true; ccxt, bufferutil en false) como en `../v3/pnpm-workspace.yaml`
 - [ ] T004 [P] Crear `.gitignore` con `node_modules/`, `.env`, `data/`, `.wwebjs_auth/`, `.wwebjs_cache/` y el directorio de sesión de WhatsApp (FR-049)
@@ -38,17 +38,17 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Purpose**: tipos, puertos, fakes, configuración, persistencia, cola y backoff que usan todas las historias.
 
-- [ ] T008 [P] Definir tipos del dominio (`Side`, `Field`, `RawFields`, `Target`, `Alert`, `Trade`, `AlertStatus`, `RejectReason` con los 13 motivos de FR-045, `CloseCause`) según [data-model.md](data-model.md) en src/domain/types.ts
+- [ ] T008 [P] Definir tipos del dominio (`Side`, `Field`, `RawFields`, `Target`, `Alert`, `Trade`, `AlertStatus`, `RejectReason` con todos los motivos de FR-045, `CloseCause`) según [data-model.md](data-model.md) en src/domain/types.ts
 - [ ] T009 [P] Definir los puertos `FieldExtractor`, `MarketData`, `Exchange`, `MessageSource` y `Clock` según [contracts/ports.md](contracts/ports.md) en src/ports.ts
 - [ ] T010 [P] Crear fakes de los puertos (reloj controlable con avance manual de tiempo, extractor programable, market data con tickers/velas/filtros fijos, exchange con ejecuciones y fallas programables, fuente de mensajes con conexión on/off) en test/fakes/index.ts
 - [ ] T011 [P] Copiar las alertas anonimizadas de `../v3/test/fixtures/alerts.ts` en test/fixtures/alerts.ts y sumar 2 capturas de `../AlertsSamples` (una de Tomy y una de Cris) sin teléfonos ni nombres visibles, revisadas a mano, en test/fixtures/images/
 - [ ] T012 Escribir tests de configuración (FR-058, FR-062, FR-052): falta cada variable requerida, valores ≤ 0, `MAX_SL_DISTANCE_PCT` ausente = 15, credenciales del otro modo no requeridas, lista de todo lo que falta, código de salida 78 — en `it.fails` — en test/unit/config.test.ts
 - [ ] T013 Implementar la carga de `.env` (`process.loadEnvFile`) y la validación con zod por modo, y pasar T012 a `it`, en src/config.ts
-- [ ] T014 [P] Escribir tests de backoff (FR-055): secuencia 1, 2, 4, 8, 16, 32, 60, 60… s; señal de "agotado" al 10.º fallo consecutivo; reinicio del contador tras un éxito — en `it.fails` — en test/unit/backoff.test.ts
+- [ ] T014 [P] Escribir tests de backoff (FR-055): secuencia 1, 2, 4, 8, 16, 32, 60, 60… s; señal de "agotado" al 10.º fallo consecutivo (quien la consume decide si sale: el cierre de emergencia la ignora, FR-055); reinicio del contador tras un éxito — en `it.fails` — en test/unit/backoff.test.ts
 - [ ] T015 Implementar el backoff puro y pasar T014 a `it` en src/domain/backoff.ts
 - [ ] T016 [P] Escribir tests de la cola (FR-061): concurrencia 1, orden de llegada, un error en un trabajo no frena los siguientes — en `it.fails` — en test/unit/queue.test.ts
 - [ ] T017 Implementar la cola y pasar T016 a `it` en src/queue.ts
-- [ ] T018 [P] Escribir tests del almacenamiento (FR-007, FR-046, data-model): `umask 077`, `data/` en 0700 y archivos en 0600, alta de alerta, búsqueda por `waMessageId`, búsqueda de `contentHash` en las últimas 24 h con reloj inyectado, alta/actualización de `trades`, conteo y nocional de operaciones `pendiente`/`abierta`, append al JSONL — en `it.fails` — en test/unit/store.test.ts
+- [ ] T018 [P] Escribir tests del almacenamiento (FR-007, FR-046, data-model): `umask 077`, `data/` en 0700 y archivos en 0600, alta de alerta, búsqueda por `waMessageId`, búsqueda de `contentHash` en las últimas 24 h con reloj inyectado, alta/actualización de `trades`, conteo y nocional de operaciones `pendiente`, `con_ejecución` o `abierta`, búsqueda de operación activa por símbolo (FR-063), listado de las `con_ejecución` (FR-065), append al JSONL — en `it.fails` — en test/unit/store.test.ts
 - [ ] T019 Implementar el store con `node:sqlite` (tablas `alerts`, `edits`, `trades`) y el append JSONL, y pasar T018 a `it`, en src/adapters/store.ts
 - [ ] T020 [P] Implementar el reloj real (`now`, `setTimeout`, `setInterval`) que cumple `Clock` en src/adapters/clock.ts
 
@@ -60,7 +60,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Goal**: cada mensaje con "alerta de trading" de un remitente autorizado queda válido (símbolo, side, precios ajustados, TP) o rechazado con un único motivo, sin colocar órdenes.
 
-**Independent Test**: `pnpm test` cubre AC-01 a AC-07, AC-14, AC-17, AC-19 a AC-21, AC-25, AC-26, AC-30, AC-33 a AC-35, AC-37, AC-38, AC-40 a AC-42, AC-52 a AC-54, AC-68 y AC-69 con fakes; en vivo, `pnpm dev` muestra una línea por alerta del grupo.
+**Independent Test**: `pnpm test` cubre AC-01 a AC-07, AC-14, AC-17, AC-19 a AC-21, AC-25, AC-26, AC-30, AC-33 a AC-35, AC-37, AC-38, AC-40 a AC-42, AC-52 a AC-54, AC-68, AC-69 y AC-71 con fakes; en vivo, `pnpm dev` muestra una línea por alerta del grupo.
 
 ### Filtro, extracción e identidad
 
@@ -86,7 +86,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 ### Validación en orden
 
-- [ ] T037 [US1] Escribir tests de validación (AC-02, AC-04, AC-19, AC-54, AC-68, FR-013, FR-020): orden remitente → duplicado ID → incompleta → duplicado hash → ticker inexistente → SL = Entrada → SL fuera de rango (máximo configurable) → TP inválido → ranking no disponible → top 3, y un único motivo (el primero) — en `it.fails` — en test/unit/validate.test.ts
+- [ ] T037 [US1] Escribir tests de validación (AC-02, AC-04, AC-19, AC-54, AC-68, AC-71, FR-013, FR-020, FR-064): orden remitente → duplicado ID → incompleta → duplicado hash → ticker inexistente → SL = Entrada → SL fuera de rango (máximo configurable) → datos de mercado no disponibles (fake de `MarketData` cuyo `closes45m` rechaza) → TP inválido → ranking no disponible → top 3, y un único motivo (el primero) — en `it.fails` — en test/unit/validate.test.ts
 - [ ] T038 [US1] Implementar la validación en orden y pasar T037 a `it` en src/domain/validate.ts
 
 ### Adaptadores y armado
@@ -97,7 +97,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [ ] T042 [US1] Implementar el extractor con `@anthropic-ai/sdk` (`claude-sonnet-5-5`, texto + imagen) y pasar T041 a `it` en src/adapters/claude-extractor.ts
 - [ ] T043 [US1] Escribir tests de integración del pipeline de validación con fakes (AC-17, AC-37, AC-53, FR-047): mismo mensaje tras reinicio → "duplicado", reenvío < 24 h → "duplicado", > 24 h → no es duplicado, edición de alerta procesada → registro `edit` sin operar, resultado guardado en store — en `it.fails` — en test/integration/pipeline-validation.test.ts
 - [ ] T044 [US1] Implementar `processMessage` y `processEdit` hasta "válida/rechazada" y pasar T043 a `it` en src/pipeline.ts
-- [ ] T045 [P] [US1] Escribir tests de la lógica pura del adaptador de WhatsApp (FR-057, FR-048): normaliza el remitente sin sufijo de dispositivo, descarta mensajes con timestamp anterior al momento de conexión, solo mensajes del grupo configurado — en `it.fails` — en test/unit/whatsapp.test.ts
+- [ ] T045 [P] [US1] Escribir tests de la lógica pura del adaptador de WhatsApp (FR-057, FR-048): normaliza el remitente sin sufijo de dispositivo, descarta mensajes con timestamp anterior al momento de conexión, solo mensajes del grupo configurado, y con un cliente fake sin sesión guardada emite el QR (AC-10) — en `it.fails` — en test/unit/whatsapp.test.ts
 - [ ] T046 [US1] Implementar el adaptador de WhatsApp (QR en terminal si no hay sesión, búsqueda del grupo por nombre con `evaluate`, `message_create`, `message_edit`, descarga de imagen; sesión temporal con `LocalAuth` en un directorio 0700, se reemplaza por la cifrada en T075) y pasar T045 a `it` en src/adapters/whatsapp.ts
 - [ ] T047 [US1] Armar `main.ts` en DRY: config → store → market data → WhatsApp → cola → pipeline, una línea por alerta en consola, en src/main.ts
 
@@ -113,7 +113,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 - [ ] T048 [P] [US4] Escribir tests del registro de log según [contracts/log-record.md](contracts/log-record.md) (AC-08, FR-043 a FR-045): todos los campos, `null` cuando no aplican, `status` y `reason` solo de las listas cerradas, `timings` de clasificación — en `it.fails` — en test/unit/log-record.test.ts
 - [ ] T049 [US4] Implementar el armado del registro desde `Alert` + `Trade` y usarlo en el store, y pasar T048 a `it`, en src/domain/log-record.ts
-- [ ] T050 [US4] Escribir tests de integración del log (AC-09, AC-50): cada uno de los 13 motivos producido por el pipeline queda en el JSONL; permisos 0600 del log y de la base; tipos `connection` y `critical` con su esquema — en `it.fails` — en test/integration/log.test.ts
+- [ ] T050 [US4] Escribir tests de integración del log (AC-09, AC-50): cada uno de los motivos de FR-045 producido por el pipeline queda en el JSONL; permisos 0600 del log y de la base; tipos `connection` y `critical` con su esquema — en `it.fails` — en test/integration/log.test.ts
 - [ ] T051 [US4] Completar el registro de eventos `connection` y `critical` en el store y pasar T050 a `it` en src/adapters/store.ts
 
 **Checkpoint**: todo lo que pasa queda auditado.
@@ -124,20 +124,20 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Goal**: una alerta válida se dimensiona, se controla contra límites y se coloca con SL y TP; ante falla del SL/TP, cierre a mercado con reintento.
 
-**Independent Test**: AC-13, AC-15, AC-16, AC-18, AC-22 a AC-24, AC-36, AC-39, AC-43 a AC-45, AC-51 y AC-55 con el exchange fake y el reloj fake.
+**Independent Test**: AC-13, AC-15, AC-16, AC-18, AC-22 a AC-24, AC-36, AC-39, AC-43 a AC-45, AC-51, AC-55, AC-70 y AC-72 con el exchange fake y el reloj fake.
 
-- [ ] T052 [P] [US2] Escribir tests de dimensionamiento (AC-13, AC-36, AC-39, AC-22, FR-024): `R / |E − S|` con piso al stepSize, el nivel de riesgo no cambia la cantidad, bajo mínimo (cantidad o nocional), excede tamaño máximo, apalancamiento efectivo = nocional / balance total de la billetera > máximo — en `it.fails` — en test/unit/sizing.test.ts
+- [ ] T052 [P] [US2] Escribir tests de dimensionamiento (AC-13, AC-36, AC-39, AC-22, FR-024): `R / |E − S|` con piso al stepSize, el nivel de riesgo no cambia la cantidad, bajo mínimo (cantidad o nocional), excede tamaño máximo, apalancamiento efectivo = nocional / balance total de la billetera > máximo, falla al consultar el balance → "datos de mercado no disponibles" (AC-72) — en `it.fails` — en test/unit/sizing.test.ts
 - [ ] T053 [US2] Implementar el dimensionamiento y pasar T052 a `it` en src/domain/sizing.ts
-- [ ] T054 [P] [US2] Escribir tests de exposición (AC-18, AC-51, AC-24): posiciones abiertas + entradas pendientes ≥ máximo → "límite de posiciones"; nocional comprometido + nuevo > máximo → "límite de capital" — en `it.fails` — en test/unit/exposure.test.ts
+- [ ] T054 [P] [US2] Escribir tests de exposición (AC-18, AC-51, AC-24): posiciones abiertas + entradas pendientes ≥ máximo → "límite de posiciones"; nocional comprometido + nuevo > máximo → "límite de capital"; símbolo con entrada pendiente, operación con ejecución sin confirmar o posición abierta → "símbolo ya en operación" (AC-70) — en `it.fails` — en test/unit/exposure.test.ts
 - [ ] T055 [US2] Implementar los límites de exposición y pasar T054 a `it` en src/domain/exposure.ts
-- [ ] T056 [P] [US2] Escribir tests de la máquina de estados del ejecutor (AC-43, AC-44, AC-55, AC-15, AC-23, AC-45, FR-060): prepara margen aislado y apalancamiento del símbolo, entrada LIMIT al precio E, sin SL/TP antes de la primera ejecución, SL y TP al primer fill parcial, "completa" solo con SL y TP aceptados, sin ejecución a los 3 min → cancelar y "entrada no ejecutada", parcial a los 3 min → cancelar el resto y mantener SL/TP — en `it.fails` — en test/unit/executor.test.ts
-- [ ] T057 [P] [US2] Escribir tests de los caminos de falla del ejecutor (AC-16, FR-030, Principio III): SL o TP rechazado con entrada ejecutada → cierre a mercado en < 5 s y evento crítico; cierre a mercado que falla → reintento con backoff hasta cerrar, evento crítico en cada falla; nunca queda estado "abierta" sin SL y TP — en `it.fails` — en test/integration/executor-failure.test.ts
-- [ ] T058 [US2] Implementar el ejecutor y pasar T056 y T057 a `it` en src/domain/executor.ts
+- [ ] T056 [P] [US2] Escribir tests de la máquina de estados del ejecutor (FR-065: al primer fill persiste `con_ejecución` en el store antes de pedir SL/TP, y pasa a `abierta` solo con los dos aceptados; AC-43, AC-44, AC-55, AC-15, AC-23, AC-45, FR-060): prepara margen aislado y apalancamiento del símbolo, entrada LIMIT al precio E, sin SL/TP antes de la primera ejecución, SL y TP al primer fill parcial, "completa" solo con SL y TP aceptados, sin ejecución a los 3 min → cancelar y "entrada no ejecutada", parcial a los 3 min → cancelar el resto y mantener SL/TP — en `it.fails` — en test/unit/executor.test.ts
+- [ ] T057 [P] [US2] Escribir tests de los caminos de falla del ejecutor (AC-16, FR-030, Principio III): SL o TP rechazado con entrada ejecutada → cierre a mercado en < 5 s y evento crítico; cierre a mercado que falla → reintento con backoff que no se detiene en el 10.º fallo (FR-055, AC-74) hasta cerrar, evento crítico en cada falla; nunca queda estado "abierta" sin SL y TP — en `it.fails` — en test/integration/executor-failure.test.ts
+- [ ] T058 [US2] Implementar el ejecutor (incluye `EmergencyState.emergencyInProgress()` para el monitor de conexión) y pasar T056 y T057 a `it` en src/domain/executor.ts
 - [ ] T059 [P] [US2] Escribir tests del adaptador de trading con CCXT mockeado (R-06): `setMarginMode('isolated')`, `setLeverage`, entrada `LIMIT`, SL `STOP_MARKET` y TP `TAKE_PROFIT_MARKET` con `closePosition` y `workingType=MARK_PRICE`, cierre a mercado `reduceOnly`, balance total de la billetera USDT, PnL y comisiones desde los trades — en `it.fails` — en test/unit/binance-trading.test.ts
 - [ ] T060 [US2] Implementar `Exchange` con CCXT `binanceusdm` y pasar T059 a `it` en src/adapters/binance-trading.ts
-- [ ] T061 [US2] Escribir tests de integración del pipeline de carga (FR-020 completo, FR-061): válida → bajo mínimo → excede máximos → límite de posiciones → límite de capital → ejecutor; dos alertas casi simultáneas se evalúan en orden y la segunda ve la exposición de la primera — en `it.fails` — en test/integration/pipeline-trading.test.ts
+- [ ] T061 [US2] Escribir tests de integración del pipeline de carga (FR-020 completo, FR-061): válida → bajo mínimo → datos de mercado no disponibles (balance) → excede máximos → símbolo ya en operación → límite de posiciones → límite de capital → ejecutor; dos alertas casi simultáneas se evalúan en orden y la segunda ve la exposición de la primera — en `it.fails` — en test/integration/pipeline-trading.test.ts
 - [ ] T062 [US2] Conectar dimensionamiento, exposición y ejecutor al pipeline y pasar T061 a `it` en src/pipeline.ts
-- [ ] T063 [P] [US2] Escribir test opcional contra Binance Demo Trading (riesgo de R-06): colocar y cancelar una entrada lejos del precio, y verificar que SL/TP con `closePosition` son aceptados, en test/demo/binance-demo.test.ts (corre solo con `BINANCE_DEMO_TESTS=1`)
+- [ ] T063 [P] [US2] Escribir test contra Binance Demo Trading, obligatorio antes de LIVE y con resultado anotado en checklists/live.md (riesgo de R-06): colocar y cancelar una entrada lejos del precio, y verificar que SL/TP con `closePosition` son aceptados, en test/demo/binance-demo.test.ts (corre solo con `BINANCE_DEMO_TESTS=1`)
 
 **Checkpoint**: en DRY, una alerta válida termina "completa", "entrada no ejecutada" o "cerrada por emergencia".
 
@@ -174,11 +174,11 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Goal**: al arrancar, antes de escuchar mensajes, el estado local se alinea con Binance.
 
-**Independent Test**: AC-63, AC-65 y AC-66 con exchange fake prearmado.
+**Independent Test**: AC-63, AC-65, AC-66 y AC-73 con exchange fake prearmado.
 
-- [ ] T069 [P] [US6] Escribir tests de la reconciliación (AC-63, AC-65, AC-66, FR-040 a FR-042): posición local ausente en Binance → cierre registrado y huérfana cancelada; entrada pendiente ejecutada → SL y TP (o cierre a mercado si fallan); plazo vencido → FR-031/FR-032 — en `it.fails` — en test/unit/reconcile.test.ts
+- [ ] T069 [P] [US6] Escribir tests de la reconciliación (AC-63, AC-65, AC-66, AC-73, FR-040 a FR-042, FR-065): operación local en `con_ejecución` sin SL/TP confirmados → colocar lo que falta o cerrar a mercado con evento crítico; operación `abierta` sin SL o TP → solo evento crítico (FR-038); posición local ausente en Binance → cierre registrado y huérfana cancelada; entrada pendiente ejecutada → SL y TP (o cierre a mercado si fallan); plazo vencido → FR-031/FR-032 — en `it.fails` — en test/unit/reconcile.test.ts
 - [ ] T070 [US6] Implementar la reconciliación y pasar T069 a `it` en src/domain/reconcile.ts
-- [ ] T071 [US6] Escribir test de integración del arranque (FR-039): `main` no se suscribe a mensajes hasta que la reconciliación termina — en `it.fails` — en test/integration/startup.test.ts
+- [ ] T071 [US6] Escribir test de integración del arranque (FR-039): `main` no se suscribe a mensajes hasta que la reconciliación termina; con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062) — en `it.fails` — en test/integration/startup.test.ts
 - [ ] T072 [US6] Correr la reconciliación antes de suscribirse a mensajes y pasar T071 a `it` en src/main.ts
 
 **Checkpoint**: una caída no deja estado desalineado.
@@ -189,15 +189,15 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Goal**: sesión cifrada, reconexión con backoff y reinicio automático.
 
-**Independent Test**: AC-10, AC-29, AC-31 y AC-47.
+**Independent Test**: AC-10, AC-29, AC-31, AC-47 y AC-74.
 
-- [ ] T073 [P] [US7] Escribir tests del store de sesión cifrado (AC-29, FR-049): ida y vuelta AES-256-GCM con `WHATSAPP_SESSION_KEY`, clave errónea falla sin dejar archivos, archivo 0600 en directorio 0700, el contenido guardado no contiene el número en texto plano — en `it.fails` — en test/unit/session-store.test.ts
+- [ ] T073 [P] [US7] Escribir tests del store de sesión cifrado (AC-29, FR-049): ida y vuelta AES-256-GCM con `WHATSAPP_SESSION_KEY`, clave errónea falla sin dejar archivos, archivo 0600 en directorio 0700, `wipeWorkingProfile` borra un perfil de trabajo sobrante de una caída, el contenido guardado no contiene el número en texto plano — en `it.fails` — en test/unit/session-store.test.ts
 - [ ] T074 [US7] Implementar el store de sesión para `RemoteAuth` y pasar T073 a `it` en src/adapters/session-store.ts
-- [ ] T075 [US7] Reemplazar `LocalAuth` por `RemoteAuth` con el store cifrado y borrar el perfil de trabajo al cerrar, en src/adapters/whatsapp.ts
-- [ ] T076 [P] [US7] Escribir tests del monitor de conexión (AC-47, FR-055): corte detectado < 30 s, eventos `connection` con esperas 1, 2, 4… 60 s, al 10.º fallo consecutivo evento crítico y salida con código 1 — en `it.fails` — en test/integration/reconnect.test.ts
+- [ ] T075 [US7] Reemplazar `LocalAuth` por `RemoteAuth` con el store cifrado, borrar el perfil de trabajo al cerrar y también al arrancar antes de conectarse (por si quedó de un `kill -9`), en src/adapters/whatsapp.ts
+- [ ] T076 [US7] Escribir tests del monitor de conexión (depende de T058, que expone `EmergencyState`; AC-47, FR-055): corte detectado < 30 s, eventos `connection` con esperas 1, 2, 4… 60 s, al 10.º fallo consecutivo evento crítico y salida con código 1, salvo con un cierre de emergencia en curso (evento crítico sin salida, AC-74); señal de Binance = fallo de la API de trading, contador separado por servicio y sin contar el refresco público (R-10) — en `it.fails` — en test/integration/reconnect.test.ts
 - [ ] T077 [US7] Implementar el monitor de conexión para WhatsApp y Binance y pasar T076 a `it` en src/connection-monitor.ts
 - [ ] T078 [P] [US7] Escribir tests del supervisor (AC-31, FR-056, contracts/cli.md): relanza ante salida ≠ 0 y vuelve a ingerir en < 60 s, no relanza ante 0 ni ante 78 — en `it.fails` — en test/unit/supervisor.test.ts
-- [ ] T079 [US7] Implementar el supervisor (`src/supervisor.ts`) y su script de entrada, y pasar T078 a `it`, en src/supervisor.ts y scripts/supervise.ts
+- [ ] T079 [US7] Implementar el supervisor (`src/supervisor.ts`) y su script de entrada, cambiar `dev` y `start` de package.json para que corran `scripts/supervise.ts`, y pasar T078 a `it`, en src/supervisor.ts y scripts/supervise.ts
 
 **Checkpoint**: el sistema se recupera solo y la sesión no queda en texto plano con el proceso detenido.
 
@@ -219,7 +219,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [ ] T082 [P] Escribir tests del cálculo de latencia (SC-001, SC-002, AC-46, AC-48): p95 de `classifiedMs` y `entryAcceptedMs` desde el JSONL, separado por "solo texto" y "con imagen" — en `it.fails` — en test/unit/latency.test.ts
 - [ ] T083 Implementar el script de latencia y pasar T082 a `it` en scripts/latency.ts
 - [ ] T084 [P] Actualizar docs/arquitectura.md al estado real: módulos de PRD-002/003, puertos, supervisor y sesión cifrada
-- [ ] T085 Correr la validación de [quickstart.md](quickstart.md) en DRY (secciones 2 a 7) y anotar resultados y pendientes en specs/001-alertas-whatsapp-binance/checklists/live.md
+- [ ] T085 Correr la validación de [quickstart.md](quickstart.md) en DRY (secciones 2 a 7), incluida la medición real de AC-31 (`kill -9` del proceso de la app, no del supervisor) y AC-29 después de ese `kill -9`, y anotar resultados y pendientes en specs/001-alertas-whatsapp-binance/checklists/live.md
 - [ ] T086 Verificación final: `pnpm typecheck`, `pnpm test` en verde y ningún `it.fails` pendiente (`grep -rn "it.fails" test/` vacío)
 
 ---
@@ -234,7 +234,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - **US2 (5)** depende de US1 y US4.
 - **US3 (6)** depende de US2 (selecciona el adaptador de trading).
 - **US5 (7)** depende de US2; **US6 (8)** depende de US2 y US5.
-- **US7 (9)** depende de US1 (adaptador de WhatsApp); puede ir en paralelo con US2–US6.
+- **US7 (9)** depende de US1 (adaptador de WhatsApp); T072–T075 y T078–T079 pueden ir en paralelo con US2–US6, pero T076–T077 (monitor de conexión) dependen de T058 (señal de cierre de emergencia en curso).
 - **US8 (10)** y **Polish (11)** al final.
 
 ### Within Each User Story
@@ -249,7 +249,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - Foundational: T008 a T011, y los tests T014, T016 y T018 entre sí.
 - US1: los tests T021, T023, T025, T027, T029, T031, T033, T035, T039, T041 y T045 son de archivos distintos.
 - US2: T052, T054, T056, T057, T059 y T063.
-- US7 entera en paralelo con US2–US6.
+- US7 en paralelo con US2–US6, salvo T076–T077, que esperan a T058.
 
 ---
 

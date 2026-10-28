@@ -23,6 +23,8 @@ interface MarketData {
   ranking(): { gainers: string[]; losers: string[]; refreshedAt: Date };
   closes45m(symbol: string): Promise<number[]>;       // de velas de 15 min agrupadas, incluye la vela en curso
 }
+// Si closes45m (o walletBalanceUsdt de Exchange) rechaza, la alerta se rechaza como
+// "datos de mercado no disponibles" (FR-064).
 ```
 
 ## Exchange (operación, modo activo, FR-021 a FR-042, FR-060)
@@ -53,6 +55,16 @@ interface MessageSource {
   onConnectionChange(cb: (up: boolean) => void): void;
 }
 ```
+
+## EmergencyState (ejecutor → monitor de conexión, FR-055)
+
+```ts
+interface EmergencyState {
+  emergencyInProgress(): boolean; // true mientras algún cierre de emergencia (FR-030) siga reintentando
+}
+```
+
+Lo implementa el ejecutor; el monitor de conexión lo consulta antes de salir por 10 fallos.
 
 ## Clock
 

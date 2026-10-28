@@ -26,7 +26,7 @@ trazabilidad.
   balance total de la billetera de Futuros USDT del modo activo, sin PnL no realizado.
 - Q: ¿Qué hace el sistema después del 10.º intento fallido consecutivo de reconexión? → A: Deja de
   reintentar y el proceso termina; el reinicio automático (RNF-05) vuelve a arrancar el ciclo de
-  reconexión desde cero.
+  reconexión desde cero (salvo con un cierre de emergencia en curso; ver Session 2026-10-28).
 - Q: ¿Qué pasa con una alerta si el proveedor de IA falla o no responde al extraer datos? → A: Los
   datos que dependían de la IA se tratan como faltantes y la alerta se rechaza como "incompleta".
 - Q: ¿Qué pasa si falla el propio cierre a mercado de emergencia? → A: Se reintenta con el mismo
@@ -43,6 +43,19 @@ trazabilidad.
 - Q: ¿Qué pasa si falta o es inválida la configuración del operador? → A: Igual que con las
   credenciales: el sistema no arranca y dice qué parámetro falta o es inválido; los valores
   numéricos deben ser mayores que 0.
+
+### Session 2026-10-28
+
+- Q: Al arrancar, una posición ejecutada en Binance no tiene su SL o su TP: ¿qué hace la
+  reconciliación? → A: Según el estado local: si la operación nunca llegó a "completa", coloca lo
+  que falta o cierra a mercado; si ya estaba "completa", es una cancelación del operador y solo se
+  registra el evento crítico.
+- Q: Hay un cierre de emergencia reintentando y Binance acumula 10 fallos consecutivos: ¿qué regla
+  gana? → A: Gana el cierre: el proceso no termina mientras haya un cierre de emergencia en curso.
+- Q: Llega una alerta válida de un símbolo que ya tiene entrada pendiente o posición abierta →
+  A: Se rechaza con el motivo nuevo "símbolo ya en operación".
+- Q: Fallan las velas para el TP o el balance para el apalancamiento → A: Se rechaza con el motivo
+  nuevo "datos de mercado no disponibles".
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -121,23 +134,25 @@ verificar la clasificación y el motivo registrado de cada una, sin colocar ning
     00:45, 01:30…), con cierre igual al de la tercera, y la vela en curso agrupa las de 15 min ya
     abiertas de su tramo (una, dos o tres), con cierre igual al último precio de la más reciente
     (AC-69).
-21. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
+21. **Given** una alerta cuyo objetivo es por indicadores, **When** falla la obtención de las
+    velas, **Then** la rechaza con el motivo "datos de mercado no disponibles" (AC-71).
+22. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
     WhatsApp (por ejemplo, tras un reinicio), **Then** no la opera y la loguea como "duplicado"
     (AC-17).
-22. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
+23. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
     mensaje pero el mismo ticker, Entrada, SL y TP, **Then** no la opera y la loguea como
     "duplicado" (AC-37).
-23. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
+24. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
     el mismo ticker, Entrada, SL y TP, **Then** no la rechaza como duplicado (AC-53).
-24. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
+25. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
     de la copia local vigente del ranking, **When** el sistema la valida, **Then** la rechaza con
     el motivo "top 3 ganadores/perdedores" (AC-06, AC-07).
-25. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
+26. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
     alerta, **Then** el sistema la rechaza con el motivo "ranking no disponible" (AC-25).
-26. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
+27. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
     actualiza la copia local del ranking desde la fuente pública de producción sin enviar
     credenciales (AC-30).
-27. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
+28. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
     de TRADING con el mayor porcentaje de cambio, **When** el sistema arma el ranking, **Then** ese
     contrato queda excluido y el top 3 sale de ordenar el resto por porcentaje de cambio (AC-38).
 
@@ -196,6 +211,10 @@ enviadas y estados finales.
 14. **Given** una orden de entrada con ejecución parcial, **When** pasan 3 minutos desde que se
     colocó, **Then** el sistema cancela la parte no ejecutada y el SL y el TP siguen cubriendo la
     posición abierta (AC-45).
+15. **Given** una posición abierta en un símbolo, **When** llega una alerta válida del mismo
+    símbolo, **Then** la rechaza con el motivo "símbolo ya en operación" (AC-70).
+16. **Given** una alerta válida, **When** falla la consulta del balance para el control de
+    apalancamiento, **Then** la rechaza con el motivo "datos de mercado no disponibles" (AC-72).
 
 ---
 
@@ -303,6 +322,10 @@ alerta nueva.
 3. **Given** el proceso detenido y una entrada pendiente sin ejecución cuyo plazo de 3 minutos
    vence mientras tanto, **When** el sistema vuelve a arrancar, **Then** la cancela y registra el
    estado "entrada no ejecutada" (AC-66).
+4. **Given** el proceso caído después de que la entrada tuvo ejecución y antes de confirmarse el SL
+   y el TP, **When** el sistema vuelve a arrancar, **Then**, antes de procesar alertas nuevas,
+   coloca el SL y el TP que faltan o, si fallan, cierra la posición a mercado y registra un evento
+   crítico (AC-73).
 
 ---
 
@@ -329,8 +352,11 @@ ingesta.
 3. **Given** una conexión activa a WhatsApp o a Binance, **When** se corta, **Then** el sistema
    registra la interrupción en < 30 s, reintenta con esperas de 1 s, 2 s, 4 s… hasta 60 s, y al
    10.º intento fallido consecutivo registra un evento crítico (AC-47).
-4. **Given** el proceso corriendo, **When** se lo termina abruptamente, **Then** vuelve a estar
-   ingiriendo mensajes en < 60 s (AC-31).
+4. **Given** el proceso de la app corriendo bajo el reinicio automático, **When** se lo termina
+   abruptamente, **Then** vuelve a estar ingiriendo mensajes en < 60 s (AC-31).
+5. **Given** un cierre de emergencia en curso y la API de Binance caída, **When** se acumulan 10
+   intentos fallidos consecutivos, **Then** el sistema registra el evento crítico pero no termina
+   el proceso y sigue reintentando el cierre (AC-74).
 
 ---
 
@@ -370,6 +396,13 @@ key de producción en Binance.
   posteriores; a los 3 minutos se cancela lo no ejecutado (FR-028, FR-032).
 - **Falla del SL o del TP con la entrada ejecutada**: cierre a mercado y evento crítico; si el
   cierre a mercado también falla, se reintenta con backoff hasta cerrar (FR-030).
+- **Alerta de un símbolo que ya está en operación**: se rechaza como "símbolo ya en operación"
+  (FR-063).
+- **Fallan las velas o el balance**: se rechaza como "datos de mercado no disponibles" (FR-064).
+- **Caída entre la ejecución de la entrada y la confirmación del SL/TP**: al arrancar se coloca lo
+  que falta o se cierra a mercado (FR-065).
+- **Cierre de emergencia con Binance caída**: el proceso no termina por los 10 fallos; el cierre se
+  sigue reintentando (FR-055).
 - **Dos alertas casi simultáneas**: se procesan de a una en orden de llegada (FR-061).
 - **Reenvío de una alerta con TP calculado por indicadores**: el hash usa el texto del objetivo,
   no el TP calculado, así que se detecta como duplicado (FR-006).
@@ -430,10 +463,11 @@ key de producción en Binance.
   ni como TICKERUSDT ni como 1000TICKERUSDT.
 - **FR-011** (RF-37): El sistema MUST ajustar los precios al tickSize del símbolo: la Entrada al
   tick más cercano, el SL alejándolo de la Entrada y el TP acercándolo a la Entrada.
-- **FR-012** (RF-14): El sistema MUST rechazar una señal cuyo SL sea igual a la Entrada.
+- **FR-012** (RF-14): El sistema MUST rechazar una señal cuyo SL sea igual a la Entrada, comparando
+  los precios ya ajustados al tickSize (FR-011).
 - **FR-013** (RF-50): El sistema MUST rechazar una alerta cuyo SL esté a una distancia de la
   Entrada mayor que un porcentaje máximo configurable (por defecto 15 %), calculada como
-  |Entrada − SL| / Entrada.
+  |Entrada − SL| / Entrada con los precios ya ajustados al tickSize (FR-011).
 - **FR-014** (RF-28): Si el objetivo trae un precio numérico, el sistema MUST usarlo como TP.
 - **FR-015** (RF-24): Si el objetivo no trae un precio numérico, sin importar qué indicadores
   mencione, el sistema MUST calcular el TP como el más cercano a la Entrada entre ASL21 y EMA55,
@@ -442,6 +476,8 @@ key de producción en Binance.
   Futuros USDS-M (la temporalidad de las alertas), incluyendo la vela en curso, obtenidas de la
   fuente pública sin credenciales. Como Binance no ofrece 45 min, cada vela de 45 min se arma
   agrupando de a tres las velas de 15 min, alineadas a las 00:00 UTC, e incluyendo la vela en curso.
+  Se usan las últimas 1500 velas de 15 min y se descarta el primer tramo de 45 min si quedó
+  incompleto por el corte de la consulta.
 - **FR-016** (RF-13, RF-36): El sistema MUST rechazar una señal cuyo TP no esté del lado correcto
   de la Entrada (por encima para LONG, por debajo para SHORT), y una alerta para la que, al
   calcular el TP, ni ASL21 ni EMA55 queden del lado correcto.
@@ -461,9 +497,13 @@ key de producción en Binance.
 
 - **FR-020** (RF-38): El sistema MUST evaluar las validaciones en este orden y registrar como
   motivo solo la primera que falle: remitente no autorizado, duplicado (ID de WhatsApp),
-  incompleta, duplicado (hash), ticker inexistente, SL igual a la Entrada, SL fuera de rango, TP
-  inválido, ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, excede máximos,
-  límite de posiciones, límite de capital.
+  incompleta, duplicado (hash), ticker inexistente, SL igual a la Entrada, SL fuera de rango,
+  datos de mercado no disponibles (velas para el TP), TP inválido, ranking no disponible, top 3
+  ganadores/perdedores, bajo mínimo, datos de mercado no disponibles (balance), excede máximos,
+  símbolo ya en operación, límite de posiciones, límite de capital.
+- **FR-064** (RF-52): El sistema MUST rechazar una alerta con el motivo "datos de mercado no
+  disponibles" si no puede obtener de Binance las velas necesarias para calcular el TP (FR-015) o
+  el balance necesario para el control de apalancamiento (FR-024).
 
 **Dimensionamiento y límites (PRD-002)**
 
@@ -487,6 +527,8 @@ key de producción en Binance.
 - **FR-026** (RF-20): El sistema MUST rechazar una alerta válida si abrirla haría que el nocional
   total de posiciones abiertas y entradas pendientes supere el máximo configurable de capital
   comprometido (USDT).
+- **FR-063** (RF-51): El sistema MUST rechazar con el motivo "símbolo ya en operación" una alerta
+  válida cuyo símbolo ya tenga una entrada pendiente o una posición abierta.
 
 **Colocación y reversión (PRD-002)**
 
@@ -534,6 +576,10 @@ key de producción en Binance.
   ejecución, el sistema MUST colocar el SL y el TP y, si falla, cerrar la posición a mercado.
 - **FR-042** (RF-49): En esa comparación, para cada entrada pendiente cuyo plazo de 3 minutos venció,
   el sistema MUST aplicar FR-031 o FR-032 según haya tenido o no ejecución.
+- **FR-065** (RF-53): En esa comparación, para cada posición abierta en Binance cuya operación local
+  tuvo ejecución pero nunca llegó a "completa", el sistema MUST colocar el SL y el TP que falten y,
+  si falla, cerrar la posición a mercado (FR-030). Si la operación ya estaba "completa" y perdió su
+  SL o su TP, se aplica FR-038.
 
 **Log y auditoría (PRD-000)**
 
@@ -547,7 +593,7 @@ key de producción en Binance.
 - **FR-045** (AC-09): El motivo de rechazo MUST ser uno de: incompleta, TP inválido, SL igual a la
   Entrada, SL fuera de rango, top 3 ganadores/perdedores, ranking no disponible, excede máximos,
   bajo mínimo, ticker inexistente, límite de posiciones, límite de capital, remitente no
-  autorizado, duplicado.
+  autorizado, duplicado, símbolo ya en operación, datos de mercado no disponibles.
 - **FR-046** (RNF-10): El log y el almacenamiento local (alertas procesadas, posiciones abiertas)
   MUST tener permisos 0600, legibles solo por el usuario del proceso.
 - **FR-047** (PRD-000, Fuera de Alcance): La edición de una alerta ya procesada MUST registrarse en
@@ -593,7 +639,9 @@ key de producción en Binance.
   reintentar con backoff exponencial (1 s, 2 s, 4 s… hasta un máximo de 60 s entre intentos);
   cada interrupción se registra en el log, y tras 10 intentos fallidos consecutivos se registra un
   evento crítico, el sistema deja de reintentar y el proceso termina, para que el reinicio
-  automático (FR-056) vuelva a arrancar el ciclo de reconexión desde cero.
+  automático (FR-056) vuelva a arrancar el ciclo de reconexión desde cero. Excepción: mientras haya
+  un cierre de emergencia en curso (FR-030), el proceso MUST NOT terminar por esos 10 fallos; el
+  cierre se sigue reintentando hasta que la posición quede cerrada.
 - **FR-056** (RNF-05): Si el proceso se cae, MUST reiniciarse automáticamente y retomar la ingesta
   en < 60 s.
 
@@ -650,6 +698,9 @@ key de producción en Binance.
   validación, carga y reversión, seguimiento y cierre, y el marco transversal (log, modos,
   seguridad y resiliencia).
 - Un solo operador por instancia y un solo grupo de alertas monitoreado.
+- El reinicio automático (FR-056) cubre caídas del proceso de la app; una caída o reinicio de la
+  máquina detiene toda la ingesta hasta que el operador vuelva a arrancar el sistema (Riesgos del
+  PRD-000: un único proceso sin redundancia).
 - El cifrado de la sesión de WhatsApp (FR-049) es requisito antes de habilitar el modo LIVE.
 - La política de habilitación de LIVE (al menos 7 días corridos y 20 alertas en DRY con 0 errores
   de clasificación contra revisión manual) es manual y el sistema no la controla.

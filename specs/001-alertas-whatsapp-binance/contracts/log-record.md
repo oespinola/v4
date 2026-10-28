@@ -4,8 +4,11 @@ Una línea JSON por evento, con `type` y `at` (ISO 8601 UTC) siempre presentes. 
 
 ## `type: "alert"`
 
-Se escribe al clasificar la alerta y cada vez que cambia su estado; la última línea de un `alertId` es
-su estado vigente. Los campos que no aplican van en `null` (FR-043).
+Se escribe cuando la alerta llega a un estado final de FR-044: al rechazarla, o cuando la operación
+termina "completa", "entrada no ejecutada" o "cerrada por emergencia", y otra vez al cerrarse
+("cerrada"/"liquidada"). La última línea de un `alertId` es su estado vigente. Los estados de trabajo
+(válida, entrada pendiente, con ejecución) viven solo en la base y no se loguean. Los campos que no
+aplican van en `null` (FR-043).
 
 | Campo | Tipo |
 |---|---|

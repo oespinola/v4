@@ -66,7 +66,7 @@ Sin violaciones. Gate superado.
 |---|---|---|
 | I | ✓ | `contracts/ports.md` fija `FieldExtractor` como única entrada a la IA; timeout y "nunca lanza" están en el contrato. |
 | II | ✓ | `data-model.md`: el hash usa valores crudos; `tpSource` registra si el TP vino de la alerta o se calculó. |
-| III | ✓ | SL/TP con `closePosition` cubren ejecuciones posteriores sin recalcular (R-06). Camino de falla con test de integración obligatorio (Revisión y cumplimiento de la constitución). Riesgo abierto: soporte de órdenes condicionales en la versión de CCXT, cubierto por un test contra Demo antes de LIVE. |
+| III | ✓ | SL/TP con `closePosition` cubren ejecuciones posteriores sin recalcular (R-06). Tras `/speckit-analyze`: la reconciliación protege operaciones que quedaron con ejecución y sin SL/TP confirmados (FR-065), y un cierre de emergencia en curso impide la salida por 10 fallos (FR-055). Camino de falla con test de integración obligatorio (Revisión y cumplimiento de la constitución). Riesgo abierto: soporte de órdenes condicionales en la versión de CCXT, cubierto por un test contra Demo antes de LIVE. |
 | IV | ✓ | Puerto `Clock` inyectable para testear plazos (3 min, 24 h, 120 s) sin esperar. |
 | V | ✓ | `contracts/cli.md` lista todas las variables; salida 78 sin conectar si falta alguna. Riesgo abierto: perfil de Chromium descomprimido mientras corre (R-03); AC-29 se valida con el proceso detenido y es requisito antes de LIVE. |
 | VI | ✓ | El modo de margen aislado y el procesamiento de a una salieron del spec (FR-060, FR-061), no del plan. |
@@ -85,7 +85,7 @@ specs/001-alertas-whatsapp-binance/
 ├── data-model.md        # Phase 1
 ├── quickstart.md        # Phase 1
 ├── contracts/           # Phase 1: cli.md, log-record.md, ports.md
-├── checklists/          # requirements.md, operacion.md
+├── checklists/          # requirements.md, operacion.md, live.md (verificaciones antes de LIVE)
 └── tasks.md             # Phase 2 (/speckit-tasks, no lo crea este comando)
 ```
 
@@ -109,6 +109,7 @@ src/
 │   ├── tracker.ts          # cierre, causa, huérfanas, SL/TP perdido (FR-033 a FR-038)
 │   ├── reconcile.ts        # comparación al arrancar (FR-039 a FR-042)
 │   ├── backoff.ts          # 1, 2, 4… 60 s; 10 fallos (FR-055, FR-030)
+│   ├── log-record.ts       # registro de FR-043 desde Alert + Trade
 │   └── types.ts
 ├── ports.ts                # FieldExtractor, MarketData, Exchange, MessageSource, Clock
 ├── adapters/
@@ -121,6 +122,8 @@ src/
 │   └── clock.ts
 ├── config.ts               # .env + zod, salida 78 (FR-058, FR-062)
 ├── queue.ts                # concurrencia 1 (FR-061)
+├── connection-monitor.ts   # detección de cortes, eventos y salida por 10 fallos (FR-055)
+├── supervisor.ts           # lógica pura del relanzamiento (FR-056)
 ├── pipeline.ts             # mensaje → alerta → validación → executor
 └── main.ts                 # arma adaptadores, reconcilia y recién después escucha mensajes
 
@@ -130,6 +133,7 @@ scripts/
 
 test/
 ├── unit/                   # un archivo por módulo de domain/ + config, queue, backoff
+├── fakes/                  # fakes de los puertos (reloj, extractor, market data, exchange, mensajes)
 ├── integration/            # pipeline y executor completos con fakes (incluye caminos de falla)
 ├── demo/                   # opcional, contra Binance Demo Trading (BINANCE_DEMO_TESTS=1)
 └── fixtures/               # alertas reales anonimizadas, velas y tickers conocidos
