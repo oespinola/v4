@@ -22,8 +22,8 @@ const KLINES_LIMIT = 1500;
 
 /** Datos públicos del modo: ranking, velas y símbolos siempre de producción; en DRY, además, los
  *  filtros de órdenes de Demo (FR-017, FR-066). */
-export function publicDataUrls(_mode: 'DRY' | 'LIVE'): { baseUrl: string; orderRulesUrl: string | undefined } {
-  throw new Error('no implementado');
+export function publicDataUrls(mode: 'DRY' | 'LIVE'): { baseUrl: string; orderRulesUrl: string | undefined } {
+  return { baseUrl: PRODUCTION_URL, orderRulesUrl: mode === 'DRY' ? DEMO_URL : undefined };
 }
 
 export interface BinancePublicOptions {

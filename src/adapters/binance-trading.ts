@@ -2,6 +2,7 @@
 // parámetro. SL y TP son órdenes condicionales de la API "algo" con closePosition y precio de marca,
 // así cubren toda la posición, incluidas ejecuciones posteriores (FR-028). Demo Trading en DRY y
 // producción en LIVE los elige quien arma el cliente (FR-051).
+import ccxt from 'ccxt';
 import type { ClosingFill, Exchange, OrderRef, OrderState, OrderStatus, PositionState } from '../ports.ts';
 import type { Mode, Side } from '../domain/types.ts';
 
@@ -47,11 +48,15 @@ export type CcxtConstructor = new (opts: { apiKey: string; secret: string; enabl
 /** Cliente de trading del modo (FR-051, FR-052): DRY contra Demo Trading con las credenciales de
  *  Demo; LIVE contra producción con las de producción. */
 export function createExchange(
-  _mode: Mode,
-  _credentials: { apiKey: string; secret: string },
-  _Ctor?: CcxtConstructor,
+  mode: Mode,
+  credentials: { apiKey: string; secret: string },
+  Ctor: CcxtConstructor = ccxt.binanceusdm as unknown as CcxtConstructor,
 ): { exchange: BinanceTrading; client: CcxtLike } {
-  throw new Error('no implementado');
+  // Sin el limitador de CCXT: espacia según el peso de cada endpoint y demoraba ~2 s cada alerta
+  // en v3; el uso real queda muy por debajo del límite de Binance.
+  const client = new Ctor({ apiKey: credentials.apiKey, secret: credentials.secret, enableRateLimit: false });
+  if (mode === 'DRY') client.enableDemoTrading(true);
+  return { exchange: new BinanceTrading(client as unknown as BinanceClient), client };
 }
 
 /** Binance no acepta notación exponencial ("1e-7"): números siempre en decimal. */

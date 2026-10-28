@@ -155,8 +155,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Independent Test**: AC-11, AC-12 y AC-49 con fábricas de adaptadores espiadas.
 
-- [ ] T064 [US3] Escribir tests de selección de modo (AC-11, AC-12, AC-49): `SIGNALBRIDGE_MODE=DRY` arma el exchange con `enableDemoTrading(true)` y `BINANCE_DEMO_*`; `LIVE` con producción y `BINANCE_LIVE_*`; ninguna orden ni consulta de balance al entorno del otro; los datos públicos siempre de producción — en `it.fails` — en test/integration/modes.test.ts
-- [ ] T065 [US3] Implementar la fábrica de adaptadores por modo y usarla en `main.ts`, y pasar T064 a `it`, en src/adapters/binance-trading.ts y src/main.ts
+- [X] T064 [US3] Escribir tests de selección de modo (AC-11, AC-12, AC-49): `SIGNALBRIDGE_MODE=DRY` arma el exchange con `enableDemoTrading(true)` y `BINANCE_DEMO_*`; `LIVE` con producción y `BINANCE_LIVE_*`; ninguna orden ni consulta de balance al entorno del otro; los datos públicos siempre de producción — en `it.fails` — en test/integration/modes.test.ts
+- [X] T065 [US3] Implementar la fábrica de adaptadores por modo y usarla en `main.ts`, y pasar T064 a `it`, en src/adapters/binance-trading.ts y src/main.ts
 
 **Checkpoint**: `pnpm dev` y `pnpm start` apuntan cada uno a su entorno.
 

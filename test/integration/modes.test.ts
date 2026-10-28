@@ -47,28 +47,28 @@ const futuresHosts = (client: unknown) => {
 };
 
 describe('selección de modo (FR-050 a FR-052, AC-11, AC-12, AC-49)', () => {
-  it.fails('DRY arma el exchange con Demo Trading y las credenciales BINANCE_DEMO_* (AC-11, AC-49)', () => {
+  it('DRY arma el exchange con Demo Trading y las credenciales BINANCE_DEMO_* (AC-11, AC-49)', () => {
     const config = configFor('DRY');
     const { Ctor, built } = spyCcxt();
     createExchange(config.mode, config.binance, Ctor);
     expect(built).toEqual([{ opts: { apiKey: 'demo-key', secret: 'demo-secret', enableRateLimit: false }, demo: [true] }]);
   });
 
-  it.fails('LIVE arma el exchange contra producción con BINANCE_LIVE_* y sin Demo (AC-12, AC-49)', () => {
+  it('LIVE arma el exchange contra producción con BINANCE_LIVE_* y sin Demo (AC-12, AC-49)', () => {
     const config = configFor('LIVE');
     const { Ctor, built } = spyCcxt();
     createExchange(config.mode, config.binance, Ctor);
     expect(built).toEqual([{ opts: { apiKey: 'live-key', secret: 'live-secret', enableRateLimit: false }, demo: [] }]);
   });
 
-  it.fails('con CCXT real, órdenes y balance de DRY van solo a Demo y los de LIVE solo a producción (SC-006)', () => {
+  it('con CCXT real, órdenes y balance de DRY van solo a Demo y los de LIVE solo a producción (SC-006)', () => {
     const dry = createExchange('DRY', { apiKey: 'k', secret: 's' }, ccxt.binanceusdm as unknown as CcxtConstructor);
     const live = createExchange('LIVE', { apiKey: 'k', secret: 's' }, ccxt.binanceusdm as unknown as CcxtConstructor);
     expect(futuresHosts(dry.client)).toEqual(['demo-fapi.binance.com']);
     expect(futuresHosts(live.client)).toEqual(['fapi.binance.com']);
   });
 
-  it.fails('los datos públicos salen siempre de producción; en DRY, los filtros de órdenes de Demo (FR-017, FR-066)', () => {
+  it('los datos públicos salen siempre de producción; en DRY, los filtros de órdenes de Demo (FR-017, FR-066)', () => {
     expect(publicDataUrls('DRY')).toEqual({ baseUrl: PRODUCTION_URL, orderRulesUrl: DEMO_URL });
     expect(publicDataUrls('LIVE')).toEqual({ baseUrl: PRODUCTION_URL, orderRulesUrl: undefined });
   });

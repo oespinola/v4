@@ -1,12 +1,14 @@
 // Punto de entrada (pnpm dev = DRY, pnpm start = LIVE). Valida la configuración antes de
-// conectarse a nada (FR-058, FR-062) y arma: store → datos públicos → WhatsApp → cola → pipeline.
-// Por ahora (US1) clasifica cada alerta, sin colocar órdenes.
+// conectarse a nada (FR-058, FR-062) y arma: store → datos públicos → exchange del modo → ejecutor →
+// WhatsApp → cola → pipeline. DRY opera contra Binance Demo y LIVE contra producción (FR-051).
 import path from 'node:path';
-import { BinancePublicMarketData, DEMO_URL } from './adapters/binance-public.ts';
+import { BinancePublicMarketData, publicDataUrls } from './adapters/binance-public.ts';
+import { createExchange } from './adapters/binance-trading.ts';
 import { ClaudeExtractor } from './adapters/claude-extractor.ts';
 import { SystemClock } from './adapters/clock.ts';
 import { Store } from './adapters/store.ts';
 import { WhatsAppSource } from './adapters/whatsapp.ts';
+import { Executor } from './domain/executor.ts';
 import { CONFIG_EXIT_CODE, formatConfigErrors, loadDotEnv, parseConfig, startupWarnings } from './config.ts';
 import { Pipeline, type ProcessOutcome } from './pipeline.ts';
 import { SerialQueue } from './queue.ts';
@@ -15,7 +17,7 @@ function describe(outcome: ProcessOutcome): string | null {
   if (outcome.kind === 'ignored') return null;
   const a = outcome.alert;
   if (a.status === 'rechazada') return `✗ ${a.ticker ?? '?'} rechazada: ${a.reason}`;
-  return `✓ ${a.symbol} ${a.side} Entrada ${a.entry} SL ${a.sl} TP ${a.tp} (${a.tpSource})`;
+  return `✓ ${a.symbol} ${a.side} Entrada ${a.entry} SL ${a.sl} TP ${a.tp} (${a.tpSource}): ${a.status}`;
 }
 
 async function main(): Promise<void> {
@@ -34,11 +36,20 @@ async function main(): Promise<void> {
   const store = Store.open(config.dataDir, clock);
   const market = new BinancePublicMarketData({
     clock,
-    // En DRY las órdenes van a Demo y tienen que respetar sus filtros (FR-066).
-    orderRulesUrl: config.mode === 'DRY' ? DEMO_URL : undefined,
+    // Ranking y velas de producción; en DRY, filtros de órdenes de Demo (FR-017, FR-066).
+    ...publicDataUrls(config.mode),
     onRefreshError: (e) => log(`No se pudo refrescar símbolos/ranking: ${(e as Error).message}`),
   });
   await market.start();
+
+  const { exchange } = createExchange(config.mode, config.binance);
+  const executor = new Executor({
+    exchange,
+    store,
+    clock,
+    symbolLeverage: config.symbolLeverage,
+    riskR: config.riskR,
+  });
 
   const pipeline = new Pipeline({
     store,
@@ -48,6 +59,15 @@ async function main(): Promise<void> {
     extractor: config.anthropicApiKey ? new ClaudeExtractor({ apiKey: config.anthropicApiKey }) : null,
     market,
     maxSlDistancePct: config.maxSlDistancePct,
+    trading: {
+      exchange,
+      executor,
+      riskR: config.riskR,
+      maxPositions: config.maxPositions,
+      maxCapitalUsdt: config.maxCapital,
+      maxPositionUsdt: config.maxPositionSize,
+      maxLeverage: config.maxLeverage,
+    },
   });
   const queue = new SerialQueue((e) => log(`Error procesando un mensaje: ${(e as Error).message}`));
 
@@ -72,6 +92,7 @@ async function main(): Promise<void> {
     log('Cerrando…');
     market.stop();
     await queue.idle();
+    executor.stop();
     await whatsapp.stop();
     store.close();
     process.exit(0);
