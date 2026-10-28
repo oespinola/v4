@@ -168,8 +168,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Independent Test**: AC-56 a AC-62, AC-64 y AC-67 con exchange y reloj fake (AC-62 y AC-67 se miden además en DRY en T085).
 
-- [ ] T066 [P] [US5] Escribir tests del seguimiento (AC-56, AC-57, AC-58, AC-59, AC-60, AC-61, AC-64, SC-004): polling cada 2 s; cierre por TP, SL, liquidación y manual con su causa; estado "cerrada"/"liquidada"; PnL y comisiones no vacíos; cancelación de la orden restante; cupo liberado para la próxima alerta; SL o TP desaparecido sin cierre → evento crítico sin tocar la posición; detección < 10 s — en `it.fails` — en test/unit/tracker.test.ts
-- [ ] T067 [US5] Implementar el seguimiento y pasar T066 a `it` en src/domain/tracker.ts
+- [X] T066 [P] [US5] Escribir tests del seguimiento (AC-56, AC-57, AC-58, AC-59, AC-60, AC-61, AC-64, SC-004): polling cada 2 s; cierre por TP, SL, liquidación y manual con su causa; estado "cerrada"/"liquidada"; PnL y comisiones no vacíos; cancelación de la orden restante; cupo liberado para la próxima alerta; SL o TP desaparecido sin cierre → evento crítico sin tocar la posición; detección < 10 s — en `it.fails` — en test/unit/tracker.test.ts
+- [X] T067 [US5] Implementar el seguimiento y pasar T066 a `it` en src/domain/tracker.ts
 - [ ] T068 [US5] Arrancar el polling del seguimiento en `main.ts` para las operaciones `abierta`, en src/main.ts
 
 **Checkpoint**: las posiciones cerradas liberan cupo y quedan registradas.

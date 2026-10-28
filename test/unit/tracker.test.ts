@@ -83,7 +83,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     close = { cause, at: new Date('2026-10-28T13:00:01Z'), realizedPnl: 9.16, fees: 0.06 };
   };
 
-  it.fails('cierre por TP: "cerrada" con causa, hora, PnL y comisiones (AC-56)', async () => {
+  it('cierre por TP: "cerrada" con causa, hora, PnL y comisiones (AC-56)', async () => {
     closeBy('TP');
     await clock.advance(TRACK_POLL_MS);
     expect(exchange.callsTo('closeOf')[0]?.args).toEqual([
@@ -114,7 +114,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     ['cierre manual', 'cerrada'],
     ['liquidación', 'liquidada'],
   ] as const) {
-    it.fails(`cierre por ${cause}: estado "${status}" (AC-57, AC-58, AC-59)`, async () => {
+    it(`cierre por ${cause}: estado "${status}" (AC-57, AC-58, AC-59)`, async () => {
       closeBy(cause);
       await clock.advance(TRACK_POLL_MS);
       expect(store.getTrade(ALERT.alertId)?.closeCause).toBe(cause);
@@ -122,13 +122,13 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     });
   }
 
-  it.fails('al cerrar cancela las órdenes de SL y TP que quedaron (AC-60)', async () => {
+  it('al cerrar cancela las órdenes de SL y TP que quedaron (AC-60)', async () => {
     closeBy('TP');
     await clock.advance(TRACK_POLL_MS);
     expect(exchange.callsTo('cancel').map((c) => c.args[0])).toEqual([SL, TP]);
   });
 
-  it.fails('el cierre libera el cupo para la próxima alerta (AC-61, FR-035)', async () => {
+  it('el cierre libera el cupo para la próxima alerta (AC-61, FR-035)', async () => {
     expect(store.exposure()).toEqual({ positions: 1, notional: 167.4732 });
     closeBy('SL');
     await clock.advance(TRACK_POLL_MS);
@@ -136,7 +136,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.activeTradeForSymbol('KAIAUSDT')).toBeUndefined();
   });
 
-  it.fails('detecta el cierre en < 10 s (SC-004)', async () => {
+  it('detecta el cierre en < 10 s (SC-004)', async () => {
     await clock.advance(TRACK_POLL_MS * 3);
     closeBy('TP');
     const closedAt = clock.now().getTime();
@@ -146,7 +146,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(Date.parse(String(detected!.at)) - closedAt).toBeLessThan(10_000);
   });
 
-  it.fails('si Binance todavía no informa el cierre, vuelve a mirar en el próximo ciclo', async () => {
+  it('si Binance todavía no informa el cierre, vuelve a mirar en el próximo ciclo', async () => {
     positions = [];
     await clock.advance(TRACK_POLL_MS);
     expect(store.getTrade(ALERT.alertId)?.state).toBe('abierta');
@@ -156,7 +156,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.getTrade(ALERT.alertId)?.state).toBe('cerrada');
   });
 
-  it.fails('SL desaparecido con la posición abierta: un evento crítico, sin tocar la posición ni el TP (AC-64)', async () => {
+  it('SL desaparecido con la posición abierta: un evento crítico, sin tocar la posición ni el TP (AC-64)', async () => {
     await clock.advance(TRACK_POLL_MS);
     openOrders = [TP];
     await clock.advance(TRACK_POLL_MS * 5);
@@ -168,7 +168,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.getTrade(ALERT.alertId)?.state).toBe('abierta');
   });
 
-  it.fails('una falta de un solo ciclo (el SL se está disparando) no es evento crítico', async () => {
+  it('una falta de un solo ciclo (el SL se está disparando) no es evento crítico', async () => {
     openOrders = [TP];
     await clock.advance(TRACK_POLL_MS);
     openOrders = [SL, TP];
@@ -177,7 +177,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(logLines().filter((l) => l.type === 'critical')).toEqual([]);
   });
 
-  it.fails('si falla la consulta de posiciones, no cambia nada y sigue mirando', async () => {
+  it('si falla la consulta de posiciones, no cambia nada y sigue mirando', async () => {
     let fail = true;
     exchange.impl.openPositions = async () => (fail ? Promise.reject(new Error('timeout')) : positions);
     closeBy('TP');
@@ -188,7 +188,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.getTrade(ALERT.alertId)?.state).toBe('cerrada');
   });
 
-  it.fails('sin operaciones abiertas no consulta Binance', async () => {
+  it('sin operaciones abiertas no consulta Binance', async () => {
     closeBy('TP');
     await clock.advance(TRACK_POLL_MS);
     const calls = exchange.calls.length;

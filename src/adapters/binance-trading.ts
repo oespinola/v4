@@ -4,6 +4,7 @@
 // producción en LIVE los elige quien arma el cliente (FR-051).
 import ccxt from 'ccxt';
 import type { CloseInfo, Exchange, OrderRef, OrderState, OrderStatus, PositionState, TradeOrders } from '../ports.ts';
+import { closeCause, closeTotals, findClose, type Fill } from '../domain/closing.ts';
 import type { Mode, Side } from '../domain/types.ts';
 
 /** Lo que se usa del cliente de CCXT (`binanceusdm`): sus métodos implícitos. */
@@ -21,10 +22,25 @@ interface RawPosition {
 
 interface RawTrade {
   orderId: number;
+  side: 'BUY' | 'SELL';
+  positionSide: 'LONG' | 'SHORT' | 'BOTH';
+  qty: string;
   realizedPnl: string;
   commission: string;
+  commissionAsset: string;
   time: number;
 }
+
+const toFill = (t: RawTrade): Fill => ({
+  orderId: String(t.orderId),
+  side: t.side,
+  positionSide: t.positionSide,
+  quantity: Number(t.qty),
+  realizedPnl: Number(t.realizedPnl),
+  commission: Number(t.commission),
+  commissionAsset: t.commissionAsset,
+  time: Number(t.time),
+});
 
 const NO_NEED_TO_CHANGE_MARGIN_TYPE = -4046;
 const UNKNOWN_ORDER = -2011; // al cancelar algo que ya no está abierto
@@ -220,7 +236,39 @@ export class BinanceTrading implements Exchange {
       .filter((p) => Number(p.positionAmt) !== 0)
       .map((p) => ({ symbol: p.symbol, side: sideOf(p), quantity: Math.abs(Number(p.positionAmt)) }));
 
-  closeOf = async (_t: TradeOrders): Promise<CloseInfo | null> => {
-    throw new Error('no implementado');
+  /** Orden real que generó un SL/TP condicional al dispararse, si ya se disparó. */
+  private async fillOrderOf(ref: OrderRef | null): Promise<string | null> {
+    if (!ref) return null;
+    try {
+      const algo = await this.call<{ actualOrderId?: string | number }>('fapiPrivateGetAlgoOrder', { algoId: ref.id });
+      return algo.actualOrderId ? String(algo.actualOrderId) : null;
+    } catch {
+      return null; // si no se puede saber, la causa queda "cierre manual" y no se inventa
+    }
+  }
+
+  // Hasta 1000 ejecuciones del símbolo desde la entrada: alcanza con una operación por símbolo
+  // (FR-063); si una operación tuviera más, el cierre no se encuentra y se vuelve a intentar.
+  closeOf = async (t: TradeOrders): Promise<CloseInfo | null> => {
+    const trades = await this.call<RawTrade[]>('fapiPrivateGetUserTrades', {
+      symbol: t.symbol,
+      startTime: t.since.getTime(),
+      limit: 1000,
+    });
+    const found = findClose(t.side, trades.map(toFill), t.entryOrderId);
+    if (!found) return null;
+    const [slFillOrderId, tpFillOrderId, closingOrder] = await Promise.all([
+      this.fillOrderOf(t.sl),
+      this.fillOrderOf(t.tp),
+      this.call<{ type: string; clientOrderId: string }>('fapiPrivateGetOrder', {
+        symbol: t.symbol,
+        orderId: found.closingOrderId,
+      }),
+    ]);
+    return {
+      cause: closeCause(found.closingOrderId, { slFillOrderId, tpFillOrderId }, closingOrder),
+      at: new Date(found.closedAt),
+      ...closeTotals(found),
+    };
   };
 }

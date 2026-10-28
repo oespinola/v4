@@ -14,7 +14,7 @@ const fill = (orderId: string, side: 'BUY' | 'SELL', quantity: number, time: num
 });
 
 describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
-  it.fails('LONG: la entrada en partes y el cierre que deja la posición en cero', () => {
+  it('LONG: la entrada en partes y el cierre que deja la posición en cero', () => {
     const found = findClose(
       'LONG',
       [fill('E1', 'BUY', 600, 1), fill('E1', 'BUY', 400, 2), fill('X', 'SELL', 1000, 9, { realizedPnl: 5 })],
@@ -25,7 +25,7 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
     expect(found?.closing).toHaveLength(1);
   });
 
-  it.fails('no cuenta ejecuciones de antes de la entrada (otra operación del símbolo)', () => {
+  it('no cuenta ejecuciones de antes de la entrada (otra operación del símbolo)', () => {
     const found = findClose(
       'SHORT',
       [fill('OLD', 'SELL', 50, 1), fill('OLD2', 'BUY', 50, 2), fill('E1', 'SELL', 100, 3), fill('TPX', 'BUY', 100, 4)],
@@ -35,12 +35,12 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
     expect(found?.opening.map((f) => f.orderId)).toEqual(['E1']);
   });
 
-  it.fails('un cierre parcial no es cierre: null', () => {
+  it('un cierre parcial no es cierre: null', () => {
     expect(findClose('LONG', [fill('E1', 'BUY', 100, 1), fill('X', 'SELL', 40, 2)], 'E1')).toBeNull();
     expect(findClose('LONG', [], 'E1')).toBeNull();
   });
 
-  it.fails('en hedge ignora las ejecuciones del otro lado', () => {
+  it('en hedge ignora las ejecuciones del otro lado', () => {
     const found = findClose(
       'LONG',
       [
@@ -53,7 +53,7 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
     expect(found?.closingOrderId).toBe('X');
   });
 
-  it.fails('causa: la orden que generó nuestro TP o SL, una liquidación, o cierre manual (AC-56 a AC-59)', () => {
+  it('causa: la orden que generó nuestro TP o SL, una liquidación, o cierre manual (AC-56 a AC-59)', () => {
     const p = { slFillOrderId: 'S9', tpFillOrderId: 'T9' };
     const plain = { type: 'MARKET', clientOrderId: 'web_abc' };
     expect(closeCause('T9', p, plain)).toBe('TP');
@@ -65,7 +65,7 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
     expect(closeCause('M1', { slFillOrderId: null, tpFillOrderId: null }, plain)).toBe('cierre manual');
   });
 
-  it.fails('PnL del cierre y comisiones en USDT de entrada y cierre, sin ruido de coma flotante', () => {
+  it('PnL del cierre y comisiones en USDT de entrada y cierre, sin ruido de coma flotante', () => {
     const found = findClose(
       'LONG',
       [

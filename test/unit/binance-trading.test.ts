@@ -185,7 +185,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     ]);
   });
 
-  it.fails('el cierre de una operación sale de las ejecuciones, del SL/TP disparado y de la orden de cierre (FR-033, FR-036)', async () => {
+  it('el cierre de una operación sale de las ejecuciones, del SL/TP disparado y de la orden de cierre (FR-033, FR-036)', async () => {
     const t0 = Date.parse('2026-10-28T12:00:00Z');
     const trade = (orderId: number, side: string, qty: string, pnl: string, fee: string, dt: number) => ({
       id: orderId * 10 + dt,
@@ -220,7 +220,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(f.of('fapiPrivateGetOrder')).toEqual([{ symbol: 'KAIAUSDT', orderId: '777' }]);
   });
 
-  it.fails('si las ejecuciones no cierran la posición, closeOf devuelve null sin más consultas', async () => {
+  it('si las ejecuciones no cierran la posición, closeOf devuelve null sin más consultas', async () => {
     const f = fakeClient({
       fapiPrivateGetUserTrades: () => [
         { id: 1, orderId: 111, side: 'SELL', positionSide: 'BOTH', qty: '4166', realizedPnl: '0', commission: '0', commissionAsset: 'USDT', time: 1 },
