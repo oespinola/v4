@@ -106,6 +106,24 @@ export function wireClient(client: GroupEvents, h: WireHandlers): void {
   });
 }
 
+/** WhatsApp Web salta a esta dirección cuando la sesión vinculada ya no vale (el dispositivo se
+ *  desvinculó desde el teléfono, o WhatsApp la cerró). */
+export function isLogoutUrl(url: string | undefined): boolean {
+  throw new Error('sin implementar');
+}
+
+/** Arranca el cliente; si falla porque WhatsApp cerró la sesión, la descarta y arranca una vez más,
+ *  ahora sin sesión, para que aparezca el QR (FR-048). Sin esto, la redirección a la página de
+ *  logout corta el arranque con "Execution context was destroyed" y la app reinicia en loop. */
+export async function startOrRelink(steps: {
+  start(): Promise<void>;
+  loggedOut(): Promise<boolean>;
+  discardSession(): Promise<void>;
+  log(line: string): void;
+}): Promise<void> {
+  throw new Error('sin implementar');
+}
+
 // ── Cliente real ──────────────────────────────────────────────────────────────
 
 export interface WhatsAppOptions {
