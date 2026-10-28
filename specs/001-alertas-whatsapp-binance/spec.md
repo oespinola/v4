@@ -21,7 +21,8 @@ trazabilidad.
   activa; los del período sin conexión no se procesan ni se loguean.
 - Q: ¿Qué hace el sistema si al arrancar falta la clave de cifrado de la sesión, las credenciales
   de Binance del modo elegido o la key del proveedor de IA? → A: No arranca: termina indicando qué
-  variable falta, sin conectarse a WhatsApp ni a Binance.
+  variable falta, sin conectarse a WhatsApp ni a Binance (salvo la key del proveedor de IA, que
+  pasó a ser opcional; ver Session 2026-10-28).
 - Q: ¿Qué balance se usa para el apalancamiento efectivo (nocional / balance) de RF-15? → A: El
   balance total de la billetera de Futuros USDT del modo activo, sin PnL no realizado.
 - Q: ¿Qué hace el sistema después del 10.º intento fallido consecutivo de reconexión? → A: Deja de
@@ -56,6 +57,10 @@ trazabilidad.
   A: Se rechaza con el motivo nuevo "símbolo ya en operación".
 - Q: Fallan las velas para el TP o el balance para el apalancamiento → A: Se rechaza con el motivo
   nuevo "datos de mercado no disponibles".
+- Q: ¿La key del proveedor de IA es obligatoria para arrancar? → A: No: es opcional (RF-16
+  enmendado). Sin ella el sistema arranca con un aviso de que el análisis de imagen está apagado,
+  y una alerta cuyo texto no trae todos los datos se rechaza como "incompleta" sin analizar la
+  imagen.
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -101,58 +106,63 @@ verificar la clasificación y el motivo registrado de cada una, sin colocar ning
    procesa, **Then** extrae los valores faltantes desde la imagen (AC-14).
 7. **Given** una alerta a la que le falta algún dato tanto en el texto como en la imagen, **When**
    el sistema la procesa, **Then** la rechaza con el motivo "incompleta" (AC-21).
-8. **Given** una señal con SL menor que la Entrada, **When** el sistema calcula su dirección,
-   **Then** la clasifica como LONG (AC-01).
-9. **Given** una señal con SL mayor que la Entrada, **When** el sistema calcula su dirección,
-   **Then** la clasifica como SHORT (AC-03).
-10. **Given** una señal LONG con TP menor o igual a la Entrada, **When** el sistema la valida,
+8. **Given** que no está configurada la key del proveedor de IA, **When** el sistema arranca,
+   **Then** arranca igual y avisa que el análisis de imagen está apagado (AC-75).
+9. **Given** que no está configurada la key del proveedor de IA, **When** llega una alerta cuyo
+   texto no trae todos los datos, **Then** no analiza la imagen y la rechaza con el motivo
+   "incompleta" (AC-76).
+10. **Given** una señal con SL menor que la Entrada, **When** el sistema calcula su dirección,
+    **Then** la clasifica como LONG (AC-01).
+11. **Given** una señal con SL mayor que la Entrada, **When** el sistema calcula su dirección,
+    **Then** la clasifica como SHORT (AC-03).
+12. **Given** una señal LONG con TP menor o igual a la Entrada, **When** el sistema la valida,
     **Then** la rechaza con el motivo "TP inválido" (AC-02).
-11. **Given** una señal SHORT con TP mayor o igual a la Entrada, **When** el sistema la valida,
+13. **Given** una señal SHORT con TP mayor o igual a la Entrada, **When** el sistema la valida,
     **Then** la rechaza con el motivo "TP inválido" (AC-04).
-12. **Given** una señal con SL igual a la Entrada, **When** el sistema la valida, **Then** la
+14. **Given** una señal con SL igual a la Entrada, **When** el sistema la valida, **Then** la
     rechaza con el motivo "SL igual a la Entrada" (AC-19).
-13. **Given** una alerta LONG con Entrada 1.246, SL 0.1222 y el máximo configurado en 15 %, **When**
+15. **Given** una alerta LONG con Entrada 1.246, SL 0.1222 y el máximo configurado en 15 %, **When**
     el sistema la valida, **Then** la rechaza con el motivo "SL fuera de rango" (AC-68).
-14. **Given** una alerta con ticker "X" para el que existe XUSDT, **When** el sistema la procesa,
+16. **Given** una alerta con ticker "X" para el que existe XUSDT, **When** el sistema la procesa,
     **Then** opera XUSDT con los precios de la alerta sin modificar (AC-40).
-15. **Given** una alerta con ticker "PEPE" y Entrada 0.002404, donde no existe PEPEUSDT y sí
+17. **Given** una alerta con ticker "PEPE" y Entrada 0.002404, donde no existe PEPEUSDT y sí
     1000PEPEUSDT, **When** el sistema la procesa, **Then** opera 1000PEPEUSDT con Entrada 2.404 y
     SL y TP multiplicados por 1000 (AC-41).
-16. **Given** una alerta cuyo ticker no existe ni como TICKERUSDT ni como 1000TICKERUSDT, **When**
+18. **Given** una alerta cuyo ticker no existe ni como TICKERUSDT ni como 1000TICKERUSDT, **When**
     el sistema la procesa, **Then** la rechaza con el motivo "ticker inexistente" (AC-42).
-17. **Given** un símbolo con tickSize 0.01 y una alerta LONG con Entrada 10.004, SL 9.507 y TP
+19. **Given** un símbolo con tickSize 0.01 y una alerta LONG con Entrada 10.004, SL 9.507 y TP
     11.003, **When** el sistema ajusta los precios, **Then** quedan Entrada 10.00, SL 9.50 y TP
     11.00 (AC-52).
-18. **Given** una alerta cuyo objetivo es "ASL21, EMA55 y 0.002404 usd", **When** el sistema la
+20. **Given** una alerta cuyo objetivo es "ASL21, EMA55 y 0.002404 usd", **When** el sistema la
     procesa, **Then** el TP es 0.002404 y no calcula indicadores (AC-34).
-19. **Given** una alerta cuyo objetivo es "ASL21, EMA55" sin precio y un conjunto conocido de velas
+21. **Given** una alerta cuyo objetivo es "ASL21, EMA55" sin precio y un conjunto conocido de velas
     de 45 min, **When** el sistema calcula el TP, **Then** es el valor de ASL21 o EMA55 del lado
     correcto que esté más cerca de la Entrada; si ninguno está del lado correcto, la rechaza con
     el motivo "TP inválido" (AC-33).
-20. **Given** un conjunto conocido de velas de 15 min, **When** el sistema arma las velas de 45 min,
+22. **Given** un conjunto conocido de velas de 15 min, **When** el sistema arma las velas de 45 min,
     **Then** cada una agrupa tres velas de 15 min consecutivas alineadas a las 00:00 UTC (00:00,
     00:45, 01:30…), con cierre igual al de la tercera, y la vela en curso agrupa las de 15 min ya
     abiertas de su tramo (una, dos o tres), con cierre igual al último precio de la más reciente
     (AC-69).
-21. **Given** una alerta cuyo objetivo es por indicadores, **When** falla la obtención de las
+23. **Given** una alerta cuyo objetivo es por indicadores, **When** falla la obtención de las
     velas, **Then** la rechaza con el motivo "datos de mercado no disponibles" (AC-71).
-22. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
+24. **Given** una alerta ya registrada, **When** el sistema vuelve a recibir el mismo mensaje de
     WhatsApp (por ejemplo, tras un reinicio), **Then** no la opera y la loguea como "duplicado"
     (AC-17).
-23. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
+25. **Given** una alerta registrada hace menos de 24 h, **When** llega un reenvío con otro ID de
     mensaje pero el mismo ticker, Entrada, SL y TP, **Then** no la opera y la loguea como
     "duplicado" (AC-37).
-24. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
+26. **Given** una alerta registrada hace más de 24 h, **When** llega otra con otro ID de mensaje y
     el mismo ticker, Entrada, SL y TP, **Then** no la rechaza como duplicado (AC-53).
-25. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
+27. **Given** una alerta cuyo símbolo está entre los 3 mayores ganadores o los 3 mayores perdedores
     de la copia local vigente del ranking, **When** el sistema la valida, **Then** la rechaza con
     el motivo "top 3 ganadores/perdedores" (AC-06, AC-07).
-26. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
+28. **Given** una copia local del ranking con más de 120 s de antigüedad, **When** llega una
     alerta, **Then** el sistema la rechaza con el motivo "ranking no disponible" (AC-25).
-27. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
+29. **Given** el sistema en DRY o LIVE, **When** pasan 60 s desde el último refresco, **Then**
     actualiza la copia local del ranking desde la fuente pública de producción sin enviar
     credenciales (AC-30).
-28. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
+30. **Given** un conjunto conocido de tickers de 24 h que incluye un contrato en estado distinto
     de TRADING con el mayor porcentaje de cambio, **When** el sistema arma el ranking, **Then** ese
     contrato queda excluido y el top 3 sale de ordenar el resto por porcentaje de cambio (AC-38).
 
@@ -411,8 +421,11 @@ key de producción en Binance.
 - **Mensajes que llegan mientras WhatsApp está desconectado o el proceso está caído**: se ignoran
   sin procesarse ni loguearse; al reconectar o reiniciar, la ingesta sigue solo con los mensajes
   nuevos (FR-057).
-- **Arranque con configuración incompleta** (falta la clave de cifrado de la sesión, las
-  credenciales de Binance del modo elegido o la key del proveedor de IA): el sistema no arranca y
+- **Arranque sin key del proveedor de IA**: el sistema arranca igual y avisa que el análisis de
+  imagen está apagado; una alerta cuyo texto no trae todos los datos se rechaza como "incompleta"
+  sin analizar la imagen (FR-004).
+- **Arranque con configuración incompleta** (falta la clave de cifrado de la sesión o las
+  credenciales de Binance del modo elegido): el sistema no arranca y
   termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance (FR-058). Lo
   mismo si falta o es inválido un parámetro de la configuración del operador (FR-062).
 - **10 intentos fallidos consecutivos de reconexión**: evento crítico, el proceso termina y el
@@ -435,7 +448,10 @@ key de producción en Binance.
 - **FR-003** (RF-09): El sistema MUST extraer de cada alerta la entrada, el objetivo, el stop loss,
   el nivel de riesgo y el ticker a partir del texto del mensaje.
 - **FR-004** (RF-16): El sistema MUST analizar la imagen adjunta cuando el texto no contenga todos
-  los datos de FR-003, para completar los que falten.
+  los datos de FR-003, para completar los que falten. El análisis de imagen es opcional: si no
+  está configurada la key del proveedor de IA, el sistema MUST arrancar igual, avisar al arrancar
+  que el análisis de imagen está apagado, y rechazar como "incompleta" (FR-005) una alerta cuyo
+  texto no trae todos los datos, sin analizar la imagen.
 - **FR-005** (RF-17): El sistema MUST rechazar una alerta a la que le falte cualquiera de los datos
   de FR-003 después de analizar texto e imagen.
 - **FR-059** (Clarificación 2026-10-27): Si el proveedor de IA falla o no responde al extraer
@@ -621,9 +637,9 @@ key de producción en Binance.
 
 - **FR-053** (RNF-02): Las API keys (del proveedor de IA y de Binance) MUST NOT estar en el código;
   se leen de variables de entorno.
-- **FR-058** (Clarificación 2026-10-27): Si al arrancar falta la clave de cifrado de la sesión de
-  WhatsApp, las credenciales de Binance del modo elegido o la key del proveedor de IA, el sistema
-  MUST NOT arrancar: termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance.
+- **FR-058** (Clarificación 2026-10-27, enmendada 2026-10-28): Si al arrancar falta la clave de
+  cifrado de la sesión de WhatsApp o las credenciales de Binance del modo elegido, el sistema
+  MUST NOT arrancar (la key del proveedor de IA es opcional; FR-004): termina indicando qué variable falta, sin conectarse a WhatsApp ni a Binance.
 - **FR-062** (Clarificación 2026-10-27): Si al arrancar falta o es inválido algún parámetro de la
   configuración del operador (riesgo R, máximo de posiciones simultáneas, capital comprometido
   máximo, tamaño de posición máximo, apalancamiento máximo, apalancamiento del símbolo), el sistema

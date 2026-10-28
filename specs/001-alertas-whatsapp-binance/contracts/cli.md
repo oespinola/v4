@@ -24,7 +24,7 @@ Sin sesión guardada, la app muestra el QR en la terminal (FR-048).
 
 | Variable | Modo | Regla |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | ambos | requerida |
+| `ANTHROPIC_API_KEY` | ambos | opcional; sin ella no se analiza la imagen y se avisa al arrancar (FR-004) |
 | `WHATSAPP_SESSION_KEY` | ambos | requerida; 32 bytes en hex o base64 (FR-049) |
 | `WHATSAPP_GROUP_NAME` | ambos | requerida |
 | `AUTHORIZED_SENDERS` | ambos | lista separada por comas, al menos uno (FR-002) |
