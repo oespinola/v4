@@ -112,6 +112,13 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.hasContentHashSince('ffffffffffffffff', new Date('2026-10-01T00:00:00Z'))).toBe(false);
   });
 
+  it.fails('una alerta rechazada no cuenta para el duplicado por hash (FR-007, AC-77)', () => {
+    store.saveAlert(alert({ status: 'rechazada', reason: 'ranking no disponible' }));
+    expect(store.hasContentHashSince('0123456789abcdef', new Date('2026-10-28T00:00:00Z'))).toBe(false);
+    store.saveAlert(alert({ alertId: 'wa-2:0123456789abcdef', waMessageId: 'wa-2', status: 'válida' }));
+    expect(store.hasContentHashSince('0123456789abcdef', new Date('2026-10-28T00:00:00Z'))).toBe(true);
+  });
+
   it('guarda ediciones de alertas (FR-047)', () => {
     store.saveAlert(alert());
     store.saveEdit({

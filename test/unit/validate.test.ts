@@ -88,6 +88,22 @@ describe('validación en el orden de FR-020', () => {
     expect(await reasonOf(KAIA, deps)).toBe('duplicado');
   });
 
+  it.fails('ticker inexistente va antes que el duplicado por hash (FR-020)', async () => {
+    const { deps } = setup({ hasRecentHash: () => true });
+    expect(await reasonOf(alertText('NADA', '1', 'ASL21, EMA55 y 2 usd', '0.9'), deps)).toBe('ticker inexistente');
+  });
+
+  it.fails('el duplicado por hash compara el símbolo mapeado y los precios ajustados (AC-78)', async () => {
+    const seen: string[] = [];
+    const { deps } = setup({ hasRecentHash: (h) => (seen.push(h), false) });
+    const a = await validateAlert(input(alertText('PEPE', '0.002404', 'ASL21, EMA55 y 0.002600 usd', '0.002300')), deps);
+    const b = await validateAlert(input(alertText('1000PEPE', '2.404', 'ASL21, EMA55 y 2.600 usd', '2.300'), { waMessageId: 'wa-2' }), deps);
+    expect(seen).toHaveLength(2);
+    expect(seen[1]).toBe(seen[0]);
+    expect(a.hash).toBe(seen[0]);
+    expect(b.hash).toBe(seen[0]);
+  });
+
   it('ticker inexistente (AC-42)', async () => {
     const { deps } = setup();
     expect(await reasonOf(alertText('NADA', '1', 'ASL21, EMA55 y 2 usd', '0.9'), deps)).toBe('ticker inexistente');
