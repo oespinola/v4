@@ -74,6 +74,13 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
     ],
     ['incompleta', () => pipeline.processMessage(message(KAIA.replace(/\nSL: .*/, ''), { sender: AUTH }))],
     ['ticker inexistente', () => pipeline.processMessage(message(alertText('NADA', '1', '0.9 usd', '1.1'), { sender: AUTH }))],
+    [
+      'no disponible en Demo',
+      () => {
+        market.unavailableForOrders.add('KAIAUSDT');
+        return pipeline.processMessage(message(KAIA, { sender: AUTH }));
+      },
+    ],
     ['SL igual a la Entrada', () => pipeline.processMessage(message(alertText('KAIA', '0.0402', '0.0380 usd', '0.0402'), { sender: AUTH }))],
     ['SL fuera de rango', () => pipeline.processMessage(message(alertText('KAIA', '0.0402', '0.0380 usd', '0.0600'), { sender: AUTH }))],
     [
@@ -95,7 +102,8 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
   ];
 
   for (const [reason, run] of cases) {
-    it(`"${reason}" queda en el JSONL con el registro completo (AC-09)`, async () => {
+    const test = reason === 'no disponible en Demo' ? it.fails : it;
+    test(`"${reason}" queda en el JSONL con el registro completo (AC-09)`, async () => {
       await run();
       const last = logLines().at(-1)!;
       expect(Object.keys(last)).toEqual(RECORD_KEYS);

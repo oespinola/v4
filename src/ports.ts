@@ -26,8 +26,11 @@ export interface Ranking {
 }
 
 export interface MarketData {
-  /** Copia local de filtros; undefined si el símbolo no existe. */
+  /** Copia local de filtros; undefined si el símbolo no existe. En DRY, con los filtros de órdenes
+   *  de Binance Demo (FR-066). */
   symbol(name: string): SymbolFilters | undefined;
+  /** En DRY, false si el símbolo no es perpetuo TRADING en Binance Demo (FR-067); en LIVE, true. */
+  availableForOrders(name: string): boolean;
   /** Copia local del ranking top 3, o undefined si nunca se pudo armar. */
   ranking(): Ranking | undefined;
   /** Cierres de velas de 45 min armadas con velas de 15 min, incluida la vela en curso.

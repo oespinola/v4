@@ -8,6 +8,7 @@ import { buildRanking, type Ticker24h } from '../domain/ranking.ts';
 import type { SymbolFilters } from '../domain/types.ts';
 
 export const PRODUCTION_URL = 'https://fapi.binance.com';
+export const DEMO_URL = 'https://demo-fapi.binance.com';
 export const REFRESH_EVERY_MS = 60_000;
 // El refresco de fondo baja más de 1 MB y no apura a nadie; las velas están en el camino de la
 // alerta (SC-001) y no se alargan.
@@ -21,6 +22,8 @@ export interface BinancePublicOptions {
   fetch?: typeof fetch;
   baseUrl?: string;
   onRefreshError?: (error: unknown) => void;
+  /** Solo en DRY: de dónde salen los filtros de órdenes (FR-066). */
+  orderRulesUrl?: string;
 }
 
 interface RawSymbol {
@@ -97,6 +100,10 @@ export class BinancePublicMarketData implements MarketData {
 
   ranking(): Ranking | undefined {
     return this.currentRanking;
+  }
+
+  availableForOrders(_name: string): boolean {
+    throw new Error('no implementado');
   }
 
   async closes45m(symbol: string): Promise<number[]> {

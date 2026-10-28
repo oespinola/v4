@@ -125,6 +125,8 @@ export class FakeMarketData implements MarketData {
   closes = new Map<string, number[]>();
   closesError: Error | null = null;
   closesCalls: string[] = [];
+  /** Símbolos que en DRY no se operan en Binance Demo (FR-067). */
+  unavailableForOrders = new Set<string>();
 
   constructor(symbols: SymbolFilters[] = [], ranking?: Ranking) {
     for (const s of symbols) this.symbols.set(s.symbol, s);
@@ -137,6 +139,10 @@ export class FakeMarketData implements MarketData {
 
   ranking(): Ranking | undefined {
     return this.currentRanking;
+  }
+
+  availableForOrders(name: string): boolean {
+    return !this.unavailableForOrders.has(name);
   }
 
   async closes45m(symbol: string): Promise<number[]> {

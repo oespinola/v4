@@ -104,6 +104,13 @@ describe('validación en el orden de FR-020', () => {
     expect(b.hash).toBe(seen[0]);
   });
 
+  it.fails('no disponible en Demo después de ticker inexistente y antes del duplicado por hash (AC-80, FR-020)', async () => {
+    const { deps, market } = setup({ hasRecentHash: () => true });
+    market.unavailableForOrders.add('KAIAUSDT');
+    expect(await reasonOf(KAIA, deps)).toBe('no disponible en Demo');
+    expect(await reasonOf(alertText('NADA', '1', 'ASL21, EMA55 y 2 usd', '0.9'), deps)).toBe('ticker inexistente');
+  });
+
   it('ticker inexistente (AC-42)', async () => {
     const { deps } = setup();
     expect(await reasonOf(alertText('NADA', '1', 'ASL21, EMA55 y 2 usd', '0.9'), deps)).toBe('ticker inexistente');

@@ -25,6 +25,7 @@ export const REJECT_REASONS = [
   'duplicado',
   'incompleta',
   'ticker inexistente',
+  'no disponible en Demo',
   'SL igual a la Entrada',
   'SL fuera de rango',
   'datos de mercado no disponibles',
