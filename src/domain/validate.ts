@@ -69,21 +69,24 @@ export async function validateAlert(m: ValidationInput, deps: ValidationDeps): P
   if (!mapped) return reject('ticker inexistente');
   const { tickSize } = mapped.filters;
 
-  // 5. Duplicado por hash de la operación mapeada en 24 h (FR-006, FR-007).
+  // 5. No disponible en Demo: en DRY, que Binance Demo opere el símbolo (FR-067).
+  if (!deps.market.availableForOrders(mapped.symbol)) return reject('no disponible en Demo');
+
+  // 6. Duplicado por hash de la operación mapeada en 24 h (FR-006, FR-007).
   hash = mappedHash(fields, mapped);
   if (deps.hasRecentHash(hash)) return reject('duplicado');
 
-  // 6. SL igual a la Entrada, con los precios ya ajustados al tick (FR-012).
+  // 7. SL igual a la Entrada, con los precios ya ajustados al tick (FR-012).
   const side = sideOf(fields.entry, fields.sl);
   if (side === null) return reject('SL igual a la Entrada');
   const entry = adjustEntry(scale(fields.entry, mapped.factor), tickSize);
   const sl = adjustSl(side, scale(fields.sl, mapped.factor), tickSize);
   if (sl === entry) return reject('SL igual a la Entrada');
 
-  // 7. SL fuera de rango (FR-013).
+  // 8. SL fuera de rango (FR-013).
   if ((Math.abs(entry - sl) / entry) * 100 > deps.maxSlDistancePct) return reject('SL fuera de rango');
 
-  // 8. Datos de mercado (velas para el TP) y 9. TP inválido (FR-014 a FR-016, FR-064).
+  // 9. Datos de mercado (velas para el TP) y 10. TP inválido (FR-014 a FR-016, FR-064).
   let picked: { tp: number; source: TpSource } | null;
   try {
     picked = await takeProfitFor(scaleTarget(fields.target, mapped.factor), side, entry, () =>
@@ -96,7 +99,7 @@ export async function validateAlert(m: ValidationInput, deps: ValidationDeps): P
   const tp = adjustTp(side, picked.tp, tickSize);
   if (!isCorrectSide(side, entry, tp)) return reject('TP inválido');
 
-  // 10. Ranking no disponible y 11. top 3 (FR-018, FR-019).
+  // 11. Ranking no disponible y 12. top 3 (FR-018, FR-019).
   const ranking = deps.market.ranking();
   if (!ranking || !isRankingFresh(ranking, deps.now())) return reject('ranking no disponible');
   if (inTop3(ranking, mapped.symbol)) return reject('top 3 ganadores/perdedores');

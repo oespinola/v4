@@ -145,7 +145,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it.fails('en DRY toma de Demo los filtros de órdenes y marca lo que Demo no opera (FR-066, FR-067)', async () => {
+  it('en DRY toma de Demo los filtros de órdenes y marca lo que Demo no opera (FR-066, FR-067)', async () => {
     const f = fakeFetch();
     const md = new BinancePublicMarketData({ clock: new FakeClock(), fetch: f.fn, orderRulesUrl: DEMO_URL });
     await md.refresh();
@@ -159,7 +159,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(f.calls.filter((c) => c.url.startsWith(DEMO_URL)).map((c) => c.url)).toEqual([`${DEMO_URL}/fapi/v1/exchangeInfo`]);
   });
 
-  it.fails('en DRY la validación ajusta los precios al tick de Demo (AC-79)', async () => {
+  it('en DRY la validación ajusta los precios al tick de Demo (AC-79)', async () => {
     const clock = new FakeClock();
     const md = new BinancePublicMarketData({ clock, fetch: fakeFetch().fn, orderRulesUrl: DEMO_URL });
     await md.refresh();
@@ -179,7 +179,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(r).toMatchObject({ ok: true, alert: { symbol: 'BERAUSDT', side: 'SHORT', entry: 0.23, sl: 0.234, tp: 0.225 } });
   });
 
-  it.fails('en LIVE usa los filtros de producción, todo es operable y no consulta Demo (AC-81)', async () => {
+  it('en LIVE usa los filtros de producción, todo es operable y no consulta Demo (AC-81)', async () => {
     const f = fakeFetch();
     const md = new BinancePublicMarketData({ clock: new FakeClock(), fetch: f.fn });
     await md.refresh();
@@ -188,7 +188,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(f.calls.some((c) => c.url.startsWith(DEMO_URL))).toBe(false);
   });
 
-  it.fails('si falla el refresco de Demo conserva la copia anterior y lo informa', async () => {
+  it('si falla el refresco de Demo conserva la copia anterior y lo informa', async () => {
     const failDemo = { value: false };
     const errors: unknown[] = [];
     const md = new BinancePublicMarketData({
@@ -205,7 +205,7 @@ describe('datos públicos de Binance (FR-017, AC-30, R-05)', () => {
     expect(errors).toHaveLength(1);
   });
 
-  it.fails('en DRY, sin ninguna copia de Demo, nada es operable', async () => {
+  it('en DRY, sin ninguna copia de Demo, nada es operable', async () => {
     const md = new BinancePublicMarketData({
       clock: new FakeClock(),
       fetch: fakeFetch({ value: false }, { value: true }).fn,

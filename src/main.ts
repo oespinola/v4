@@ -2,7 +2,7 @@
 // conectarse a nada (FR-058, FR-062) y arma: store → datos públicos → WhatsApp → cola → pipeline.
 // Por ahora (US1) clasifica cada alerta, sin colocar órdenes.
 import path from 'node:path';
-import { BinancePublicMarketData } from './adapters/binance-public.ts';
+import { BinancePublicMarketData, DEMO_URL } from './adapters/binance-public.ts';
 import { ClaudeExtractor } from './adapters/claude-extractor.ts';
 import { SystemClock } from './adapters/clock.ts';
 import { Store } from './adapters/store.ts';
@@ -34,6 +34,8 @@ async function main(): Promise<void> {
   const store = Store.open(config.dataDir, clock);
   const market = new BinancePublicMarketData({
     clock,
+    // En DRY las órdenes van a Demo y tienen que respetar sus filtros (FR-066).
+    orderRulesUrl: config.mode === 'DRY' ? DEMO_URL : undefined,
     onRefreshError: (e) => log(`No se pudo refrescar símbolos/ranking: ${(e as Error).message}`),
   });
   await market.start();

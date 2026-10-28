@@ -104,7 +104,7 @@ describe('validación en el orden de FR-020', () => {
     expect(b.hash).toBe(seen[0]);
   });
 
-  it.fails('no disponible en Demo después de ticker inexistente y antes del duplicado por hash (AC-80, FR-020)', async () => {
+  it('no disponible en Demo después de ticker inexistente y antes del duplicado por hash (AC-80, FR-020)', async () => {
     const { deps, market } = setup({ hasRecentHash: () => true });
     market.unavailableForOrders.add('KAIAUSDT');
     expect(await reasonOf(KAIA, deps)).toBe('no disponible en Demo');

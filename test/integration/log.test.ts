@@ -102,8 +102,7 @@ describe('log JSONL (US4: AC-09, AC-50, FR-043 a FR-046)', () => {
   ];
 
   for (const [reason, run] of cases) {
-    const test = reason === 'no disponible en Demo' ? it.fails : it;
-    test(`"${reason}" queda en el JSONL con el registro completo (AC-09)`, async () => {
+    it(`"${reason}" queda en el JSONL con el registro completo (AC-09)`, async () => {
       await run();
       const last = logLines().at(-1)!;
       expect(Object.keys(last)).toEqual(RECORD_KEYS);
