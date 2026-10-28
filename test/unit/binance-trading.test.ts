@@ -111,7 +111,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     await expect(new BinanceTrading(down.client).findEntry('KAIAUSDT', 'sb-abc')).rejects.toThrow();
   });
 
-  it.fails('la entrada encontrada trae la cantidad pedida y la hora de colocación (FR-070)', async () => {
+  it('la entrada encontrada trae la cantidad pedida y la hora de colocación (FR-070)', async () => {
     const f = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 222, origQty: '4166', time: Date.parse('2026-10-28T12:00:01Z') }) });
     expect(await new BinanceTrading(f.client).findEntry('KAIAUSDT', 'sb-abc')).toEqual({
       ref: { symbol: 'KAIAUSDT', id: '222' },

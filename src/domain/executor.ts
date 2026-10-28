@@ -5,7 +5,7 @@
 // ejecutado (FR-031, FR-032). Los eventos de cada operación corren de a uno.
 import { createHash } from 'node:crypto';
 import type { Store } from '../adapters/store.ts';
-import type { Clock, EmergencyState, Exchange, OrderRef, OrderState, TimerHandle } from '../ports.ts';
+import type { Clock, EmergencyState, Exchange, FoundEntry, OrderRef, OrderState, TimerHandle } from '../ports.ts';
 import { RetryCounter } from './backoff.ts';
 import type { Alert, AlertStatus, Trade } from './types.ts';
 
@@ -67,37 +67,14 @@ export class Executor implements EmergencyState {
       entryRef = await exchange.placeLimitEntry({ symbol, side, quantity: sized.quantity, price: alert.entry!, clientOrderId });
     } catch (e) {
       // Un error o un timeout no prueban que la orden no exista: Binance pudo aceptarla (FR-069).
-      entryRef = await this.confirmEntry(alert.alertId, symbol, clientOrderId, e);
+      entryRef = (await this.confirmEntry(alert, `la colocación falló (${errorText(e)})`))?.ref ?? null;
     }
     if (!entryRef) {
-      const failed: Alert = { ...alert, status: 'entrada no ejecutada' };
-      store.saveAlert(failed);
-      store.logAlert(failed);
+      this.notPlaced(alert);
       return null;
     }
 
-    const trade: Trade = {
-      alertId: alert.alertId,
-      symbol,
-      side,
-      quantity: sized.quantity,
-      notional: sized.notional,
-      riskR: this.deps.riskR,
-      symbolLeverage: this.deps.symbolLeverage,
-      entryPrice: alert.entry!,
-      slPrice: alert.sl!,
-      tpPrice: alert.tp!,
-      entryOrderId: entryRef.id,
-      slOrderId: null,
-      tpOrderId: null,
-      entryPlacedAt: clock.now(),
-      filledQty: 0,
-      state: 'pendiente',
-      closeCause: null,
-      closedAt: null,
-      realizedPnl: null,
-      fees: null,
-    };
+    const trade = this.newTrade(alert, sized, entryRef.id, clock.now());
     store.saveTrade(trade);
     const t: Tracked = {
       alert,
@@ -116,28 +93,68 @@ export class Executor implements EmergencyState {
     return { ...trade };
   }
 
-  /** FR-069: pregunta a Binance por la entrada que falló al colocarse, hasta que conteste. */
-  private async confirmEntry(alertId: string, symbol: string, clientOrderId: string, placeError: unknown): Promise<OrderRef | null> {
+  /** Reconciliación (FR-070): una alerta válida sin operación pudo dejar su entrada en Binance si
+   *  el proceso se cayó antes de registrarla. Se la busca por su identificador propio. */
+  async recoverUnconfirmed(alert: Alert): Promise<void> {
+    const found = await this.confirmEntry(alert, 'el proceso se reinició antes de registrar la entrada');
+    if (!found) {
+      this.notPlaced(alert);
+      return;
+    }
+    const trade = this.newTrade(alert, { quantity: found.quantity, notional: found.quantity * alert.entry! }, found.ref.id, found.placedAt);
+    this.deps.store.saveTrade(trade);
+    await this.resume(alert, trade);
+  }
+
+  /** FR-069: pregunta a Binance por la entrada de la alerta, hasta que conteste. */
+  private async confirmEntry(alert: Alert, why: string): Promise<FoundEntry | null> {
     const { exchange, store, clock } = this.deps;
     const retry = new RetryCounter();
     for (;;) {
       try {
-        return (await exchange.findEntry(symbol, clientOrderId))?.ref ?? null;
+        return await exchange.findEntry(alert.symbol!, entryClientOrderId(alert.alertId));
       } catch (e) {
         const step = retry.failure();
         store.logCritical({
           kind: 'entrada sin confirmar',
-          alertId,
-          detail: `la colocación falló (${errorText(placeError)}) y la consulta también, intento ${step.attempt}: ${errorText(e)}; reintento en ${step.waitMs} ms`,
+          alertId: alert.alertId,
+          detail: `${why} y la consulta a Binance también falló, intento ${step.attempt}: ${errorText(e)}; reintento en ${step.waitMs} ms`,
         });
         await clock.sleep(step.waitMs);
       }
     }
   }
 
-  /** Reconciliación (FR-070): alerta válida sin operación registrada. */
-  async recoverUnconfirmed(alert: Alert): Promise<void> {
-    throw new Error(`sin implementar (T092): ${alert.alertId}`);
+  /** La entrada nunca quedó en Binance: sin operación, así no bloquea el reenvío (FR-007). */
+  private notPlaced(alert: Alert): void {
+    const failed: Alert = { ...alert, status: 'entrada no ejecutada' };
+    this.deps.store.saveAlert(failed);
+    this.deps.store.logAlert(failed);
+  }
+
+  private newTrade(alert: Alert, sized: Sized, entryOrderId: string, entryPlacedAt: Date): Trade {
+    return {
+      alertId: alert.alertId,
+      symbol: alert.symbol!,
+      side: alert.side!,
+      quantity: sized.quantity,
+      notional: sized.notional,
+      riskR: this.deps.riskR,
+      symbolLeverage: this.deps.symbolLeverage,
+      entryPrice: alert.entry!,
+      slPrice: alert.sl!,
+      tpPrice: alert.tp!,
+      entryOrderId,
+      slOrderId: null,
+      tpOrderId: null,
+      entryPlacedAt,
+      filledQty: 0,
+      state: 'pendiente',
+      closeCause: null,
+      closedAt: null,
+      realizedPnl: null,
+      fees: null,
+    };
   }
 
   /** Reconciliación (FR-041, FR-042, FR-065): retoma una operación `pendiente` o `con_ejecución`

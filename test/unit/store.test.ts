@@ -127,7 +127,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.hasContentHashSince('0123456789abcdef', since)).toBe(true);
   });
 
-  it.fails('lista las alertas válidas del modo sin operación registrada (FR-070)', () => {
+  it('lista las alertas válidas del modo sin operación registrada (FR-070)', () => {
     store.saveAlert(alert({ status: 'válida' })); // DRY, sin operación
     store.saveAlert(alert({ alertId: 'wa-2:0123456789abcdef', waMessageId: 'wa-2', status: 'válida' }));
     store.saveTrade(trade({ alertId: 'wa-2:0123456789abcdef' })); // ya tiene operación

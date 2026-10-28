@@ -104,7 +104,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
   });
 
   describe('alerta válida sin operación: la entrada pudo quedar en Binance sin registrar (FR-070)', () => {
-    it.fails('entrada aceptada y ejecutada: registra la operación con la cantidad de Binance y la protege (AC-86)', async () => {
+    it('entrada aceptada y ejecutada: registra la operación con la cantidad de Binance y la protege (AC-86)', async () => {
       boot(null, 'válida', 5);
       found = { ref: ENTRY, quantity: 4166, placedAt: PLACED_AT };
       entry = { status: 'filled', filledQty: 4166 };
@@ -117,7 +117,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
       expect(logLines()).toEqual([expect.objectContaining({ status: 'completa' })]);
     });
 
-    it.fails('entrada aceptada sin ejecución: la cancela y queda "entrada no ejecutada", que bloquea el reenvío', async () => {
+    it('entrada aceptada sin ejecución: la cancela y queda "entrada no ejecutada", que bloquea el reenvío', async () => {
       boot(null, 'válida', 5);
       found = { ref: ENTRY, quantity: 4166, placedAt: PLACED_AT };
       await run();
@@ -127,7 +127,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
       expect(store.hasContentHashSince(ALERT.contentHash, ALERT.receivedAt)).toBe(true);
     });
 
-    it.fails('entrada inexistente: "entrada no ejecutada" sin operación, y el reenvío se evalúa de nuevo (AC-87)', async () => {
+    it('entrada inexistente: "entrada no ejecutada" sin operación, y el reenvío se evalúa de nuevo (AC-87)', async () => {
       boot(null, 'válida', 5);
       await run();
       expect(saved()).toBeUndefined();
