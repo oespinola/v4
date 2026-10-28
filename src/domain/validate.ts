@@ -27,6 +27,8 @@ export interface ValidationDeps {
   market: MarketData;
   now(): Date;
   maxSlDistancePct: number;
+  /** Distancia máxima de la Entrada al precio de mercado, en % (FR-068). */
+  maxEntryDistancePct: number;
 }
 
 export interface ValidAlert extends MappedSymbol {

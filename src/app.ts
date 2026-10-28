@@ -92,6 +92,7 @@ export async function startApp(
     extractor: factories.extractor(config),
     market,
     maxSlDistancePct: config.maxSlDistancePct,
+    maxEntryDistancePct: config.maxEntryDistancePct,
     trading: {
       exchange,
       executor,

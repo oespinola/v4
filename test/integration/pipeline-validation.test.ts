@@ -34,6 +34,7 @@ describe('pipeline de validación (US1)', () => {
       losers: [],
       refreshedAt: clock.now(),
     });
+    market.closes.set('KAIAUSDT', [0.0402]); // precio de mercado, para FR-068
     pipeline = new Pipeline({
       store,
       clock,
@@ -42,6 +43,7 @@ describe('pipeline de validación (US1)', () => {
       extractor: new FakeExtractor({}),
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
     });
   });
 
@@ -67,6 +69,7 @@ describe('pipeline de validación (US1)', () => {
       extractor: new FakeExtractor({ sl: 0.0414 }),
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
     });
     const r = await withIa.processMessage(message(KAIA.replace(/\nSL: .*/, ''), { sender: AUTH }));
     expect(r).toMatchObject({ alert: { status: 'válida', usedImage: true } });
@@ -102,6 +105,7 @@ describe('pipeline de validación (US1)', () => {
       extractor: null,
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
     });
     const noSl = KAIA.replace(/\nSL: .*/, '');
     const r = await withoutIa.processMessage(message(noSl, { sender: AUTH }));
@@ -137,6 +141,7 @@ describe('pipeline de validación (US1)', () => {
 
   it('"1000PEPE 2.404" tras "PEPE 0.002404" es duplicado (AC-78)', async () => {
     market.symbols.set('1000PEPEUSDT', filters('1000PEPEUSDT', { tickSize: 0.0000001 }));
+    market.closes.set('1000PEPEUSDT', [2.404]);
     const pepe = '*PEPE - ALERTA DE TRADING*\nEntrada: 0.002404 usd\nObj.: 0.002600 usd\nSL: 0.002300 usd\nRiesgo Alto 🔴';
     const pepe1000 = '*1000PEPE - ALERTA DE TRADING*\nEntrada: 2.404 usd\nObj.: 2.6 usd\nSL: 2.3 usd\nRiesgo Alto 🔴';
     const first = await pipeline.processMessage(message(pepe, { sender: AUTH }));

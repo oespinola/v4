@@ -28,6 +28,7 @@ export const REJECT_REASONS = [
   'no disponible en Demo',
   'SL igual a la Entrada',
   'SL fuera de rango',
+  'entrada lejos del mercado',
   'datos de mercado no disponibles',
   'TP inválido',
   'ranking no disponible',

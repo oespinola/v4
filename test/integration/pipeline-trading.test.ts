@@ -40,6 +40,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
       extractor: new FakeExtractor({}),
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
       trading: {
         exchange,
         executor,
@@ -58,6 +59,8 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
     clock = new FakeClock('2026-10-28T12:00:00Z');
     store = Store.open(path.join(root, 'data'), clock);
     market = new FakeMarketData([filters('KAIAUSDT'), filters('KITEUSDT')], { gainers: [], losers: [], refreshedAt: clock.now() });
+    market.closes.set('KAIAUSDT', [0.0402]); // precio de mercado, para FR-068
+    market.closes.set('KITEUSDT', [0.0402]);
     nextOrder = 1;
     exchange = new FakeExchange({
       walletBalanceUsdt: async () => 3000,
@@ -172,6 +175,7 @@ describe('pipeline de carga (FR-020 completo, FR-021 a FR-027, FR-061, FR-063)',
       extractor: null,
       market,
       maxSlDistancePct: 15,
+      maxEntryDistancePct: 10,
     });
     const r = await p.processMessage(message(KAIA, { sender: AUTH }));
     expect(r).toMatchObject({ alert: { status: 'válida' } });

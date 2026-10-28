@@ -227,7 +227,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T084 [P] Actualizar docs/arquitectura.md al estado real: módulos de PRD-002/003, puertos, supervisor y sesión cifrada
 - [ ] T085 Correr la validación de [quickstart.md](quickstart.md) en DRY (secciones 2 a 7), incluida la medición real de AC-31 (`kill -9` del proceso de la app, no del supervisor) y AC-29 después de ese `kill -9`, y anotar resultados y pendientes en specs/001-alertas-whatsapp-binance/checklists/live.md
 - [X] T086 Verificación final: `pnpm typecheck`, `pnpm test` en verde y ningún `it.fails` pendiente (`grep -rn "it.fails" test/` vacío)
-- [ ] T087 Escribir tests de "entrada lejos del mercado" (FR-068, AC-82): BTC SHORT "80,489"/"81,489"/"78,489" con mercado ~80 000 rechazada; entrada dentro del máximo aceptada; orden después de "datos de mercado no disponibles" y antes de "TP inválido"; `MAX_ENTRY_DISTANCE_PCT` ausente = 10 e inválido ≤ 0 — en `it.fails` — en test/unit/validate.test.ts y test/unit/config.test.ts
+- [X] T087 Escribir tests de "entrada lejos del mercado" (FR-068, AC-82): BTC SHORT "80,489"/"81,489"/"78,489" con mercado ~80 000 rechazada; entrada dentro del máximo aceptada; orden después de "datos de mercado no disponibles" y antes de "TP inválido"; `MAX_ENTRY_DISTANCE_PCT` ausente = 10 e inválido ≤ 0 — en `it.fails` — en test/unit/validate.test.ts y test/unit/config.test.ts
 - [ ] T088 Implementar FR-068 en src/domain/validate.ts (motivo nuevo en src/domain/types.ts, `MAX_ENTRY_DISTANCE_PCT` en src/config.ts y .env.example) y pasar T087 a `it`
 
 ---

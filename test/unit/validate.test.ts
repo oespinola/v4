@@ -13,6 +13,11 @@ function setup(over: Partial<ValidationDeps> = {}) {
     [filters('KAIAUSDT', { tickSize: 0.0001 }), filters('1000PEPEUSDT', { tickSize: 0.001 }), filters('AXSUSDT', { tickSize: 0.001 }), filters('TOPUSDT')],
     { gainers: ['TOPUSDT'], losers: [], refreshedAt: NOW },
   );
+  // Precio de mercado de cada símbolo, cerca de la Entrada de las alertas de prueba (FR-068).
+  market.closes.set('KAIAUSDT', [0.0402]);
+  market.closes.set('1000PEPEUSDT', [2.404]);
+  market.closes.set('AXSUSDT', [1.246]);
+  market.closes.set('TOPUSDT', [0.0402]);
   const extractor = new FakeExtractor({});
   const deps: ValidationDeps = {
     authorizedSenders: [AUTH],
@@ -22,6 +27,7 @@ function setup(over: Partial<ValidationDeps> = {}) {
     market,
     now: () => NOW,
     maxSlDistancePct: 15,
+    maxEntryDistancePct: 10,
     ...over,
   };
   return { deps, market, extractor };
@@ -136,6 +142,39 @@ describe('validación en el orden de FR-020', () => {
     expect(await reasonOf(alertText('KAIA', '0.0402', 'ASL21, EMA55', '0.0414'), deps)).toBe('datos de mercado no disponibles');
   });
 
+  describe('entrada lejos del mercado (FR-068)', () => {
+    // "80,489" con separador de miles se lee como coma decimal: 80.489, al tick 80.5.
+    const BTC = alertText('BTC', '80,489', '78,489 usd', '81,489');
+    const withBtc = (over: Partial<ValidationDeps> = {}) => {
+      const s = setup(over);
+      s.market.symbols.set('BTCUSDT', filters('BTCUSDT', { tickSize: 0.1 }));
+      s.market.closes.set('BTCUSDT', [80_000]);
+      return s;
+    };
+
+    it.fails('BTC SHORT "80,489" / "81,489" / "78,489" con el mercado cerca de 80 000 se rechaza (AC-82)', async () => {
+      const { deps } = withBtc();
+      expect(await reasonOf(BTC, deps)).toBe('entrada lejos del mercado');
+    });
+
+    it.fails('una Entrada dentro del máximo es válida, y el máximo se configura', async () => {
+      const { deps } = withBtc();
+      expect(await reasonOf(alertText('BTC', '80489', '78489 usd', '81489'), deps)).toBe('válida');
+      expect(await reasonOf(alertText('BTC', '72100', '70000 usd', '73000'), deps)).toBe('válida'); // a 9.9 %
+      expect(await reasonOf(alertText('BTC', '71990', '70000 usd', '73000'), deps)).toBe('entrada lejos del mercado'); // a 10.01 %
+      const loose = withBtc({ maxEntryDistancePct: 100 });
+      expect(await reasonOf(BTC, loose.deps)).toBe('válida');
+    });
+
+    it.fails('va después de "datos de mercado no disponibles" y antes de "TP inválido"', async () => {
+      const failing = withBtc();
+      failing.market.closesError = new Error('sin red');
+      expect(await reasonOf(BTC, failing.deps)).toBe('datos de mercado no disponibles');
+      const { deps } = withBtc();
+      expect(await reasonOf(alertText('BTC', '80,489', '82,000 usd', '81,489'), deps)).toBe('entrada lejos del mercado');
+    });
+  });
+
   it('TP inválido en LONG con TP ≤ Entrada (AC-02) y en SHORT con TP ≥ Entrada (AC-04)', async () => {
     const { deps } = setup();
     expect(await reasonOf(alertText('KAIA', '0.0402', 'ASL21, EMA55 y 0.0400 usd', '0.0390'), deps)).toBe('TP inválido');
@@ -144,7 +183,7 @@ describe('validación en el orden de FR-020', () => {
 
   it('TP inválido si ni ASL21 ni EMA55 quedan del lado correcto (AC-33)', async () => {
     const { deps, market } = setup();
-    market.closes.set('KAIAUSDT', Array.from({ length: 60 }, () => 0.05));
+    market.closes.set('KAIAUSDT', [...Array.from({ length: 59 }, () => 0.05), 0.041]);
     expect(await reasonOf(alertText('KAIA', '0.0402', 'ASL21, EMA55', '0.0414'), deps)).toBe('TP inválido');
   });
 

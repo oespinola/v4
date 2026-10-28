@@ -23,6 +23,7 @@ export interface PipelineDeps {
   extractor: FieldExtractor | null;
   market: MarketData;
   maxSlDistancePct: number;
+  maxEntryDistancePct: number;
   /** Carga de la operación (US2). Sin esto la alerta termina en válida o rechazada (US1). */
   trading?: TradingDeps | null;
 }
@@ -61,6 +62,7 @@ export class Pipeline {
       market: this.deps.market,
       now: () => clock.now(),
       maxSlDistancePct: this.deps.maxSlDistancePct,
+      maxEntryDistancePct: this.deps.maxEntryDistancePct,
     });
 
     const raw: Partial<RawFields> = result.ok ? result.alert.fields : result.partial;
