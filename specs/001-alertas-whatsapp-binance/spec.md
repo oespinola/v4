@@ -370,6 +370,13 @@ alerta nueva.
    y el TP, **When** el sistema vuelve a arrancar, **Then**, antes de procesar alertas nuevas,
    coloca el SL y el TP que faltan o, si fallan, cierra la posición a mercado y registra un evento
    crítico (AC-73).
+5. **Given** el proceso caído después de pedir la entrada y antes de registrarla, y una entrada que
+   Binance aceptó y se ejecutó, **When** el sistema vuelve a arrancar, **Then**, antes de procesar
+   alertas nuevas, la encuentra por su identificador, registra la operación con la cantidad de
+   Binance y coloca el SL y el TP (AC-86).
+6. **Given** una alerta válida sin operación cuya entrada no existe en Binance, **When** el sistema
+   vuelve a arrancar, **Then** la registra como "entrada no ejecutada" y un reenvío con los mismos
+   valores se evalúa de nuevo (AC-87).
 
 ---
 
@@ -664,6 +671,11 @@ key de producción en Binance.
   tuvo ejecución pero nunca llegó a "completa", el sistema MUST colocar el SL y el TP que falten y,
   si falla, cerrar la posición a mercado (FR-030). Si la operación ya estaba "completa" y perdió su
   SL o su TP, se aplica FR-038.
+- **FR-070** (RF-58): En esa comparación, para cada alerta válida del modo activo sin operación
+  registrada, el sistema MUST consultar a Binance por el identificador propio de su entrada (FR-069),
+  con los mismos reintentos. Si la orden existe, MUST registrar la operación con la cantidad que
+  informa Binance y aplicar FR-041 o FR-042; si Binance confirma que no existe, MUST registrarla como
+  "entrada no ejecutada", que no bloquea el reenvío (FR-007).
 
 **Log y auditoría (PRD-000)**
 
