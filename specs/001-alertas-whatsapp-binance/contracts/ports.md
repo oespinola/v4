@@ -37,7 +37,7 @@ interface Exchange {
   placeLimitEntry(o: EntryOrder): Promise<OrderRef>;
   placeStopLoss(symbol: string, side: Side, price: number): Promise<OrderRef>;   // closePosition
   placeTakeProfit(symbol: string, side: Side, price: number): Promise<OrderRef>; // closePosition
-  closeAtMarket(symbol: string, side: Side): Promise<OrderRef>;
+  closeAtMarket(symbol: string, side: Side): Promise<OrderRef | null>; // null: no había posición
   cancel(ref: OrderRef): Promise<void>;
   order(ref: OrderRef): Promise<OrderState>;
   openOrders(symbol: string): Promise<OrderRef[]>;              // detectar SL/TP perdido (FR-038)
@@ -46,7 +46,9 @@ interface Exchange {
 }
 ```
 
-Adaptador real: `binance-trading.ts` (CCXT `binanceusdm`, Demo Trading en DRY).
+Adaptador real: `binance-trading.ts` (CCXT `binanceusdm`, Demo Trading en DRY). `OrderRef` lleva
+`algo: true` en el SL y el TP, que son órdenes condicionales de la API "algo" de Binance y se
+cancelan y consultan por otro endpoint (R-06).
 
 ## MessageSource (WhatsApp, FR-001, FR-047, FR-048, FR-057)
 

@@ -87,7 +87,10 @@ que la comparación entre métodos use el mismo resultado técnico.
   y producción con la misma API.
 - **A verificar en implementación**: Binance migró las órdenes condicionales a su API de órdenes
   "algo"; la versión de CCXT fijada debe soportarlo en Demo y producción. Se cubre con un test de
-  integración contra Demo Trading.
+  integración contra Demo Trading. Resuelto como en v3: endpoints crudos de CCXT 4.5
+  (`fapiPrivatePostAlgoOrder`, `…DeleteAlgoOrder`, `…GetAlgoOrder`, `…GetOpenAlgoOrders`), con el
+  modo de posición de la cuenta (one-way o hedge) leído una vez para mandar o no `positionSide`, y
+  números siempre en notación decimal (Binance rechaza `1e-7`).
 - **Alternatives considered**: SL/TP con cantidad explícita (hay que reajustarlos en cada ejecución
   parcial); órdenes OCO (no existen en Futuros USDS-M).
 

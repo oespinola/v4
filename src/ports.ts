@@ -43,6 +43,9 @@ export interface MarketData {
 export interface OrderRef {
   symbol: string;
   id: string;
+  /** SL y TP son órdenes condicionales de la API "algo" de Binance: se cancelan y consultan
+   *  por otro endpoint (R-06). */
+  algo?: boolean;
 }
 
 export interface EntryOrder {
@@ -84,7 +87,8 @@ export interface Exchange {
   placeStopLoss(symbol: string, side: Side, price: number): Promise<OrderRef>;
   /** TP de cierre de posición (TAKE_PROFIT_MARKET, closePosition). */
   placeTakeProfit(symbol: string, side: Side, price: number): Promise<OrderRef>;
-  closeAtMarket(symbol: string, side: Side): Promise<OrderRef>;
+  /** Cierra a mercado toda la posición del lado indicado; null si no había posición. */
+  closeAtMarket(symbol: string, side: Side): Promise<OrderRef | null>;
   cancel(ref: OrderRef): Promise<void>;
   order(ref: OrderRef): Promise<OrderState>;
   /** Órdenes abiertas del símbolo (para detectar un SL/TP perdido). */
