@@ -4,7 +4,8 @@ import { ALERT, SIZED, setupExecutor } from '../helpers/executor.ts';
 
 const reject = (msg: string) => async () => Promise.reject(new Error(msg));
 
-describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', () => {
+// Con el reloj falso, pero cada caso arma y borra su base: bajo la carga de la suite completa pasan los 5 s.
+describe('ejecutor: caminos de falla (FR-030, AC-16, AC-74, Principio III)', { timeout: 20_000 }, () => {
   let t: ReturnType<typeof setupExecutor>;
   afterEach(() => t.cleanup());
 
