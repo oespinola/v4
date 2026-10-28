@@ -14,10 +14,11 @@ export type ExtractResult =
   | { complete: true; fields: RawFields }
   | { complete: false; partial: Partial<RawFields>; missing: Field[] };
 
-export async function extractFields(m: ExtractSource, extractor: FieldExtractor): Promise<ExtractResult> {
+export async function extractFields(m: ExtractSource, extractor: FieldExtractor | null): Promise<ExtractResult> {
   const fromText = parseText(m.text);
   let missing = missingFields(fromText);
   if (missing.length === 0) return { complete: true, fields: fromText as RawFields };
+  if (extractor === null) throw new Error('no implementado');
 
   const image = await m.downloadImage().catch(() => null);
   const fromIa = await extractor.extract({ text: m.text, image, missing }).catch(() => ({}));

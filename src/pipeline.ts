@@ -16,7 +16,7 @@ export interface PipelineDeps {
   clock: Clock;
   mode: Mode;
   authorizedSenders: readonly string[];
-  extractor: FieldExtractor;
+  extractor: FieldExtractor | null;
   market: MarketData;
   maxSlDistancePct: number;
 }

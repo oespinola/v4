@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CONFIG_EXIT_CODE, parseConfig } from '../../src/config.ts';
+import { CONFIG_EXIT_CODE, parseConfig, startupWarnings } from '../../src/config.ts';
 
 const KEY_HEX = 'a'.repeat(64); // 32 bytes
 
@@ -30,7 +30,7 @@ function errorsOf(env: Record<string, string | undefined>): string[] {
   return r.ok ? [] : r.errors.map((e) => e.variable);
 }
 
-describe('config (FR-058, FR-062, FR-052)', () => {
+describe('config (FR-058, FR-062, FR-052, FR-004)', () => {
   it('arma la configuración DRY con las credenciales de Demo Trading', () => {
     const r = parseConfig(dryEnv());
     expect(r.ok).toBe(true);
@@ -61,7 +61,6 @@ describe('config (FR-058, FR-062, FR-052)', () => {
   });
 
   const required = [
-    'ANTHROPIC_API_KEY',
     'WHATSAPP_SESSION_KEY',
     'WHATSAPP_GROUP_NAME',
     'AUTHORIZED_SENDERS',
@@ -115,6 +114,22 @@ describe('config (FR-058, FR-062, FR-052)', () => {
   it('lista todo lo que falta de una vez', () => {
     const errs = errorsOf({ SIGNALBRIDGE_MODE: 'DRY' });
     expect(errs).toEqual(expect.arrayContaining(required));
+  });
+
+  it.fails('sin ANTHROPIC_API_KEY la configuración es válida, con la key en null (AC-75)', () => {
+    for (const value of [undefined, '  ']) {
+      const r = parseConfig(dryEnv({ ANTHROPIC_API_KEY: value }));
+      expect(r.ok).toBe(true);
+      expect(r.ok && r.config.anthropicApiKey).toBeNull();
+    }
+  });
+
+  it.fails('sin key de IA avisa al arrancar que el análisis de imagen está apagado (AC-75)', () => {
+    const without = parseConfig(dryEnv({ ANTHROPIC_API_KEY: undefined }));
+    const withKey = parseConfig(dryEnv());
+    if (!without.ok || !withKey.ok) throw new Error('config inválida');
+    expect(startupWarnings(without.config)).toEqual([expect.stringMatching(/análisis de imagen.*apagado/)]);
+    expect(startupWarnings(withKey.config)).toEqual([]);
   });
 
   it('sale con el código 78 ante configuración inválida', () => {

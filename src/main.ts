@@ -42,7 +42,7 @@ async function main(): Promise<void> {
     clock,
     mode: config.mode,
     authorizedSenders: config.authorizedSenders,
-    extractor: new ClaudeExtractor({ apiKey: config.anthropicApiKey }),
+    extractor: new ClaudeExtractor({ apiKey: config.anthropicApiKey ?? undefined }),
     market,
     maxSlDistancePct: config.maxSlDistancePct,
   });

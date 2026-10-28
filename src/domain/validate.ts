@@ -23,7 +23,7 @@ export interface ValidationDeps {
   isKnownMessage(waMessageId: string): boolean;
   /** ¿Hay una alerta con este hash en las últimas 24 h? (FR-007) */
   hasRecentHash(hash: string): boolean;
-  extractor: FieldExtractor;
+  extractor: FieldExtractor | null;
   market: MarketData;
   now(): Date;
   maxSlDistancePct: number;

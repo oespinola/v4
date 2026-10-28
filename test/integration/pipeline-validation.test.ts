@@ -72,6 +72,22 @@ describe('pipeline de validación (US1)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ type: 'alert', status: 'rechazada', reason: 'remitente no autorizado' })]);
   });
 
+  it.fails('sin key de IA, una alerta con el texto incompleto se rechaza como "incompleta" (AC-76)', async () => {
+    const withoutIa = new Pipeline({
+      store,
+      clock,
+      mode: 'DRY',
+      authorizedSenders: [AUTH],
+      extractor: null,
+      market,
+      maxSlDistancePct: 15,
+    });
+    const noSl = KAIA.replace(/\nSL: .*/, '');
+    const r = await withoutIa.processMessage(message(noSl, { sender: AUTH }));
+    expect(r).toMatchObject({ kind: 'alert', alert: { status: 'rechazada', reason: 'incompleta' } });
+    expect(logLines()).toEqual([expect.objectContaining({ status: 'rechazada', reason: 'incompleta' })]);
+  });
+
   it('el mismo mensaje tras un reinicio se rechaza como duplicado sin operarse (AC-17)', async () => {
     await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     const again = await pipeline.processMessage(message(KAIA, { sender: AUTH }));

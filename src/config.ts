@@ -10,7 +10,8 @@ export const CONFIG_EXIT_CODE = 78;
 
 export interface Config {
   mode: Mode;
-  anthropicApiKey: string;
+  /** null: sin key, el análisis de imagen queda apagado (FR-004). */
+  anthropicApiKey: string | null;
   whatsappSessionKey: Buffer;
   whatsappGroupName: string;
   authorizedSenders: string[];
@@ -131,6 +132,11 @@ export function parseConfig(env: Env): ConfigResult {
 /** Carga `.env` si existe; las variables ya definidas en el entorno no se pisan. */
 export function loadDotEnv(path = '.env'): void {
   if (existsSync(path)) process.loadEnvFile(path);
+}
+
+/** Avisos que no impiden arrancar (FR-004). */
+export function startupWarnings(_config: Config): string[] {
+  throw new Error('no implementado');
 }
 
 /** Texto para la consola con todo lo que falta o es inválido. */
