@@ -30,7 +30,7 @@ describe('sesión de WhatsApp cifrada (FR-049, AC-29)', () => {
     writeFileSync(zipPath(), zipContent);
   };
 
-  it.fails('ida y vuelta: guarda cifrado y lo devuelve igual', async () => {
+  it('ida y vuelta: guarda cifrado y lo devuelve igual', async () => {
     expect(await store.sessionExists({ session: SESSION })).toBe(false);
     leaveZip();
     await store.save({ session: SESSION });
@@ -40,7 +40,7 @@ describe('sesión de WhatsApp cifrada (FR-049, AC-29)', () => {
     expect(readFileSync(out)).toEqual(zipContent);
   });
 
-  it.fails('lo guardado no contiene el número en texto plano y queda 0600 en un directorio 0700', async () => {
+  it('lo guardado no contiene el número en texto plano y queda 0600 en un directorio 0700', async () => {
     leaveZip();
     await store.save({ session: SESSION });
     const saved = readdirSync(dataPath).filter((f) => f !== `${SESSION}.zip`);
@@ -52,7 +52,7 @@ describe('sesión de WhatsApp cifrada (FR-049, AC-29)', () => {
     expect(perms(dataPath)).toBe(0o700);
   });
 
-  it.fails('con otra clave falla y no deja el zip en claro', async () => {
+  it('con otra clave falla y no deja el zip en claro', async () => {
     leaveZip();
     await store.save({ session: SESSION });
     const other = new EncryptedSessionStore({ dataPath, key: Buffer.alloc(32, 9) });
@@ -61,7 +61,7 @@ describe('sesión de WhatsApp cifrada (FR-049, AC-29)', () => {
     expect(existsSync(out)).toBe(false);
   });
 
-  it.fails('un archivo alterado no se descifra (GCM autentica)', async () => {
+  it('un archivo alterado no se descifra (GCM autentica)', async () => {
     leaveZip();
     await store.save({ session: SESSION });
     const file = readdirSync(dataPath).find((f) => f !== `${SESSION}.zip`)!;
@@ -71,14 +71,14 @@ describe('sesión de WhatsApp cifrada (FR-049, AC-29)', () => {
     await expect(store.extract({ session: SESSION, path: path.join(dataPath, 'x.zip') })).rejects.toThrow();
   });
 
-  it.fails('delete borra la sesión guardada', async () => {
+  it('delete borra la sesión guardada', async () => {
     leaveZip();
     await store.save({ session: SESSION });
     await store.delete({ session: SESSION });
     expect(await store.sessionExists({ session: SESSION })).toBe(false);
   });
 
-  it.fails('wipeWorkingProfile borra el perfil en claro, la carpeta temporal y un zip suelto, y conserva el cifrado', async () => {
+  it('wipeWorkingProfile borra el perfil en claro, la carpeta temporal y un zip suelto, y conserva el cifrado', async () => {
     leaveZip();
     await store.save({ session: SESSION });
     const profile = path.join(dataPath, SESSION, 'Default');

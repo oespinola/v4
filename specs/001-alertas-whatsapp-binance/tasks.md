@@ -197,8 +197,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 **Independent Test**: AC-10, AC-29, AC-31, AC-47 y AC-74.
 
-- [ ] T073 [P] [US7] Escribir tests del store de sesión cifrado (AC-29, FR-049): ida y vuelta AES-256-GCM con `WHATSAPP_SESSION_KEY`, clave errónea falla sin dejar archivos, archivo 0600 en directorio 0700, `wipeWorkingProfile` borra un perfil de trabajo sobrante de una caída, el contenido guardado no contiene el número en texto plano — en `it.fails` — en test/unit/session-store.test.ts
-- [ ] T074 [US7] Implementar el store de sesión para `RemoteAuth` y pasar T073 a `it` en src/adapters/session-store.ts
+- [X] T073 [P] [US7] Escribir tests del store de sesión cifrado (AC-29, FR-049): ida y vuelta AES-256-GCM con `WHATSAPP_SESSION_KEY`, clave errónea falla sin dejar archivos, archivo 0600 en directorio 0700, `wipeWorkingProfile` borra un perfil de trabajo sobrante de una caída, el contenido guardado no contiene el número en texto plano — en `it.fails` — en test/unit/session-store.test.ts
+- [X] T074 [US7] Implementar el store de sesión para `RemoteAuth` y pasar T073 a `it` en src/adapters/session-store.ts
 - [ ] T075 [US7] Reemplazar `LocalAuth` por `RemoteAuth` con el store cifrado, borrar el perfil de trabajo al cerrar y también al arrancar antes de conectarse (por si quedó de un `kill -9`), en src/adapters/whatsapp.ts
 - [ ] T076 [US7] Escribir tests del monitor de conexión (depende de T058, que expone `EmergencyState`; AC-47, FR-055): corte detectado < 30 s, eventos `connection` con esperas 1, 2, 4… 60 s, al 10.º fallo consecutivo evento crítico y salida con código 1, salvo con un cierre de emergencia en curso (evento crítico sin salida, AC-74); señal de Binance = fallo de la API de trading, contador separado por servicio y sin contar el refresco público (R-10) — en `it.fails` — en test/integration/reconnect.test.ts
 - [ ] T077 [US7] Implementar el monitor de conexión para WhatsApp y Binance y pasar T076 a `it` en src/connection-monitor.ts
