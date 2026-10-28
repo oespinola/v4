@@ -31,7 +31,7 @@ function errorsOf(env: Record<string, string | undefined>): string[] {
 }
 
 describe('config (FR-058, FR-062, FR-052)', () => {
-  it.fails('arma la configuración DRY con las credenciales de Demo Trading', () => {
+  it('arma la configuración DRY con las credenciales de Demo Trading', () => {
     const r = parseConfig(dryEnv());
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -44,18 +44,18 @@ describe('config (FR-058, FR-062, FR-052)', () => {
     expect(r.config.dataDir).toBe('data');
   });
 
-  it.fails('en LIVE usa las credenciales de producción y no pide las de Demo (FR-052)', () => {
+  it('en LIVE usa las credenciales de producción y no pide las de Demo (FR-052)', () => {
     const r = parseConfig({ SIGNALBRIDGE_MODE: 'LIVE', ...common, ...live });
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect(r.config.binance).toEqual({ apiKey: 'live-key', secret: 'live-secret' });
   });
 
-  it.fails('en DRY no pide las credenciales de producción', () => {
+  it('en DRY no pide las credenciales de producción', () => {
     expect(errorsOf(dryEnv())).toEqual([]);
   });
 
-  it.fails('en LIVE falta la credencial de producción aunque estén las de Demo', () => {
+  it('en LIVE falta la credencial de producción aunque estén las de Demo', () => {
     const errs = errorsOf({ SIGNALBRIDGE_MODE: 'LIVE', ...common, ...demo });
     expect(errs).toEqual(expect.arrayContaining(['BINANCE_LIVE_API_KEY', 'BINANCE_LIVE_API_SECRET']));
   });
@@ -75,49 +75,49 @@ describe('config (FR-058, FR-062, FR-052)', () => {
     'SYMBOL_LEVERAGE',
   ];
   for (const v of required) {
-    it.fails(`informa ${v} si falta`, () => {
+    it(`informa ${v} si falta`, () => {
       expect(errorsOf(dryEnv({ [v]: undefined }))).toContain(v);
       expect(errorsOf(dryEnv({ [v]: '  ' }))).toContain(v);
     });
   }
 
-  it.fails('rechaza valores numéricos que no son > 0 (FR-062)', () => {
+  it('rechaza valores numéricos que no son > 0 (FR-062)', () => {
     expect(errorsOf(dryEnv({ RISK_R_USDT: '0' }))).toContain('RISK_R_USDT');
     expect(errorsOf(dryEnv({ MAX_CAPITAL_USDT: '-10' }))).toContain('MAX_CAPITAL_USDT');
     expect(errorsOf(dryEnv({ MAX_LEVERAGE: 'abc' }))).toContain('MAX_LEVERAGE');
   });
 
-  it.fails('pide enteros para MAX_POSITIONS y SYMBOL_LEVERAGE', () => {
+  it('pide enteros para MAX_POSITIONS y SYMBOL_LEVERAGE', () => {
     expect(errorsOf(dryEnv({ MAX_POSITIONS: '1.5' }))).toContain('MAX_POSITIONS');
     expect(errorsOf(dryEnv({ SYMBOL_LEVERAGE: '2.5' }))).toContain('SYMBOL_LEVERAGE');
   });
 
-  it.fails('MAX_SL_DISTANCE_PCT es 15 si no se configura, y debe ser > 0 si se configura (FR-013)', () => {
+  it('MAX_SL_DISTANCE_PCT es 15 si no se configura, y debe ser > 0 si se configura (FR-013)', () => {
     const r = parseConfig(dryEnv({ MAX_SL_DISTANCE_PCT: undefined }));
     expect(r.ok && r.config.maxSlDistancePct).toBe(15);
     expect(errorsOf(dryEnv({ MAX_SL_DISTANCE_PCT: '0' }))).toContain('MAX_SL_DISTANCE_PCT');
   });
 
-  it.fails('pide una clave de sesión de 32 bytes en hex o base64 (FR-049)', () => {
+  it('pide una clave de sesión de 32 bytes en hex o base64 (FR-049)', () => {
     expect(errorsOf(dryEnv({ WHATSAPP_SESSION_KEY: 'corta' }))).toContain('WHATSAPP_SESSION_KEY');
     const b64 = Buffer.alloc(32, 7).toString('base64');
     expect(errorsOf(dryEnv({ WHATSAPP_SESSION_KEY: b64 }))).toEqual([]);
   });
 
-  it.fails('pide al menos un remitente autorizado', () => {
+  it('pide al menos un remitente autorizado', () => {
     expect(errorsOf(dryEnv({ AUTHORIZED_SENDERS: ' , ' }))).toContain('AUTHORIZED_SENDERS');
   });
 
-  it.fails('rechaza un modo que no sea DRY ni LIVE', () => {
+  it('rechaza un modo que no sea DRY ni LIVE', () => {
     expect(errorsOf(dryEnv({ SIGNALBRIDGE_MODE: 'PAPER' }))).toContain('SIGNALBRIDGE_MODE');
   });
 
-  it.fails('lista todo lo que falta de una vez', () => {
+  it('lista todo lo que falta de una vez', () => {
     const errs = errorsOf({ SIGNALBRIDGE_MODE: 'DRY' });
     expect(errs).toEqual(expect.arrayContaining(required));
   });
 
-  it.fails('sale con el código 78 ante configuración inválida', () => {
+  it('sale con el código 78 ante configuración inválida', () => {
     expect(CONFIG_EXIT_CODE).toBe(78);
   });
 });
