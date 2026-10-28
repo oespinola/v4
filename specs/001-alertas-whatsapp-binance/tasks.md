@@ -86,7 +86,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 ### Validación en orden
 
-- [ ] T037 [US1] Escribir tests de validación (AC-02, AC-04, AC-19, AC-54, AC-68, AC-71, FR-013, FR-020, FR-064): orden remitente → duplicado ID → incompleta → duplicado hash → ticker inexistente → SL = Entrada → SL fuera de rango (máximo configurable) → datos de mercado no disponibles (fake de `MarketData` cuyo `closes45m` rechaza) → TP inválido → ranking no disponible → top 3, y un único motivo (el primero) — en `it.fails` — en test/unit/validate.test.ts
+- [X] T037 [US1] Escribir tests de validación (AC-02, AC-04, AC-19, AC-54, AC-68, AC-71, FR-013, FR-020, FR-064): orden remitente → duplicado ID → incompleta → duplicado hash → ticker inexistente → SL = Entrada → SL fuera de rango (máximo configurable) → datos de mercado no disponibles (fake de `MarketData` cuyo `closes45m` rechaza) → TP inválido → ranking no disponible → top 3, y un único motivo (el primero) — en `it.fails` — en test/unit/validate.test.ts
 - [ ] T038 [US1] Implementar la validación en orden y pasar T037 a `it` en src/domain/validate.ts
 
 ### Adaptadores y armado
