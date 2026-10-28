@@ -1,4 +1,9 @@
-// Persistencia local: SQLite + log JSONL (data-model.md). Pendiente de implementar (T019).
+// Persistencia local (data-model.md): SQLite (`node:sqlite`) para alertas, ediciones y operaciones,
+// y un log JSONL con una línea por evento. Todo lo que crea el proceso lo lee solo su usuario:
+// umask 077, `data/` en 0700 y archivos en 0600 (FR-046).
+import { appendFileSync, chmodSync, closeSync, existsSync, mkdirSync, openSync } from 'node:fs';
+import path from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
 import type { Clock } from '../ports.ts';
 import type { Alert, Trade, TradeState } from '../domain/types.ts';
 
@@ -12,50 +17,152 @@ export interface EditRecord {
 
 export type LogType = 'alert' | 'edit' | 'connection' | 'critical';
 
+/** Estados que ocupan cupo y bloquean el símbolo (FR-025, FR-026, FR-063). */
+const ACTIVE: TradeState[] = ['pendiente', 'con_ejecución', 'abierta'];
+
+const DATE_KEYS = new Set(['receivedAt', 'classifiedAt', 'entryPlacedAt', 'closedAt', 'editedAt']);
+
+const revive = <T>(json: string): T =>
+  JSON.parse(json, (k, v) => (DATE_KEYS.has(k) && typeof v === 'string' ? new Date(v) : v)) as T;
+
+/** Crea el archivo vacío en 0600 si no existe y corrige el modo si ya existía. */
+function ensurePrivateFile(file: string): void {
+  if (!existsSync(file)) closeSync(openSync(file, 'a', 0o600));
+  chmodSync(file, 0o600);
+}
+
 export class Store {
-  static open(_dir: string, _clock: Clock): Store {
-    return new Store();
+  private constructor(
+    private readonly db: DatabaseSync,
+    private readonly logFile: string,
+    private readonly clock: Clock,
+  ) {}
+
+  static open(dir: string, clock: Clock): Store {
+    process.umask(0o077);
+    mkdirSync(dir, { recursive: true, mode: 0o700 });
+    chmodSync(dir, 0o700);
+    const dbFile = path.join(dir, 'signalbridge.db');
+    const logFile = path.join(dir, 'alerts.log');
+    ensurePrivateFile(dbFile);
+    ensurePrivateFile(logFile);
+
+    const db = new DatabaseSync(dbFile);
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS alerts (
+        alert_id      TEXT PRIMARY KEY,
+        wa_message_id TEXT NOT NULL UNIQUE,
+        content_hash  TEXT NOT NULL,
+        received_at   INTEGER NOT NULL,
+        status        TEXT NOT NULL,
+        reason        TEXT,
+        record        TEXT NOT NULL
+      );
+      CREATE INDEX IF NOT EXISTS alerts_hash ON alerts (content_hash, received_at);
+      CREATE TABLE IF NOT EXISTS edits (
+        alert_id  TEXT NOT NULL,
+        edited_at INTEGER NOT NULL,
+        record    TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS trades (
+        alert_id TEXT PRIMARY KEY,
+        symbol   TEXT NOT NULL,
+        state    TEXT NOT NULL,
+        notional REAL NOT NULL,
+        record   TEXT NOT NULL
+      );
+    `);
+    // SQLite crea archivos auxiliares (-wal, -journal) con el umask ya en 077.
+    return new Store(db, logFile, clock);
   }
 
-  private ni(): never {
-    throw new Error('Store: no implementado');
+  saveAlert(a: Alert): void {
+    this.db
+      .prepare(
+        `INSERT INTO alerts (alert_id, wa_message_id, content_hash, received_at, status, reason, record)
+         VALUES (?, ?, ?, ?, ?, ?, ?)
+         ON CONFLICT (alert_id) DO UPDATE SET status = excluded.status, reason = excluded.reason,
+           record = excluded.record`,
+      )
+      .run(a.alertId, a.waMessageId, a.contentHash, a.receivedAt.getTime(), a.status, a.reason, JSON.stringify(a));
   }
 
-  saveAlert(_a: Alert): void {
-    this.ni();
+  getAlert(alertId: string): Alert | undefined {
+    const row = this.db.prepare('SELECT record FROM alerts WHERE alert_id = ?').get(alertId);
+    return row ? revive<Alert>(row.record as string) : undefined;
   }
-  getAlert(_alertId: string): Alert | undefined {
-    return this.ni();
+
+  findByWaMessageId(id: string): Alert | undefined {
+    const row = this.db.prepare('SELECT record FROM alerts WHERE wa_message_id = ?').get(id);
+    return row ? revive<Alert>(row.record as string) : undefined;
   }
-  findByWaMessageId(_id: string): Alert | undefined {
-    return this.ni();
+
+  hasContentHashSince(hash: string, since: Date): boolean {
+    const row = this.db
+      .prepare('SELECT 1 FROM alerts WHERE content_hash = ? AND received_at >= ? LIMIT 1')
+      .get(hash, since.getTime());
+    return row !== undefined;
   }
-  hasContentHashSince(_hash: string, _since: Date): boolean {
-    return this.ni();
+
+  saveEdit(e: EditRecord): void {
+    this.db
+      .prepare('INSERT INTO edits (alert_id, edited_at, record) VALUES (?, ?, ?)')
+      .run(e.alertId, e.editedAt.getTime(), JSON.stringify(e));
   }
-  saveEdit(_e: EditRecord): void {
-    this.ni();
+
+  editsOf(alertId: string): EditRecord[] {
+    return this.db
+      .prepare('SELECT record FROM edits WHERE alert_id = ? ORDER BY edited_at')
+      .all(alertId)
+      .map((r) => revive<EditRecord>(r.record as string));
   }
-  editsOf(_alertId: string): EditRecord[] {
-    return this.ni();
+
+  saveTrade(t: Trade): void {
+    this.db
+      .prepare(
+        `INSERT INTO trades (alert_id, symbol, state, notional, record) VALUES (?, ?, ?, ?, ?)
+         ON CONFLICT (alert_id) DO UPDATE SET symbol = excluded.symbol, state = excluded.state,
+           notional = excluded.notional, record = excluded.record`,
+      )
+      .run(t.alertId, t.symbol, t.state, t.notional, JSON.stringify(t));
   }
-  saveTrade(_t: Trade): void {
-    this.ni();
+
+  getTrade(alertId: string): Trade | undefined {
+    const row = this.db.prepare('SELECT record FROM trades WHERE alert_id = ?').get(alertId);
+    return row ? revive<Trade>(row.record as string) : undefined;
   }
-  getTrade(_alertId: string): Trade | undefined {
-    return this.ni();
-  }
+
   exposure(): { positions: number; notional: number } {
-    return this.ni();
+    const row = this.db
+      .prepare(
+        `SELECT COUNT(*) AS n, COALESCE(SUM(notional), 0) AS total FROM trades
+         WHERE state IN (${ACTIVE.map(() => '?').join(',')})`,
+      )
+      .get(...ACTIVE);
+    return { positions: Number(row?.n ?? 0), notional: Number(row?.total ?? 0) };
   }
-  activeTradeForSymbol(_symbol: string): Trade | undefined {
-    return this.ni();
+
+  activeTradeForSymbol(symbol: string): Trade | undefined {
+    const row = this.db
+      .prepare(`SELECT record FROM trades WHERE symbol = ? AND state IN (${ACTIVE.map(() => '?').join(',')}) LIMIT 1`)
+      .get(symbol, ...ACTIVE);
+    return row ? revive<Trade>(row.record as string) : undefined;
   }
-  tradesInState(_state: TradeState): Trade[] {
-    return this.ni();
+
+  tradesInState(state: TradeState): Trade[] {
+    return this.db
+      .prepare('SELECT record FROM trades WHERE state = ? ORDER BY rowid')
+      .all(state)
+      .map((r) => revive<Trade>(r.record as string));
   }
-  appendLog(_type: LogType, _payload: Record<string, unknown>): void {
-    this.ni();
+
+  /** Una línea JSON por evento, con `type` y `at` primero (contracts/log-record.md). */
+  appendLog(type: LogType, payload: Record<string, unknown>): void {
+    const line = JSON.stringify({ type, at: this.clock.now().toISOString(), ...payload });
+    appendFileSync(this.logFile, `${line}\n`, { mode: 0o600 });
   }
-  close(): void {}
+
+  close(): void {
+    this.db.close();
+  }
 }

@@ -82,7 +82,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it.fails('fija umask 077, crea data/ en 0700 y los archivos en 0600', () => {
+  it('fija umask 077, crea data/ en 0700 y los archivos en 0600', () => {
     store.appendLog('alert', { alertId: 'x' });
     expect(process.umask()).toBe(0o077);
     expect(perms(dir)).toBe(0o700);
@@ -90,7 +90,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(perms(path.join(dir, 'alerts.log'))).toBe(0o600);
   });
 
-  it.fails('guarda una alerta y la encuentra por ID de mensaje, con las fechas intactas', () => {
+  it('guarda una alerta y la encuentra por ID de mensaje, con las fechas intactas', () => {
     store.saveAlert(alert());
     const found = store.findByWaMessageId('wa-1');
     expect(found?.alertId).toBe('wa-1:0123456789abcdef');
@@ -99,20 +99,20 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.findByWaMessageId('wa-2')).toBeUndefined();
   });
 
-  it.fails('actualiza una alerta ya guardada sin duplicarla', () => {
+  it('actualiza una alerta ya guardada sin duplicarla', () => {
     store.saveAlert(alert());
     store.saveAlert(alert({ status: 'rechazada', reason: 'TP inválido' }));
     expect(store.getAlert('wa-1:0123456789abcdef')?.reason).toBe('TP inválido');
   });
 
-  it.fails('busca el hash de contenido solo dentro de la ventana pedida (FR-007)', () => {
+  it('busca el hash de contenido solo dentro de la ventana pedida (FR-007)', () => {
     store.saveAlert(alert({ receivedAt: new Date('2026-10-27T13:00:00Z') }));
     expect(store.hasContentHashSince('0123456789abcdef', new Date('2026-10-27T12:00:00Z'))).toBe(true);
     expect(store.hasContentHashSince('0123456789abcdef', new Date('2026-10-27T14:00:00Z'))).toBe(false);
     expect(store.hasContentHashSince('ffffffffffffffff', new Date('2026-10-01T00:00:00Z'))).toBe(false);
   });
 
-  it.fails('guarda ediciones de alertas (FR-047)', () => {
+  it('guarda ediciones de alertas (FR-047)', () => {
     store.saveAlert(alert());
     store.saveEdit({
       alertId: 'wa-1:0123456789abcdef',
@@ -124,7 +124,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.editsOf('wa-1:0123456789abcdef')).toHaveLength(1);
   });
 
-  it.fails('cuenta posiciones y nocional de operaciones pendiente, con_ejecución o abierta (FR-025, FR-026)', () => {
+  it('cuenta posiciones y nocional de operaciones pendiente, con_ejecución o abierta (FR-025, FR-026)', () => {
     store.saveTrade(trade({ alertId: 'a', symbol: 'AUSDT', notional: 100, state: 'pendiente' }));
     store.saveTrade(trade({ alertId: 'b', symbol: 'BUSDT', notional: 50, state: 'con_ejecución' }));
     store.saveTrade(trade({ alertId: 'c', symbol: 'CUSDT', notional: 25, state: 'abierta' }));
@@ -132,7 +132,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.exposure()).toEqual({ positions: 3, notional: 175 });
   });
 
-  it.fails('encuentra la operación activa de un símbolo (FR-063) y lista por estado (FR-065)', () => {
+  it('encuentra la operación activa de un símbolo (FR-063) y lista por estado (FR-065)', () => {
     store.saveTrade(trade({ alertId: 'a', symbol: 'AUSDT', state: 'con_ejecución' }));
     store.saveTrade(trade({ alertId: 'b', symbol: 'BUSDT', state: 'cerrada' }));
     expect(store.activeTradeForSymbol('AUSDT')?.alertId).toBe('a');
@@ -140,7 +140,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.tradesInState('con_ejecución').map((t) => t.alertId)).toEqual(['a']);
   });
 
-  it.fails('actualiza una operación al cambiar de estado', () => {
+  it('actualiza una operación al cambiar de estado', () => {
     store.saveTrade(trade({ state: 'pendiente' }));
     store.saveTrade(trade({ state: 'abierta', filledQty: 4166, slOrderId: '222', tpOrderId: '333' }));
     const t = store.getTrade('wa-1:0123456789abcdef');
@@ -149,7 +149,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     expect(store.exposure().positions).toBe(1);
   });
 
-  it.fails('agrega una línea JSON por evento con type y at', () => {
+  it('agrega una línea JSON por evento con type y at', () => {
     store.appendLog('alert', { alertId: 'x', status: 'rechazada' });
     clock.set('2026-10-28T12:00:05Z');
     store.appendLog('critical', { kind: 'reconexión agotada' });
@@ -160,7 +160,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     ]);
   });
 
-  it.fails('persiste entre aperturas (reinicio)', () => {
+  it('persiste entre aperturas (reinicio)', () => {
     store.saveAlert(alert());
     store.close();
     store = Store.open(dir, clock);
