@@ -1,6 +1,5 @@
-// Punto de entrada (pnpm dev = DRY, pnpm start = LIVE). Valida la configuración antes de
-// conectarse a nada (FR-058, FR-062) y arma: store → datos públicos → exchange del modo → ejecutor y
-// seguimiento de las operaciones abiertas → WhatsApp → cola → pipeline. DRY opera contra Binance Demo y LIVE contra producción (FR-051).
+// Punto de entrada (pnpm dev = DRY, pnpm start = LIVE): arma los adaptadores reales y arranca la app
+// (src/app.ts). DRY opera contra Binance Demo y LIVE contra producción (FR-051).
 import path from 'node:path';
 import { BinancePublicMarketData, publicDataUrls } from './adapters/binance-public.ts';
 import { createExchange } from './adapters/binance-trading.ts';
@@ -8,104 +7,47 @@ import { ClaudeExtractor } from './adapters/claude-extractor.ts';
 import { SystemClock } from './adapters/clock.ts';
 import { Store } from './adapters/store.ts';
 import { WhatsAppSource } from './adapters/whatsapp.ts';
-import { Executor } from './domain/executor.ts';
-import { Tracker } from './domain/tracker.ts';
-import { CONFIG_EXIT_CODE, formatConfigErrors, loadDotEnv, parseConfig, startupWarnings } from './config.ts';
-import { Pipeline, type ProcessOutcome } from './pipeline.ts';
-import { SerialQueue } from './queue.ts';
+import { startApp, type AppFactories } from './app.ts';
+import { loadDotEnv } from './config.ts';
 
-function describe(outcome: ProcessOutcome): string | null {
-  if (outcome.kind === 'ignored') return null;
-  const a = outcome.alert;
-  if (a.status === 'rechazada') return `✗ ${a.ticker ?? '?'} rechazada: ${a.reason}`;
-  return `✓ ${a.symbol} ${a.side} Entrada ${a.entry} SL ${a.sl} TP ${a.tp} (${a.tpSource}): ${a.status}`;
-}
+const factories: AppFactories = {
+  clock: () => new SystemClock(),
+  store: (config, clock) => Store.open(config.dataDir, clock),
+  market: (config, clock, log) =>
+    new BinancePublicMarketData({
+      clock,
+      // Ranking y velas de producción; en DRY, filtros de órdenes de Demo (FR-017, FR-066).
+      ...publicDataUrls(config.mode),
+      onRefreshError: (e) => log(`No se pudo refrescar símbolos/ranking: ${(e as Error).message}`),
+    }),
+  exchange: (config) => createExchange(config.mode, config.binance).exchange,
+  extractor: (config) => (config.anthropicApiKey ? new ClaudeExtractor({ apiKey: config.anthropicApiKey }) : null),
+  whatsapp: (config, clock, log) =>
+    new WhatsAppSource({
+      authDir: path.resolve('.wwebjs_auth'),
+      groupName: config.whatsappGroupName,
+      now: () => clock.now(),
+      log,
+    }),
+};
 
 async function main(): Promise<void> {
   loadDotEnv();
-  const parsed = parseConfig(process.env);
-  if (!parsed.ok) {
-    console.error(formatConfigErrors(parsed.errors));
-    process.exit(CONFIG_EXIT_CODE);
-  }
-  const config = parsed.config;
-  const clock = new SystemClock();
-  const log = (line: string) => console.log(`[${clock.now().toISOString()}] ${line}`);
-  log(`SignalBridge en modo ${config.mode}`);
-  for (const warning of startupWarnings(config)) log(`Aviso: ${warning}`);
-
-  const store = Store.open(config.dataDir, clock);
-  const market = new BinancePublicMarketData({
-    clock,
-    // Ranking y velas de producción; en DRY, filtros de órdenes de Demo (FR-017, FR-066).
-    ...publicDataUrls(config.mode),
-    onRefreshError: (e) => log(`No se pudo refrescar símbolos/ranking: ${(e as Error).message}`),
-  });
-  await market.start();
-
-  const { exchange } = createExchange(config.mode, config.binance);
-  const executor = new Executor({
-    exchange,
-    store,
-    clock,
-    symbolLeverage: config.symbolLeverage,
-    riskR: config.riskR,
-  });
-  // Sigue toda operación `abierta` hasta su cierre, incluidas las que quedaron de antes (FR-033).
-  const tracker = new Tracker({ exchange, store, clock });
-  tracker.start();
-
-  const pipeline = new Pipeline({
-    store,
-    clock,
-    mode: config.mode,
-    authorizedSenders: config.authorizedSenders,
-    extractor: config.anthropicApiKey ? new ClaudeExtractor({ apiKey: config.anthropicApiKey }) : null,
-    market,
-    maxSlDistancePct: config.maxSlDistancePct,
-    trading: {
-      exchange,
-      executor,
-      riskR: config.riskR,
-      maxPositions: config.maxPositions,
-      maxCapitalUsdt: config.maxCapital,
-      maxPositionUsdt: config.maxPositionSize,
-      maxLeverage: config.maxLeverage,
-    },
-  });
-  const queue = new SerialQueue((e) => log(`Error procesando un mensaje: ${(e as Error).message}`));
-
-  const whatsapp = new WhatsAppSource({
-    authDir: path.resolve('.wwebjs_auth'),
-    groupName: config.whatsappGroupName,
-    now: () => clock.now(),
-    log,
-  });
-  whatsapp.onMessage((m) =>
-    void queue.push(async () => {
-      const line = describe(await pipeline.processMessage(m));
-      if (line) log(line);
-    }),
-  );
-  whatsapp.onEdit((e) => void queue.push(() => pipeline.processEdit(e)));
-
+  const log = (line: string) => console.log(`[${new Date().toISOString()}] ${line}`);
+  let stopApp: (() => Promise<void>) | null = null;
   let stopping = false;
   const shutdown = async () => {
     if (stopping) return;
     stopping = true;
     log('Cerrando…');
-    market.stop();
-    await queue.idle();
-    executor.stop();
-    tracker.stop();
-    await whatsapp.stop();
-    store.close();
+    await stopApp?.();
     process.exit(0);
   };
   process.on('SIGINT', () => void shutdown());
   process.on('SIGTERM', () => void shutdown());
 
-  await whatsapp.start();
+  const started = await startApp(process.env, factories, log, (stop) => (stopApp = stop));
+  if (!started.ok) process.exit(started.exitCode);
 }
 
 main().catch((e) => {

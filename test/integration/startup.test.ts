@@ -104,7 +104,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it.fails('no se suscribe a mensajes hasta que termina la reconciliación (FR-039)', async () => {
+  it('no se suscribe a mensajes hasta que termina la reconciliación (FR-039)', async () => {
     const starting = startApp(env(path.join(root, 'data')), factories(), () => {});
     for (let i = 0; i < 20 && !releaseOrder; i++) await new Promise((r) => setTimeout(r, 5));
     expect(events).toEqual(['reconciliación: consulta la entrada']);
@@ -115,7 +115,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     expect(events).toEqual(['reconciliación: consulta la entrada', 'suscripción a mensajes', 'WhatsApp arrancado']);
   });
 
-  it.fails('con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062)', async () => {
+  it('con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062)', async () => {
     const lines: string[] = [];
     const r = await startApp({ SIGNALBRIDGE_MODE: 'DRY' }, factories(), (l) => lines.push(l));
     expect(r).toEqual({ ok: false, exitCode: 78 });

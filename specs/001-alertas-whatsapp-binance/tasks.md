@@ -184,8 +184,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 
 - [X] T069 [P] [US6] Escribir tests de la reconciliación (AC-63, AC-65, AC-66, AC-73, FR-040 a FR-042, FR-065): operación local en `con_ejecución` sin SL/TP confirmados → colocar lo que falta o cerrar a mercado con evento crítico; operación `abierta` sin SL o TP → solo evento crítico (FR-038); posición local ausente en Binance → cierre registrado y huérfana cancelada; entrada pendiente ejecutada → SL y TP (o cierre a mercado si fallan); plazo vencido → FR-031/FR-032 — en `it.fails` — en test/unit/reconcile.test.ts
 - [X] T070 [US6] Implementar la reconciliación y pasar T069 a `it` en src/domain/reconcile.ts
-- [ ] T071 [US6] Escribir test de integración del arranque (FR-039): `main` no se suscribe a mensajes hasta que la reconciliación termina; con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062) — en `it.fails` — en test/integration/startup.test.ts
-- [ ] T072 [US6] Correr la reconciliación antes de suscribirse a mensajes y pasar T071 a `it` en src/main.ts
+- [X] T071 [US6] Escribir test de integración del arranque (FR-039): `main` no se suscribe a mensajes hasta que la reconciliación termina; con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062) — en `it.fails` — en test/integration/startup.test.ts
+- [X] T072 [US6] Correr la reconciliación antes de suscribirse a mensajes y pasar T071 a `it` en src/main.ts
 
 **Checkpoint**: una caída no deja estado desalineado.
 
