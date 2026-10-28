@@ -28,7 +28,12 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   el nivel de riesgo y el ticker a partir del texto del mensaje.
 - RF-11: El sistema debe asignar a cada alerta procesada (cargada o rechazada) un
   identificador único persistente, formado por el ID del mensaje de WhatsApp y un hash
-  de (ticker, Entrada, SL, TP).
+  de (símbolo, Entrada, SL, TP) calculado después del mapeo del ticker (RF-31) y del
+  ajuste al tickSize (RF-37), para que la misma operación escrita de dos formas (por
+  ejemplo "PEPE 0.002404" y "1000PEPE 2.404") tenga el mismo hash. Si el objetivo no
+  trae precio, en lugar del TP entra el texto del objetivo. Si la alerta se rechaza
+  antes de poder mapearla (incompleta o ticker inexistente), el hash se calcula con
+  los valores tal como vienen.
 - RF-13: El sistema debe rechazar una señal cuyo Take Profit no esté del lado correcto
   de la Entrada: por encima para LONG, por debajo para SHORT.
 - RF-14: El sistema debe rechazar una señal cuyo Stop Loss sea igual a la Entrada.
@@ -61,8 +66,8 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   precio como Take Profit.
 - RF-29: El sistema debe rechazar como duplicado, sin operarla, una alerta cuyo ID de
   mensaje de WhatsApp coincida con el de cualquier alerta ya registrada, o cuyo hash
-  de (ticker, Entrada, SL, TP) coincida con el de una alerta registrada en las últimas
-  24 h (RF-11).
+  (RF-11) coincida con el de una alerta no rechazada registrada en las últimas 24 h.
+  Una alerta rechazada no bloquea su reenvío: el reenvío se evalúa de nuevo.
 - RF-31: El sistema debe mapear el ticker de la alerta al contrato perpetuo
   TICKERUSDT; si no existe, a 1000TICKERUSDT, multiplicando Entrada, SL y TP por 1000.
 - RF-32: El sistema debe rechazar una alerta cuyo ticker no exista en Futuros USDS-M
@@ -74,7 +79,7 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   Entrada.
 - RF-38: El sistema debe evaluar las validaciones en este orden y registrar como
   motivo de rechazo solo la primera que falle: remitente no autorizado, duplicado (ID
-  de WhatsApp), incompleta, duplicado (hash), ticker inexistente, SL igual a la
+  de WhatsApp), incompleta, ticker inexistente, duplicado (hash), SL igual a la
   Entrada, SL fuera de rango, datos de mercado no disponibles (velas para el TP), TP
   inválido, ranking no disponible, top 3 ganadores/perdedores, bajo mínimo, datos de
   mercado no disponibles (balance), excede máximos, símbolo ya en operación, límite de
@@ -143,7 +148,7 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   cuando el sistema la procesa, entonces el TP es 0.002404 y no calcula indicadores.
 - AC-35 (RF-03): Dado un mensaje del grupo que contiene "ALERTA DE TRADÍNG" en medio
   del texto, cuando llega al sistema, entonces se procesa como alerta.
-- AC-37 (RF-29): Dada una alerta registrada hace menos de 24 h, cuando llega un reenvío
+- AC-37 (RF-29): Dada una alerta no rechazada registrada hace menos de 24 h, cuando llega un reenvío
   con otro ID de mensaje de WhatsApp pero el mismo ticker, Entrada, SL y TP, entonces el sistema no la
   opera y la loguea como "duplicado".
 - AC-38 (RF-23): Dado un conjunto conocido de tickers de 24 h que incluye un contrato
@@ -167,6 +172,12 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-53 (RF-29): Dada una alerta registrada hace más de 24 h, cuando llega otra con otro
   ID de mensaje de WhatsApp y el mismo ticker, Entrada, SL y TP, entonces el sistema no
   la rechaza como duplicado.
+- AC-77 (RF-29): Dada una alerta rechazada hace menos de 24 h (por ejemplo, por
+  "ranking no disponible"), cuando llega un reenvío con otro ID de mensaje y los mismos
+  valores, entonces el sistema no lo rechaza como duplicado y lo evalúa de nuevo.
+- AC-78 (RF-11, RF-29): Dada una alerta no rechazada con ticker "PEPE" y Entrada
+  0.002404 registrada hace menos de 24 h, cuando llega otra con ticker "1000PEPE",
+  Entrada 2.404 y SL y TP equivalentes, entonces el sistema la rechaza como "duplicado".
 - AC-54 (RF-38): Dada una alerta de un remitente no autorizado a la que además le faltan
   datos, cuando el sistema la valida, entonces loguea un único motivo: "remitente no
   autorizado".
