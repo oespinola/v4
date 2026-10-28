@@ -24,19 +24,19 @@ const oneWay = { fapiPrivateGetPositionSideDual: () => ({ dualSidePosition: fals
 const hedge = { fapiPrivateGetPositionSideDual: () => ({ dualSidePosition: true }) };
 
 describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060)', () => {
-  it.fails('números siempre en notación decimal', () => {
+  it('números siempre en notación decimal', () => {
     expect(decimal(0.0000001)).toBe('0.0000001');
     expect(decimal(4166)).toBe('4166');
     expect(decimal(0.0402)).toBe('0.0402');
   });
 
-  it.fails('los errores no muestran la URL con la firma', () => {
+  it('los errores no muestran la URL con la firma', () => {
     const e = shortenError(new Error('binanceusdm POST https://demo-fapi.binance.com/fapi/v1/order?symbol=X&timestamp=1&signature=abc fetch failed'));
     expect(e.message).not.toMatch(/signature|demo-fapi/);
     expect(e.message).toContain('POST /fapi/v1/order');
   });
 
-  it.fails('balance total de la billetera USDT, sin PnL no realizado (FR-024)', async () => {
+  it('balance total de la billetera USDT, sin PnL no realizado (FR-024)', async () => {
     const f = fakeClient({
       fapiPrivateV2GetAccount: () => ({
         assets: [
@@ -48,7 +48,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(await new BinanceTrading(f.client).walletBalanceUsdt()).toBe(3000.5);
   });
 
-  it.fails('prepara margen aislado y apalancamiento solo si hace falta (FR-060)', async () => {
+  it('prepara margen aislado y apalancamiento solo si hace falta (FR-060)', async () => {
     const f = fakeClient({
       fapiPrivateV2GetPositionRisk: () => [{ symbol: 'KAIAUSDT', marginType: 'cross', leverage: '5', positionAmt: '0', positionSide: 'BOTH' }],
       fapiPrivatePostMarginType: () => ({}),
@@ -65,7 +65,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(ready.calls.map((c) => c.method)).toEqual(['fapiPrivateV2GetPositionRisk']);
   });
 
-  it.fails('"ya es aislado" (-4046) no es un error', async () => {
+  it('"ya es aislado" (-4046) no es un error', async () => {
     const f = fakeClient({
       fapiPrivateV2GetPositionRisk: () => [],
       fapiPrivatePostMarginType: binanceError(-4046),
@@ -74,7 +74,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     await expect(new BinanceTrading(f.client).prepareSymbol('KAIAUSDT', 2)).resolves.toBeUndefined();
   });
 
-  it.fails('entrada LIMIT GTC al precio, en one-way sin positionSide (FR-027)', async () => {
+  it('entrada LIMIT GTC al precio, en one-way sin positionSide (FR-027)', async () => {
     const f = fakeClient({ ...oneWay, fapiPrivatePostOrder: () => ({ orderId: 111 }) });
     const ex = new BinanceTrading(f.client);
     const ref = await ex.placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 4166, price: 0.0402 });
@@ -87,13 +87,13 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(f.of('fapiPrivatePostOrder')[1]).toMatchObject({ side: 'BUY' });
   });
 
-  it.fails('en una cuenta hedge manda positionSide', async () => {
+  it('en una cuenta hedge manda positionSide', async () => {
     const f = fakeClient({ ...hedge, fapiPrivatePostOrder: () => ({ orderId: 111 }) });
     await new BinanceTrading(f.client).placeLimitEntry({ symbol: 'KAIAUSDT', side: 'SHORT', quantity: 1, price: 1 });
     expect(f.of('fapiPrivatePostOrder')[0]).toMatchObject({ side: 'SELL', positionSide: 'SHORT' });
   });
 
-  it.fails('SL STOP_MARKET y TP TAKE_PROFIT_MARKET condicionales con closePosition y precio de marca (R-06)', async () => {
+  it('SL STOP_MARKET y TP TAKE_PROFIT_MARKET condicionales con closePosition y precio de marca (R-06)', async () => {
     let next = 900;
     const f = fakeClient({ ...oneWay, fapiPrivatePostAlgoOrder: () => ({ algoId: next++ }) });
     const ex = new BinanceTrading(f.client);
@@ -105,7 +105,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     ]);
   });
 
-  it.fails('cierre a mercado de toda la posición: reduceOnly en one-way, positionSide en hedge (FR-030)', async () => {
+  it('cierre a mercado de toda la posición: reduceOnly en one-way, positionSide en hedge (FR-030)', async () => {
     const f = fakeClient({
       ...oneWay,
       fapiPrivateV2GetPositionRisk: () => [{ symbol: 'KAIAUSDT', positionAmt: '-4166', positionSide: 'BOTH' }],
@@ -126,13 +126,13 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(h.of('fapiPrivatePostOrder')).toEqual([{ symbol: 'KAIAUSDT', side: 'BUY', positionSide: 'SHORT', type: 'MARKET', quantity: '4166' }]);
   });
 
-  it.fails('sin posición, el cierre a mercado no manda órdenes y devuelve null', async () => {
+  it('sin posición, el cierre a mercado no manda órdenes y devuelve null', async () => {
     const f = fakeClient({ ...oneWay, fapiPrivateV2GetPositionRisk: () => [{ symbol: 'KAIAUSDT', positionAmt: '0', positionSide: 'BOTH' }] });
     expect(await new BinanceTrading(f.client).closeAtMarket('KAIAUSDT', 'SHORT')).toBeNull();
     expect(f.of('fapiPrivatePostOrder')).toHaveLength(0);
   });
 
-  it.fails('cancela por el endpoint que corresponde e ignora lo que ya no está abierto (-2011)', async () => {
+  it('cancela por el endpoint que corresponde e ignora lo que ya no está abierto (-2011)', async () => {
     const f = fakeClient({ fapiPrivateDeleteOrder: () => ({}), fapiPrivateDeleteAlgoOrder: binanceError(-2011) });
     const ex = new BinanceTrading(f.client);
     await ex.cancel({ symbol: 'KAIAUSDT', id: '111' });
@@ -143,7 +143,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     await expect(new BinanceTrading(g.client).cancel({ symbol: 'KAIAUSDT', id: '111' })).rejects.toThrow(/-1021/);
   });
 
-  it.fails('estado de la entrada con la cantidad ejecutada', async () => {
+  it('estado de la entrada con la cantidad ejecutada', async () => {
     const status = { value: 'PARTIALLY_FILLED' };
     const f = fakeClient({ fapiPrivateGetOrder: () => ({ orderId: 111, status: status.value, executedQty: '1000' }) });
     const ex = new BinanceTrading(f.client);
@@ -157,7 +157,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     expect(f.of('fapiPrivateGetOrder')[0]).toEqual({ symbol: 'KAIAUSDT', orderId: '111' });
   });
 
-  it.fails('órdenes abiertas del símbolo, normales y condicionales', async () => {
+  it('órdenes abiertas del símbolo, normales y condicionales', async () => {
     const f = fakeClient({
       fapiPrivateGetOpenOrders: () => [{ orderId: 111, symbol: 'KAIAUSDT' }],
       fapiPrivateGetOpenAlgoOrders: () => [
@@ -171,7 +171,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     ]);
   });
 
-  it.fails('posiciones abiertas con su lado', async () => {
+  it('posiciones abiertas con su lado', async () => {
     const f = fakeClient({
       fapiPrivateV2GetPositionRisk: () => [
         { symbol: 'KAIAUSDT', positionAmt: '-4166', positionSide: 'BOTH' },
@@ -185,7 +185,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     ]);
   });
 
-  it.fails('PnL realizado y comisiones desde los trades, por orden (FR-036)', async () => {
+  it('PnL realizado y comisiones desde los trades, por orden (FR-036)', async () => {
     const f = fakeClient({
       fapiPrivateGetUserTrades: () => [
         { orderId: 333, realizedPnl: '5.1', commission: '0.05', commissionAsset: 'USDT', time: Date.parse('2026-10-28T15:00:00Z') },
