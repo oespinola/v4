@@ -2,7 +2,8 @@
 // un rechazo, lo loguea; las válidas siguen a la carga (US2). Las ediciones de alertas ya
 // procesadas se registran para revisión manual, sin operarse (FR-047).
 import type { Store } from './adapters/store.ts';
-import type { Clock, FieldExtractor, IncomingEdit, IncomingMessage, MarketData } from './ports.ts';
+import type { Clock, Exchange, FieldExtractor, IncomingEdit, IncomingMessage, MarketData } from './ports.ts';
+import type { Executor } from './domain/executor.ts';
 import { isAlertText } from './domain/filter.ts';
 import { alertIdOf } from './domain/identity.ts';
 import { parseText } from './domain/parser.ts';
@@ -19,6 +20,18 @@ export interface PipelineDeps {
   extractor: FieldExtractor | null;
   market: MarketData;
   maxSlDistancePct: number;
+  /** Carga de la operación (US2). Sin esto la alerta termina en válida o rechazada (US1). */
+  trading?: TradingDeps | null;
+}
+
+export interface TradingDeps {
+  exchange: Pick<Exchange, 'walletBalanceUsdt'>;
+  executor: Pick<Executor, 'open'>;
+  riskR: number;
+  maxPositions: number;
+  maxCapitalUsdt: number;
+  maxPositionUsdt: number;
+  maxLeverage: number;
 }
 
 export type ProcessOutcome = { kind: 'ignored' } | { kind: 'alert'; alert: Alert };
