@@ -109,7 +109,8 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   campos de RF-05 que aplican, no vacíos.
 - AC-09 (RF-05): Dada una alerta rechazada, cuando el sistema la descarta, entonces
   guarda un log con el motivo, que es uno de: incompleta, TP inválido, SL igual a la
-  Entrada, SL fuera de rango, top 3 ganadores/perdedores, ranking no disponible,
+  Entrada, SL fuera de rango, entrada lejos del mercado, top 3 ganadores/perdedores,
+  ranking no disponible,
   excede máximos, bajo mínimo, ticker inexistente, límite de posiciones, límite de
   capital, remitente no autorizado, duplicado, símbolo ya en operación, datos de mercado
   no disponibles, no disponible en Demo (solo DRY).
