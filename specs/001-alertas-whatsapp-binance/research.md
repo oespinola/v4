@@ -90,7 +90,9 @@ que la comparación entre métodos use el mismo resultado técnico.
   integración contra Demo Trading. Resuelto como en v3: endpoints crudos de CCXT 4.5
   (`fapiPrivatePostAlgoOrder`, `…DeleteAlgoOrder`, `…GetAlgoOrder`, `…GetOpenAlgoOrders`), con el
   modo de posición de la cuenta (one-way o hedge) leído una vez para mandar o no `positionSide`, y
-  números siempre en notación decimal (Binance rechaza `1e-7`).
+  números siempre en notación decimal (Binance rechaza `1e-7`). Verificado contra Demo (T063): un
+  SL/TP con `closePosition` solo se acepta con la posición ya abierta (-4509 sin ella), lo que
+  coincide con colocarlos al primer fill (FR-028).
 - **Alternatives considered**: SL/TP con cantidad explícita (hay que reajustarlos en cada ejecución
   parcial); órdenes OCO (no existen en Futuros USDS-M).
 

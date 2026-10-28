@@ -143,7 +143,7 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T060 [US2] Implementar `Exchange` con CCXT `binanceusdm` y pasar T059 a `it` en src/adapters/binance-trading.ts
 - [X] T061 [US2] Escribir tests de integración del pipeline de carga (FR-020 completo, FR-061): válida → bajo mínimo → datos de mercado no disponibles (balance) → excede máximos → símbolo ya en operación → límite de posiciones → límite de capital → ejecutor; dos alertas casi simultáneas se evalúan en orden y la segunda ve la exposición de la primera — en `it.fails` — en test/integration/pipeline-trading.test.ts
 - [X] T062 [US2] Conectar dimensionamiento, exposición y ejecutor al pipeline y pasar T061 a `it` en src/pipeline.ts
-- [ ] T063 [P] [US2] Escribir test contra Binance Demo Trading, obligatorio antes de LIVE y con resultado anotado en checklists/live.md (riesgo de R-06): colocar y cancelar una entrada lejos del precio, y verificar que SL/TP con `closePosition` son aceptados, en test/demo/binance-demo.test.ts (corre solo con `BINANCE_DEMO_TESTS=1`)
+- [X] T063 [P] [US2] Escribir test contra Binance Demo Trading, obligatorio antes de LIVE y con resultado anotado en checklists/live.md (riesgo de R-06): colocar y cancelar una entrada lejos del precio, y verificar que SL/TP con `closePosition` son aceptados sobre una posición mínima (Binance los rechaza sin posición, -4509) y que el cierre a mercado la cierra, en test/demo/binance-demo.test.ts (corre solo con `BINANCE_DEMO_TESTS=1`)
 
 **Checkpoint**: en DRY, una alerta válida termina "completa", "entrada no ejecutada" o "cerrada por emergencia".
 

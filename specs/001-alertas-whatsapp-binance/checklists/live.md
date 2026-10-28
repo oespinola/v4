@@ -5,6 +5,10 @@
 
 ## Órdenes en Demo Trading (R-06, T063)
 
-- [ ] CHK001 `BINANCE_DEMO_TESTS=1 pnpm vitest run test/demo` en verde: entrada LIMIT lejos del precio, SL
-  `STOP_MARKET` y TP `TAKE_PROFIT_MARKET` condicionales con `closePosition` aceptados y cancelados, sin
-  órdenes abiertas al terminar. Resultado: _pendiente de correr_.
+- [x] CHK001 `BINANCE_DEMO_TESTS=1 pnpm vitest run test/demo` en verde: entrada LIMIT lejos del precio
+  colocada, consultada y cancelada; sobre una posición mínima a mercado, SL `STOP_MARKET` y TP
+  `TAKE_PROFIT_MARKET` condicionales con `closePosition` aceptados y cancelados, y cierre a mercado
+  que deja la posición en cero, sin órdenes ni posición abiertas al terminar. Resultado: 3/3 en verde
+  el 2026-10-28 con CCXT 4.5.90 en DOGEUSDT. Primer intento: Binance rechazó el SL con
+  `closePosition` sin posición abierta (-4509); en el flujo real el SL y el TP se piden después del
+  primer fill (FR-028), así que el test pasó a abrir una posición mínima.
