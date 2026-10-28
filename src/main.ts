@@ -1,6 +1,6 @@
 // Punto de entrada (pnpm dev = DRY, pnpm start = LIVE). Valida la configuración antes de
-// conectarse a nada (FR-058, FR-062) y arma: store → datos públicos → exchange del modo → ejecutor →
-// WhatsApp → cola → pipeline. DRY opera contra Binance Demo y LIVE contra producción (FR-051).
+// conectarse a nada (FR-058, FR-062) y arma: store → datos públicos → exchange del modo → ejecutor y
+// seguimiento de las operaciones abiertas → WhatsApp → cola → pipeline. DRY opera contra Binance Demo y LIVE contra producción (FR-051).
 import path from 'node:path';
 import { BinancePublicMarketData, publicDataUrls } from './adapters/binance-public.ts';
 import { createExchange } from './adapters/binance-trading.ts';
@@ -9,6 +9,7 @@ import { SystemClock } from './adapters/clock.ts';
 import { Store } from './adapters/store.ts';
 import { WhatsAppSource } from './adapters/whatsapp.ts';
 import { Executor } from './domain/executor.ts';
+import { Tracker } from './domain/tracker.ts';
 import { CONFIG_EXIT_CODE, formatConfigErrors, loadDotEnv, parseConfig, startupWarnings } from './config.ts';
 import { Pipeline, type ProcessOutcome } from './pipeline.ts';
 import { SerialQueue } from './queue.ts';
@@ -50,6 +51,9 @@ async function main(): Promise<void> {
     symbolLeverage: config.symbolLeverage,
     riskR: config.riskR,
   });
+  // Sigue toda operación `abierta` hasta su cierre, incluidas las que quedaron de antes (FR-033).
+  const tracker = new Tracker({ exchange, store, clock });
+  tracker.start();
 
   const pipeline = new Pipeline({
     store,
@@ -93,6 +97,7 @@ async function main(): Promise<void> {
     market.stop();
     await queue.idle();
     executor.stop();
+    tracker.stop();
     await whatsapp.stop();
     store.close();
     process.exit(0);
