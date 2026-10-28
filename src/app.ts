@@ -18,6 +18,8 @@ export interface AppMarket extends MarketData {
 
 export interface AppWhatsApp extends MessageSource {
   start(): Promise<void>;
+  /** Vuelve a conectar tras un corte (FR-055). */
+  reconnect(): Promise<void>;
   stop(): Promise<void>;
 }
 

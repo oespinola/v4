@@ -71,6 +71,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
       onEdit: () => {},
       onConnectionChange: () => {},
       start: async () => void events.push('WhatsApp arrancado'),
+      reconnect: async () => {},
       stop: async () => {},
     };
     const market = Object.assign(new FakeMarketData([filters('KAIAUSDT')]), { start: async () => {}, stop: () => {} });

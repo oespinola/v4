@@ -193,6 +193,11 @@ export class WhatsAppSource implements MessageSource {
     await client.initialize();
   }
 
+  /** Vuelve a conectar tras un corte (FR-055). */
+  async reconnect(): Promise<void> {
+    throw new Error('no implementado');
+  }
+
   /** Guarda la sesión cifrada, cierra Chromium y borra el perfil de trabajo en claro. */
   async stop(): Promise<void> {
     // RemoteAuth recién guarda 60 s después de vincular: si se cierra antes, se guarda acá.
