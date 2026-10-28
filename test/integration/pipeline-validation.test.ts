@@ -104,7 +104,7 @@ describe('pipeline de validación (US1)', () => {
     expect(r).toMatchObject({ alert: { reason: 'duplicado' } });
   });
 
-  it.fails('un reenvío de una alerta rechazada por el sistema se evalúa de nuevo (AC-77)', async () => {
+  it('un reenvío de una alerta rechazada por el sistema se evalúa de nuevo (AC-77)', async () => {
     market.currentRanking = undefined;
     const first = await pipeline.processMessage(message(KAIA, { sender: AUTH }));
     expect(first).toMatchObject({ alert: { status: 'rechazada', reason: 'ranking no disponible' } });
@@ -114,7 +114,7 @@ describe('pipeline de validación (US1)', () => {
     expect(again).toMatchObject({ alert: { status: 'válida' } });
   });
 
-  it.fails('"1000PEPE 2.404" tras "PEPE 0.002404" es duplicado (AC-78)', async () => {
+  it('"1000PEPE 2.404" tras "PEPE 0.002404" es duplicado (AC-78)', async () => {
     market.symbols.set('1000PEPEUSDT', filters('1000PEPEUSDT', { tickSize: 0.0000001 }));
     const pepe = '*PEPE - ALERTA DE TRADING*\nEntrada: 0.002404 usd\nObj.: 0.002600 usd\nSL: 0.002300 usd\nRiesgo Alto 🔴';
     const pepe1000 = '*1000PEPE - ALERTA DE TRADING*\nEntrada: 2.404 usd\nObj.: 2.6 usd\nSL: 2.3 usd\nRiesgo Alto 🔴';

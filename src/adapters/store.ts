@@ -97,9 +97,10 @@ export class Store {
     return row ? revive<Alert>(row.record as string) : undefined;
   }
 
+  /** Solo las alertas no rechazadas bloquean un reenvío (FR-007). */
   hasContentHashSince(hash: string, since: Date): boolean {
     const row = this.db
-      .prepare('SELECT 1 FROM alerts WHERE content_hash = ? AND received_at >= ? LIMIT 1')
+      .prepare(`SELECT 1 FROM alerts WHERE content_hash = ? AND received_at >= ? AND status <> 'rechazada' LIMIT 1`)
       .get(hash, since.getTime());
     return row !== undefined;
   }

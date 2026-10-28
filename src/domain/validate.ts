@@ -4,7 +4,7 @@
 import type { FieldExtractor, MarketData } from '../ports.ts';
 import { extractFields } from './extract.ts';
 import { isAuthorized } from './filter.ts';
-import { contentHash } from './identity.ts';
+import { contentHash, mappedHash } from './identity.ts';
 import { isCorrectSide, takeProfitFor } from './indicators.ts';
 import { parseText } from './parser.ts';
 import { inTop3, isRankingFresh } from './ranking.ts';
@@ -21,7 +21,7 @@ export interface ValidationInput {
 export interface ValidationDeps {
   authorizedSenders: readonly string[];
   isKnownMessage(waMessageId: string): boolean;
-  /** ¿Hay una alerta con este hash en las últimas 24 h? (FR-007) */
+  /** ¿Hay una alerta no rechazada con este hash en las últimas 24 h? (FR-007) */
   hasRecentHash(hash: string): boolean;
   extractor: FieldExtractor | null;
   market: MarketData;
@@ -64,13 +64,14 @@ export async function validateAlert(m: ValidationInput, deps: ValidationDeps): P
   partial = fields;
   hash = contentHash(fields);
 
-  // 4. Duplicado por hash de valores crudos en 24 h.
-  if (deps.hasRecentHash(hash)) return reject('duplicado');
-
-  // 5. Ticker inexistente.
+  // 4. Ticker inexistente.
   const mapped = mapTicker(fields.ticker, (s) => deps.market.symbol(s));
   if (!mapped) return reject('ticker inexistente');
   const { tickSize } = mapped.filters;
+
+  // 5. Duplicado por hash de la operación mapeada en 24 h (FR-006, FR-007).
+  hash = mappedHash(fields, mapped);
+  if (deps.hasRecentHash(hash)) return reject('duplicado');
 
   // 6. SL igual a la Entrada, con los precios ya ajustados al tick (FR-012).
   const side = sideOf(fields.entry, fields.sl);

@@ -32,14 +32,14 @@ describe('identidad de la alerta (FR-006)', () => {
   const pepe = { symbol: '1000PEPEUSDT', factor: 1000 as const, filters: filters('1000PEPEUSDT', { tickSize: 0.0000001 }) };
   const pepe1000 = { ...pepe, factor: 1 as const };
 
-  it.fails('con el símbolo mapeado, "PEPE 0.002404" y "1000PEPE 2.404" dan el mismo hash (AC-78)', () => {
+  it('con el símbolo mapeado, "PEPE 0.002404" y "1000PEPE 2.404" dan el mismo hash (AC-78)', () => {
     const a = mappedHash({ ticker: 'PEPE', entry: 0.002404, sl: 0.0023, target: { price: 0.0026 } }, pepe);
     const b = mappedHash({ ticker: '1000PEPE', entry: 2.404, sl: 2.3, target: { price: 2.6 } }, pepe1000);
     expect(a).toMatch(/^[0-9a-f]{16}$/);
     expect(b).toBe(a);
   });
 
-  it.fails('el hash mapeado redondea al tick y cambia si cambia el precio en ticks', () => {
+  it('el hash mapeado redondea al tick y cambia si cambia el precio en ticks', () => {
     const kaia = { symbol: 'KAIAUSDT', factor: 1 as const, filters: filters('KAIAUSDT', { tickSize: 0.0001 }) };
     const h = mappedHash(base, kaia);
     expect(mappedHash({ ...base, entry: 0.04021 }, kaia)).toBe(h);
