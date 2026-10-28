@@ -195,7 +195,8 @@ export class WhatsAppSource implements MessageSource {
 
   /** Vuelve a conectar tras un corte (FR-055). */
   async reconnect(): Promise<void> {
-    throw new Error('no implementado');
+    await this.stop();
+    await this.start();
   }
 
   /** Guarda la sesión cifrada, cierra Chromium y borra el perfil de trabajo en claro. */

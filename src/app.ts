@@ -4,6 +4,7 @@
 // a los mensajes de WhatsApp.
 import type { Store } from './adapters/store.ts';
 import { CONFIG_EXIT_CODE, formatConfigErrors, parseConfig, startupWarnings, type Config } from './config.ts';
+import { ConnectionMonitor, monitorExchange } from './connection-monitor.ts';
 import { Executor } from './domain/executor.ts';
 import { reconcile } from './domain/reconcile.ts';
 import { Tracker } from './domain/tracker.ts';
@@ -29,6 +30,10 @@ export interface AppFactories {
   store(config: Config, clock: Clock): Store;
   market(config: Config, clock: Clock, log: (line: string) => void): AppMarket;
   exchange(config: Config): Exchange;
+  /** Qué errores del exchange son cortes de conexión (R-10). */
+  isConnectionError(e: unknown): boolean;
+  /** Termina el proceso tras el 10.º fallo de reconexión (FR-055); main.ts cierra con calma. */
+  exit(code: number): void;
   extractor(config: Config): FieldExtractor | null;
   whatsapp(config: Config, clock: Clock, log: (line: string) => void): AppWhatsApp;
 }
@@ -64,7 +69,13 @@ export async function startApp(
   const market = factories.market(config, clock, log);
   await market.start();
 
-  const exchange = factories.exchange(config);
+  // El ejecutor se crea antes que el monitor, que consulta si hay un cierre de emergencia en curso.
+  const monitorRef: { current: ConnectionMonitor | null } = { current: null };
+  const exchange = monitorExchange(
+    factories.exchange(config),
+    { up: (s) => monitorRef.current?.up(s), down: (s, d) => monitorRef.current?.down(s, d) },
+    (e) => factories.isConnectionError(e),
+  );
   const executor = new Executor({ exchange, store, clock, symbolLeverage: config.symbolLeverage, riskR: config.riskR });
   const tracker = new Tracker({ exchange, store, clock });
 
@@ -94,6 +105,20 @@ export async function startApp(
   const queue = new SerialQueue((e) => log(`Error procesando un mensaje: ${(e as Error).message}`));
 
   const whatsapp = factories.whatsapp(config, clock, log);
+  const monitor = new ConnectionMonitor({
+    clock,
+    store,
+    emergency: executor,
+    probes: {
+      whatsapp: () => whatsapp.reconnect(),
+      binance: async () => void (await exchange.openPositions()),
+    },
+    exit: (code) => factories.exit(code),
+    log,
+  });
+  monitorRef.current = monitor;
+  monitor.start();
+  whatsapp.onConnectionChange((up) => (up ? monitor.up('whatsapp') : monitor.down('whatsapp', 'desconectado')));
   whatsapp.onMessage((m) =>
     void queue.push(async () => {
       const line = describe(await pipeline.processMessage(m));
@@ -103,6 +128,7 @@ export async function startApp(
   whatsapp.onEdit((e) => void queue.push(() => pipeline.processEdit(e)));
 
   const stop = async () => {
+    monitor.stop();
     market.stop();
     await queue.idle();
     executor.stop();

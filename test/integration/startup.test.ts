@@ -86,6 +86,8 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
       },
       market: () => (built.push('market'), market),
       exchange: () => (built.push('exchange'), exchange),
+      isConnectionError: () => false,
+      exit: () => {},
       extractor: () => (built.push('extractor'), null),
       whatsapp: () => (built.push('whatsapp'), whatsapp),
     };

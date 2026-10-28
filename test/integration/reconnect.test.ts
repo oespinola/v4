@@ -58,7 +58,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     rmSync(root, { recursive: true, force: true });
   });
 
-  it.fails('registra el corte al instante y reintenta con 1, 2, 4… s hasta reconectar (AC-47)', async () => {
+  it('registra el corte al instante y reintenta con 1, 2, 4… s hasta reconectar (AC-47)', async () => {
     monitor.up('whatsapp');
     probeFails.whatsapp = 3;
     const cutAt = clock.now().getTime();
@@ -78,7 +78,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     expect(exits).toEqual([]);
   });
 
-  it.fails('al 10.º fallo consecutivo: evento crítico y salida con código 1 (FR-055)', async () => {
+  it('al 10.º fallo consecutivo: evento crítico y salida con código 1 (FR-055)', async () => {
     monitor.up('binance');
     probeFails.binance = 99;
     monitor.down('binance');
@@ -90,7 +90,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     expect(exits).toEqual([1]);
   });
 
-  it.fails('con un cierre de emergencia en curso no sale: evento crítico y sigue reintentando (AC-74)', async () => {
+  it('con un cierre de emergencia en curso no sale: evento crítico y sigue reintentando (AC-74)', async () => {
     emergency = true;
     monitor.up('binance');
     probeFails.binance = 12;
@@ -102,7 +102,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     expect(of('binance').at(-1)).toMatchObject({ event: 'reconectado' });
   });
 
-  it.fails('cada servicio lleva su contador', async () => {
+  it('cada servicio lleva su contador', async () => {
     monitor.up('whatsapp');
     monitor.up('binance');
     probeFails.whatsapp = 99;
@@ -112,7 +112,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     expect(of('binance')).toEqual([]);
   });
 
-  it.fails('un nuevo corte mientras ya reintenta no duplica el ciclo', async () => {
+  it('un nuevo corte mientras ya reintenta no duplica el ciclo', async () => {
     monitor.up('whatsapp');
     probeFails.whatsapp = 2;
     monitor.down('whatsapp');
@@ -122,7 +122,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     expect(probes.whatsapp).toHaveLength(3);
   });
 
-  it.fails('latido de Binance: detecta un corte en < 30 s aunque no haya operaciones (AC-47)', async () => {
+  it('latido de Binance: detecta un corte en < 30 s aunque no haya operaciones (AC-47)', async () => {
     monitor.up('binance');
     monitor.start();
     probeFails.binance = 99;
@@ -131,7 +131,7 @@ describe('monitor de conexión (FR-055, AC-47, AC-74, R-10)', () => {
     expect(of('binance')[0]).toMatchObject({ event: 'interrupción' });
   });
 
-  it.fails('el exchange monitoreado: los errores de red cortan, los rechazos de órdenes no, y propaga el error (R-10)', async () => {
+  it('el exchange monitoreado: los errores de red cortan, los rechazos de órdenes no, y propaga el error (R-10)', async () => {
     const reported: string[] = [];
     const ex = monitorExchange(
       new FakeExchange({

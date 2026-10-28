@@ -75,6 +75,12 @@ export function createExchange(
   return { exchange: new BinanceTrading(client as unknown as BinanceClient), client };
 }
 
+/** Errores de red de CCXT (timeout, sin conexión, servicio no disponible): cuentan como corte de
+ *  Binance para el monitor (R-10). Un rechazo de orden no. */
+export function isConnectionError(e: unknown): boolean {
+  return e instanceof ccxt.NetworkError;
+}
+
 /** Binance no acepta notación exponencial ("1e-7"): números siempre en decimal. */
 export function decimal(n: number): string {
   return n.toFixed(12).replace(/\.?0+$/, '');
