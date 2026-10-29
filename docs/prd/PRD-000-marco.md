@@ -68,9 +68,9 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
 - RF-05: El sistema debe registrar en un log toda alerta procesada, cargada o
   rechazada, con los campos: identificador (RF-11), fecha/hora, remitente, modo
   (DRY/LIVE), ticker, símbolo, side, Entrada, SL, TP y origen del TP (alerta o
-  calculado), cantidad, riesgo R configurado, nivel de riesgo, IDs de las órdenes de
-  Binance, causa de cierre, fecha/hora de cierre, PnL realizado, comisiones y estado
-  (completa, rechazada + motivo, cerrada por emergencia, entrada no ejecutada,
+  calculado), cantidad pedida, cantidad ejecutada según Binance, riesgo R configurado,
+  nivel de riesgo, IDs de las órdenes de Binance, causa de cierre, fecha/hora de cierre,
+  PnL realizado, comisiones y estado (completa, rechazada + motivo, cerrada por emergencia, entrada no ejecutada,
   cerrada, liquidada). Los campos que no apliquen quedan vacíos.
 - RF-06: El sistema debe requerir autenticación para conectarse a WhatsApp, mediante
   un código QR que vincule la cuenta cuyo(s) grupo(s) de alertas se van a monitorear.
@@ -146,6 +146,10 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
 - AC-74 (RNF-04, RF-18): Dado un cierre de emergencia en curso y la API de Binance
   caída, cuando se acumulan 10 intentos fallidos consecutivos, entonces el sistema
   registra el evento crítico pero no termina el proceso y sigue reintentando el cierre.
+- AC-88 (RF-05, RF-35): Dada una entrada con ejecución parcial, cuando termina su
+  seguimiento (se ejecuta del todo o a los 3 minutos se cancela el resto), entonces la
+  última entrada del log de esa alerta tiene la cantidad ejecutada según Binance, además
+  de la cantidad pedida.
 
 ## Fuera de Alcance
 - Backtesting o análisis de performance histórica (no se calcula drawdown
