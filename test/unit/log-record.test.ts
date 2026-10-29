@@ -144,6 +144,12 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado' })).timings.withImage).toBe(false);
   });
 
+  it.fails('lleva la cantidad ejecutada según Binance junto a la pedida, y null sin operación (FR-043, AC-88)', () => {
+    const r = buildAlertLogRecord(alert(), trade({ state: 'abierta', quantity: 3846, filledQty: 44, closeCause: null, closedAt: null }));
+    expect(r).toMatchObject({ quantity: 3846, filledQty: 44 });
+    expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado' }))).toMatchObject({ filledQty: null });
+  });
+
   it('sin hora de clasificación, classifiedMs es null', () => {
     const r = buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado', classifiedAt: null }));
     expect(r.timings).toEqual({ classifiedMs: null, entryAcceptedMs: null, withImage: false });

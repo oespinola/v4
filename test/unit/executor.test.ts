@@ -173,6 +173,40 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.exchange.callsTo('closeAtMarket')).toHaveLength(0);
   });
 
+  it.fails('con el resto cancelado a los 3 min, el log tiene la cantidad ejecutada (AC-88)', async () => {
+    t = setupExecutor();
+    await t.executor.open(ALERT, SIZED);
+    t.fill(500);
+    await t.clock.advance(POLL_MS);
+    t.fill(1000);
+    await t.clock.advance(POLL_MS);
+    await t.clock.advance(ENTRY_TIMEOUT_MS);
+    const lines = t.logLines().filter((l) => l.status === 'completa');
+    expect(lines.at(-1)).toMatchObject({ quantity: 4166, filledQty: 1000 });
+  });
+
+  it.fails('si el resto se ejecuta después de "completa", se registra otra vez con la cantidad total (AC-88)', async () => {
+    t = setupExecutor();
+    await t.executor.open(ALERT, SIZED);
+    t.fill(1000);
+    await t.clock.advance(POLL_MS);
+    t.fill(SIZED.quantity);
+    await t.clock.advance(POLL_MS);
+    expect(t.logLines().map((l) => [l.status, l.filledQty])).toEqual([
+      ['completa', 1000],
+      ['completa', 4166],
+    ]);
+  });
+
+  it.fails('si la cantidad ejecutada no cambió desde "completa", no repite el registro (AC-88)', async () => {
+    t = setupExecutor();
+    await t.executor.open(ALERT, SIZED);
+    t.fill(1000);
+    await t.clock.advance(POLL_MS);
+    await t.clock.advance(ENTRY_TIMEOUT_MS);
+    expect(t.logLines()).toEqual([expect.objectContaining({ status: 'completa', filledQty: 1000 })]);
+  });
+
   it('ejecuciones posteriores al SL/TP solo actualizan la cantidad: no recoloca SL ni TP', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
