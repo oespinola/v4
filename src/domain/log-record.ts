@@ -16,6 +16,8 @@ export interface AlertLogRecord {
   tp: number | null;
   tpSource: TpSource | null;
   quantity: number | null;
+  /** Cantidad ejecutada de la entrada según Binance; `quantity` es la pedida (AC-88). */
+  filledQty: number | null;
   riskR: number | null;
   riskLevel: string | null;
   orderIds: { entry: string | null; sl: string | null; tp: string | null };
@@ -51,6 +53,7 @@ export function buildAlertLogRecord(alert: Alert, trade: Trade | null = null): A
     tp: alert.tp,
     tpSource: alert.tpSource,
     quantity: trade?.quantity ?? null,
+    filledQty: trade?.filledQty ?? null,
     riskR: trade?.riskR ?? null,
     riskLevel: alert.riskLevel,
     orderIds: { entry: trade?.entryOrderId ?? null, sl: trade?.slOrderId ?? null, tp: trade?.tpOrderId ?? null },

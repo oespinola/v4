@@ -173,7 +173,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(t.exchange.callsTo('closeAtMarket')).toHaveLength(0);
   });
 
-  it.fails('con el resto cancelado a los 3 min, el log tiene la cantidad ejecutada (AC-88)', async () => {
+  it('con el resto cancelado a los 3 min, el log tiene la cantidad ejecutada (AC-88)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.fill(500);
@@ -185,7 +185,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     expect(lines.at(-1)).toMatchObject({ quantity: 4166, filledQty: 1000 });
   });
 
-  it.fails('si el resto se ejecuta después de "completa", se registra otra vez con la cantidad total (AC-88)', async () => {
+  it('si el resto se ejecuta después de "completa", se registra otra vez con la cantidad total (AC-88)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.fill(1000);
@@ -198,7 +198,7 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     ]);
   });
 
-  it.fails('si la cantidad ejecutada no cambió desde "completa", no repite el registro (AC-88)', async () => {
+  it('si la cantidad ejecutada no cambió desde "completa", no repite el registro (AC-88)', async () => {
     t = setupExecutor();
     await t.executor.open(ALERT, SIZED);
     t.fill(1000);
@@ -216,7 +216,6 @@ describe('ejecutor: colocación y estados (FR-027 a FR-032, FR-060, FR-065)', ()
     await t.clock.advance(POLL_MS);
     expect(t.exchange.callsTo('placeStopLoss')).toHaveLength(1);
     expect(t.store.getTrade(ALERT.alertId)?.filledQty).toBe(4166);
-    expect(t.logLines().filter((l) => l.status === 'completa')).toHaveLength(1);
   });
 
   it('una entrada cancelada o rechazada por Binance sin ejecución queda "entrada no ejecutada"', async () => {

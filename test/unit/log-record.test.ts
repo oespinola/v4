@@ -60,7 +60,7 @@ function trade(over: Partial<Trade> = {}): Trade {
 
 const KEYS = [
   'alertId', 'receivedAt', 'sender', 'mode', 'ticker', 'symbol', 'side', 'entry', 'sl', 'tp', 'tpSource',
-  'quantity', 'riskR', 'riskLevel', 'orderIds', 'closeCause', 'closedAt', 'realizedPnl', 'fees', 'status',
+  'quantity', 'filledQty', 'riskR', 'riskLevel', 'orderIds', 'closeCause', 'closedAt', 'realizedPnl', 'fees', 'status',
   'reason', 'timings',
 ];
 
@@ -81,6 +81,7 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
       tp: 0.038,
       tpSource: 'alerta',
       quantity: 4166,
+      filledQty: 4166,
       riskR: 5,
       riskLevel: 'Alto',
       orderIds: { entry: '111', sl: '222', tp: '333' },
@@ -144,7 +145,7 @@ describe('registro del log de una alerta (contracts/log-record.md, FR-043 a FR-0
     expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado' })).timings.withImage).toBe(false);
   });
 
-  it.fails('lleva la cantidad ejecutada según Binance junto a la pedida, y null sin operación (FR-043, AC-88)', () => {
+  it('lleva la cantidad ejecutada según Binance junto a la pedida, y null sin operación (FR-043, AC-88)', () => {
     const r = buildAlertLogRecord(alert(), trade({ state: 'abierta', quantity: 3846, filledQty: 44, closeCause: null, closedAt: null }));
     expect(r).toMatchObject({ quantity: 3846, filledQty: 44 });
     expect(buildAlertLogRecord(alert({ status: 'rechazada', reason: 'duplicado' }))).toMatchObject({ filledQty: null });

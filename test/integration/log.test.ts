@@ -14,7 +14,7 @@ const KAIA = alertText('KAIA', '0.0402', '0.0380 usd', '0.0414');
 
 const RECORD_KEYS = [
   'type', 'at', 'alertId', 'receivedAt', 'sender', 'mode', 'ticker', 'symbol', 'side', 'entry', 'sl', 'tp',
-  'tpSource', 'quantity', 'riskR', 'riskLevel', 'orderIds', 'closeCause', 'closedAt', 'realizedPnl', 'fees',
+  'tpSource', 'quantity', 'filledQty', 'riskR', 'riskLevel', 'orderIds', 'closeCause', 'closedAt', 'realizedPnl', 'fees',
   'status', 'reason', 'timings',
 ];
 

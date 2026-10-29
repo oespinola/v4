@@ -44,6 +44,8 @@ interface Tracked {
   protected: boolean;
   /** Ya no hay entrada que seguir (ejecutada, cancelada o en cierre de emergencia). */
   done: boolean;
+  /** Cantidad ejecutada en la última línea "completa" del log (AC-88). */
+  loggedQty: number;
 }
 
 const errorText = (e: unknown) => (e instanceof Error ? e.message : String(e));
@@ -85,6 +87,7 @@ export class Executor implements EmergencyState {
       chain: Promise.resolve(),
       protected: false,
       done: false,
+      loggedQty: 0,
     };
     this.setStatus(t, 'entrada pendiente');
     this.tracked.add(t);
@@ -170,6 +173,7 @@ export class Executor implements EmergencyState {
       chain: Promise.resolve(),
       protected: false,
       done: false,
+      loggedQty: 0,
     };
     this.tracked.add(t);
 
@@ -250,10 +254,10 @@ export class Executor implements EmergencyState {
       await this.protect(t);
       if (t.done) return;
     }
-    if (o.status === 'filled') this.stopTracking(t);
+    if (o.status === 'filled') this.entryEnded(t);
     else if (o.status === 'canceled' || o.status === 'rejected') {
       if (t.trade.filledQty === 0) this.notFilled(t);
-      else this.stopTracking(t);
+      else this.entryEnded(t);
     }
   }
 
@@ -285,6 +289,17 @@ export class Executor implements EmergencyState {
     this.save(t);
     this.setStatus(t, 'completa');
     store.logAlert(t.alert, t.trade);
+    t.loggedQty = t.trade.filledQty;
+  }
+
+  /** FR-043, AC-88: la entrada terminó protegida; si se ejecutó más desde "completa", se vuelve a
+   *  loguear para que la última línea tenga la cantidad ejecutada final. */
+  private entryEnded(t: Tracked): void {
+    this.stopTracking(t);
+    if (t.trade.filledQty !== t.loggedQty) {
+      this.deps.store.logAlert(t.alert, t.trade);
+      t.loggedQty = t.trade.filledQty;
+    }
   }
 
   /** FR-031, FR-032: a los 3 min se cancela lo no ejecutado; si llegó un fill, se protege. */
@@ -304,7 +319,7 @@ export class Executor implements EmergencyState {
     await this.applyEntry(t, o);
     if (t.done) return;
     if (t.trade.filledQty === 0) this.notFilled(t);
-    else this.stopTracking(t);
+    else this.entryEnded(t);
   }
 
   private notFilled(t: Tracked): void {
