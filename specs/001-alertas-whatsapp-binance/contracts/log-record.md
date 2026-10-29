@@ -6,7 +6,9 @@ Una línea JSON por evento, con `type` y `at` (ISO 8601 UTC) siempre presentes. 
 
 Se escribe cuando la alerta llega a un estado final de FR-044: al rechazarla, o cuando la operación
 termina "completa", "entrada no ejecutada" o "cerrada por emergencia", y otra vez al cerrarse
-("cerrada"/"liquidada"). La última línea de un `alertId` es su estado vigente. Los estados de trabajo
+("cerrada"/"liquidada"). Si después de "completa" la entrada termina con otra cantidad ejecutada
+(se ejecuta del resto o a los 3 minutos se cancela lo pendiente), se escribe otra línea "completa"
+con la cantidad final (FR-043, AC-88). La última línea de un `alertId` es su estado vigente. Los estados de trabajo
 (válida, entrada pendiente, con ejecución) viven solo en la base y no se loguean. Los campos que no
 aplican van en `null` (FR-043).
 
@@ -21,6 +23,7 @@ aplican van en `null` (FR-043).
 | entry, sl, tp | number \| null |
 | tpSource | `"alerta"` \| `"calculado"` \| null |
 | quantity, riskR | number \| null |
+| filledQty | number \| null: cantidad ejecutada de la entrada según Binance; `quantity` es la pedida |
 | riskLevel | string \| null |
 | orderIds | `{ entry, sl, tp }` (string \| null cada uno) |
 | closeCause | `"TP"` \| `"SL"` \| `"liquidación"` \| `"cierre manual"` \| null |

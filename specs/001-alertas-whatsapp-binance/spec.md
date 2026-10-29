@@ -307,6 +307,9 @@ log y los permisos de los archivos.
    motivo, que es uno de los de FR-045 (AC-09).
 3. **Given** el sistema corriendo, **When** se revisan los permisos del log y del almacenamiento
    local, **Then** son 0600 y el dueño es el usuario del proceso (AC-50).
+4. **Given** una entrada con ejecución parcial, **When** termina su seguimiento (se ejecuta del todo
+   o a los 3 minutos se cancela el resto), **Then** la última entrada del log de esa alerta tiene la
+   cantidad ejecutada según Binance, además de la cantidad pedida (AC-88).
 
 ---
 
@@ -681,9 +684,11 @@ key de producción en Binance.
 
 - **FR-043** (RF-05): El sistema MUST registrar en un log toda alerta procesada, cargada o
   rechazada, con: identificador, fecha/hora, remitente, modo (DRY/LIVE), ticker, símbolo, side,
-  Entrada, SL, TP y origen del TP (alerta o calculado), cantidad, riesgo R configurado, nivel de
-  riesgo, IDs de las órdenes de Binance, causa de cierre, fecha/hora de cierre, PnL realizado,
-  comisiones y estado. Los campos que no apliquen quedan vacíos.
+  Entrada, SL, TP y origen del TP (alerta o calculado), cantidad pedida, cantidad ejecutada según
+  Binance, riesgo R configurado, nivel de riesgo, IDs de las órdenes de Binance, causa de cierre,
+  fecha/hora de cierre, PnL realizado, comisiones y estado. Si la entrada termina con una cantidad
+  ejecutada distinta de la ya registrada como "completa", el sistema MUST registrarla de nuevo para
+  que la última entrada de la alerta tenga la cantidad ejecutada final. Los campos que no apliquen quedan vacíos.
 - **FR-044** (RF-05): El estado MUST ser uno de: completa, rechazada + motivo, cerrada por
   emergencia, entrada no ejecutada, cerrada, liquidada.
 - **FR-045** (AC-09): El motivo de rechazo MUST ser uno de: incompleta, TP inválido, SL igual a la
