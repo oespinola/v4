@@ -188,6 +188,8 @@ verificar la clasificación y el motivo registrado de cada una, sin colocar ning
 33. **Given** una alerta BTC SHORT con Entrada "80,489", SL "81,489" y TP "78,489", con BTCUSDT
     cotizando cerca de 80 000 y el máximo configurado en 10 %, **When** el sistema la valida,
     **Then** la rechaza con el motivo "entrada lejos del mercado" sin colocar órdenes (AC-82).
+34. **Given** una alerta con todos los datos y la línea "Riesgo MUY ALTO 🟣", **When** el sistema la
+    procesa, **Then** no la rechaza como "incompleta" y loguea el nivel de riesgo "MUY ALTO" (AC-89).
 
 ---
 
@@ -505,7 +507,11 @@ key de producción en Binance.
 - **FR-002** (RF-22): El sistema MUST rechazar las alertas cuyo remitente no esté en una lista
   configurable de remitentes autorizados.
 - **FR-003** (RF-09): El sistema MUST extraer de cada alerta la entrada, el objetivo, el stop loss,
-  el nivel de riesgo y el ticker a partir del texto del mensaje.
+  el nivel de riesgo y el ticker a partir del texto del mensaje. El nivel de riesgo es el texto que
+  sigue a "Riesgo" en la línea que empieza con esa palabra: si empieza con medio-alto, medio o alto
+  (sin distinguir mayúsculas) MUST tomarse como Medio-Alto, Medio o Alto; si no, MUST tomarse tal
+  como viene, hasta el primer emoji o paréntesis (p. ej. "MUY ALTO" o "NIVEL DIOS"). Si no queda
+  texto, el nivel de riesgo falta (FR-005).
 - **FR-004** (RF-16): El sistema MUST analizar la imagen adjunta cuando el texto no contenga todos
   los datos de FR-003, para completar los que falten. El análisis de imagen es opcional: si no
   está configurada la key del proveedor de IA, el sistema MUST arrancar igual, avisar al arrancar
@@ -601,8 +607,8 @@ key de producción en Binance.
 - **FR-021** (RF-08): El sistema MUST calcular la cantidad dividiendo un riesgo fijo R en USDT,
   configurado por el operador, por |Entrada − SL|, redondeando hacia abajo al stepSize del símbolo
   y usando los precios ya ajustados (FR-011).
-- **FR-022** (RF-27): El nivel de riesgo de la alerta (Medio, Medio-Alto, Alto) MUST NOT modificar
-  la cantidad calculada.
+- **FR-022** (RF-27): El nivel de riesgo de la alerta (Medio, Medio-Alto, Alto o el texto que
+  traiga, FR-003) MUST NOT modificar la cantidad calculada.
 - **FR-023** (RF-30): El sistema MUST rechazar una alerta cuya cantidad redondeada quede por debajo
   de la cantidad mínima o del nocional mínimo del símbolo.
 - **FR-024** (RF-15): El sistema MUST rechazar una alerta cuyo nocional exceda el tamaño de

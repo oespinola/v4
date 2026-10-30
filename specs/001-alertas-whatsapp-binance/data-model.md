@@ -27,7 +27,7 @@ Si `text` no contiene "alerta de trading" (sin mayúsculas ni tildes) se descart
 | mode | `DRY` \| `LIVE` | |
 | sender | string | |
 | ticker | string | crudo |
-| riskLevel | `Medio` \| `Medio-Alto` \| `Alto` | no afecta la cantidad (FR-022) |
+| riskLevel | `Medio` \| `Medio-Alto` \| `Alto` \| texto (FR-003) | no afecta la cantidad (FR-022) |
 | entryRaw, slRaw | decimal | crudos |
 | target | `{ price: decimal }` \| `{ text: string }` | FR-014 / FR-015 |
 | symbol | string \| null | `TICKERUSDT` o `1000TICKERUSDT` (FR-009) |
