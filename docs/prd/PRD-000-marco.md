@@ -72,6 +72,10 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   nivel de riesgo, IDs de las órdenes de Binance, causa de cierre, fecha/hora de cierre,
   PnL realizado, comisiones y estado (completa, rechazada + motivo, cerrada por emergencia, entrada no ejecutada,
   cerrada, liquidada). Los campos que no apliquen quedan vacíos.
+- RF-59: El sistema debe mostrar en la consola, en el momento en que los registra en el
+  log, cada cierre de posición (símbolo, side, estado, causa, PnL realizado y
+  comisiones) y cada evento crítico (tipo, símbolo si corresponde y detalle), este
+  último marcado como crítico.
 - RF-06: El sistema debe requerir autenticación para conectarse a WhatsApp, mediante
   un código QR que vincule la cuenta cuyo(s) grupo(s) de alertas se van a monitorear.
 - RF-07: El sistema debe arrancar en modo DRY con `pnpm dev` y en modo LIVE con
@@ -150,6 +154,11 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   seguimiento (se ejecuta del todo o a los 3 minutos se cancela el resto), entonces la
   última entrada del log de esa alerta tiene la cantidad ejecutada según Binance, además
   de la cantidad pedida.
+- AC-90 (RF-59, RF-43, RF-47, RF-18): Dada una posición completa, cuando se cierra por
+  TP o por SL, entonces la consola muestra una línea con el símbolo, el side, la causa,
+  el PnL realizado y las comisiones; y cuando pierde su SL o su TP, o la entrada termina
+  en un cierre de emergencia, entonces la consola muestra el evento crítico con la marca
+  "CRÍTICO", el símbolo y el detalle.
 
 ## Fuera de Alcance
 - Backtesting o análisis de performance histórica (no se calcula drawdown
