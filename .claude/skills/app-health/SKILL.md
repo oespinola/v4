@@ -132,9 +132,11 @@ const { exchange } = createExchange('DRY', parsed.config.binance);
 console.log(await exchange.openPositions(), await exchange.walletBalanceUsdt());
 ```
 
-Lectura permitida: `openPositions()`, `openOrders(symbol)`, `order(ref)` (estado de un
-SL/TP: `{ symbol, id, algo: true }`, ids de `orderIds` en el log), `findEntry`,
-`walletBalanceUsdt()`. **Nunca** `placeLimitEntry`, `closeAtMarket`, `cancel` ni
+Lectura permitida: `openPositions()`, `openOrders(symbol)`, `order(ref)`, `findEntry`,
+`walletBalanceUsdt()`. Para saber si el SL y el TP siguen vivos, `openOrders(symbol)`:
+devuelve también las algo (`algo: true`) y sus `id` son los de `orderIds.sl`/`.tp` del
+log. `order(ref)` sirve solo para la entrada: consulta órdenes comunes y con un id de
+SL/TP falla con `-2013 Order does not exist`. **Nunca** `placeLimitEntry`, `closeAtMarket`, `cancel` ni
 `prepareSymbol`. Nunca `SIGNALBRIDGE_MODE: 'LIVE'` sin que el usuario lo pida.
 
 Precios públicos de producción y Demo: `https://fapi.binance.com` y
