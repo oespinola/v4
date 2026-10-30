@@ -45,28 +45,40 @@ export interface ReconcileSummary {
 }
 
 /** Línea de "completa" o "entrada no ejecutada"; `null` para los demás estados. */
-export function progressLine(_record: AlertLogRecord): string | null {
-  throw new Error('no implementado');
+export function progressLine(record: AlertLogRecord): string | null {
+  const head = `· ${record.symbol} ${record.side} ${record.status}`;
+  if (record.status === 'entrada no ejecutada') return head;
+  if (record.status !== 'completa') return null;
+  const { entry, sl, tp } = record.orderIds;
+  return `${head}: ejecutado ${record.filledQty}/${record.quantity} (entrada ${entry}, SL ${sl}, TP ${tp})`;
 }
 
 /** Línea de una edición registrada (FR-047). */
-export function editLine(_e: { changedFields: readonly string[] }, _ticker: string | null): string {
-  throw new Error('no implementado');
+export function editLine(e: { changedFields: readonly string[] }, ticker: string | null): string {
+  const changes = e.changedFields.length > 0 ? e.changedFields.join(', ') : 'sin cambios en los datos';
+  return `· ${ticker ?? '?'} editada tras procesarse (no se opera): ${changes}`;
 }
 
 /** Línea de un error del seguimiento (FR-073). */
-export function errorLine(_e: { source: string; detail: string }, _symbol: string | null): string {
-  throw new Error('no implementado');
+export function errorLine(e: { source: string; detail: string }, symbol: string | null): string {
+  return `· Error del ${e.source}${symbol ? ` ${symbol}` : ''}: ${e.detail}`;
 }
 
-export function marketLine(_s: MarketSummary): string {
-  throw new Error('no implementado');
+export function marketLine(s: MarketSummary): string {
+  const demo = s.missingInDemo === null ? '' : `; ${s.missingInDemo} no están en Demo`;
+  return `Binance: ${s.symbols} símbolos, ranking cada 60 s${demo}.`;
 }
 
-export function limitsLine(_l: TradingLimits): string {
-  throw new Error('no implementado');
+export function limitsLine(l: TradingLimits): string {
+  return (
+    `Límites: R ${l.riskR} USDT, máx. ${l.maxPositions} posiciones, ${l.maxPositionSize} USDT por posición, ` +
+    `${l.maxCapital} USDT en total, apalancamiento ${l.symbolLeverage}x (máx. ${l.maxLeverage}x).`
+  );
 }
 
-export function reconcileLine(_r: ReconcileSummary, _ms: number): string {
-  throw new Error('no implementado');
+export function reconcileLine(r: ReconcileSummary, ms: number): string {
+  return (
+    `Reconciliación con Binance: alertas sin operación buscadas ${r.recovered}, entradas retomadas ${r.resumed}, ` +
+    `operaciones abiertas revisadas ${r.reviewed} (${ms} ms).`
+  );
 }

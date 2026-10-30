@@ -199,11 +199,11 @@ describe('adaptador de WhatsApp: sesión cerrada por WhatsApp (FR-048)', () => {
 });
 
 describe('adaptador de WhatsApp: modo detallado (FR-072)', () => {
-  it.fails('cada etapa del arranque lleva el tiempo transcurrido', () => {
+  it('cada etapa del arranque lleva el tiempo transcurrido', () => {
     expect(startupLine(1_000, 2_500, 'sesión autenticada')).toBe('WhatsApp +1.5 s: sesión autenticada');
   });
 
-  it.fails('engancha las etapas del arranque, sin repetir el mismo porcentaje de carga', () => {
+  it('engancha las etapas del arranque, sin repetir el mismo porcentaje de carga', () => {
     const client = new EventEmitter();
     const stages: string[] = [];
     wireStages(client, (s) => void stages.push(s));
@@ -222,7 +222,7 @@ describe('adaptador de WhatsApp: modo detallado (FR-072)', () => {
     ]);
   });
 
-  it.fails('si no encuentra el grupo, lista los grupos de la cuenta', () => {
+  it('si no encuentra el grupo, lista los grupos de la cuenta', () => {
     expect(missingGroupLines('ALERTAS', ['Familia', 'ALERTAS CRYPTO+'])).toEqual([
       'No encontré el grupo "ALERTAS". Tus grupos:',
       '  - Familia',

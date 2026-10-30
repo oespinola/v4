@@ -8,6 +8,7 @@ import type { Clock, MarketData, Ranking, TimerHandle } from '../ports.ts';
 import { group45m } from '../domain/candles.ts';
 import { buildRanking, type Ticker24h } from '../domain/ranking.ts';
 import { isTradablePerpetual } from '../domain/symbols.ts';
+import type { MarketSummary } from '../domain/console-line.ts';
 import type { SymbolFilters } from '../domain/types.ts';
 
 export const PRODUCTION_URL = 'https://fapi.binance.com';
@@ -148,6 +149,15 @@ export class BinancePublicMarketData implements MarketData {
 
   ranking(): Ranking | undefined {
     return this.currentRanking;
+  }
+
+  /** Símbolos cargados y, en DRY, cuántos no se operan en Demo (FR-072). */
+  summary(): MarketSummary {
+    const names = [...this.production.keys()];
+    return {
+      symbols: names.length,
+      missingInDemo: this.orderRulesUrl ? names.filter((n) => !this.availableForOrders(n)).length : null,
+    };
   }
 
   availableForOrders(name: string): boolean {

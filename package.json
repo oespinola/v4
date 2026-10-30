@@ -9,6 +9,8 @@
   "scripts": {
     "dev": "SIGNALBRIDGE_MODE=DRY tsx scripts/supervise.ts",
     "start": "SIGNALBRIDGE_MODE=LIVE tsx scripts/supervise.ts",
+    "dev:verbose": "SIGNALBRIDGE_MODE=DRY SIGNALBRIDGE_VERBOSE=1 tsx scripts/supervise.ts",
+    "start:verbose": "SIGNALBRIDGE_MODE=LIVE SIGNALBRIDGE_VERBOSE=1 tsx scripts/supervise.ts",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "latency": "tsx scripts/latency.ts",

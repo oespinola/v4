@@ -140,7 +140,7 @@ describe('config (FR-058, FR-062, FR-052, FR-004)', () => {
     expect(startupWarnings(withKey.config)).toEqual([]);
   });
 
-  it.fails('SIGNALBRIDGE_VERBOSE=1 activa el modo detallado; sin la variable, o con otro valor, queda apagado (FR-072)', () => {
+  it('SIGNALBRIDGE_VERBOSE=1 activa el modo detallado; sin la variable, o con otro valor, queda apagado (FR-072)', () => {
     const verbose = (v: string | undefined) => {
       const r = parseConfig(dryEnv({ SIGNALBRIDGE_VERBOSE: v }));
       return r.ok && r.config.verbose;

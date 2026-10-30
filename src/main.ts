@@ -31,6 +31,7 @@ const factories: AppFactories = {
       groupName: config.whatsappGroupName,
       now: () => clock.now(),
       log,
+      verbose: config.verbose,
     }),
 };
 

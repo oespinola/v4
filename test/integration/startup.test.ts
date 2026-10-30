@@ -172,7 +172,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     expect(lines.some((l) => l.startsWith('Reconciliación con Binance:'))).toBe(false);
   });
 
-  it.fails('con SIGNALBRIDGE_VERBOSE=1 muestra el resumen de arranque, las completas, las no ejecutadas, las ediciones y los errores (AC-91)', async () => {
+  it('con SIGNALBRIDGE_VERBOSE=1 muestra el resumen de arranque, las completas, las no ejecutadas, las ediciones y los errores (AC-91)', async () => {
     const lines = await consoleWith({ SIGNALBRIDGE_VERBOSE: '1' });
     for (const line of VERBOSE_LINES) expect(lines).toContain(line);
     expect(lines).toContainEqual(expect.stringMatching(/^Reconciliación con Binance: .* \(\d+ ms\)\.$/));

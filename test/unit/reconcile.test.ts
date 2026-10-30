@@ -182,7 +182,7 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada' })]);
   });
 
-  it.fails('devuelve cuánto revisó: alertas sin operación, entradas retomadas y operaciones abiertas (FR-072)', async () => {
+  it('devuelve cuánto revisó: alertas sin operación, entradas retomadas y operaciones abiertas (FR-072)', async () => {
     boot(trade({}), 'entrada pendiente', 10);
     expect(await run()).toEqual({ recovered: 0, resumed: 1, reviewed: 0 });
     store.close();

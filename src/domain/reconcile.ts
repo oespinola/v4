@@ -19,15 +19,21 @@ export interface ReconcileDeps {
 export async function reconcile({ store, mode, executor, tracker }: ReconcileDeps): Promise<ReconcileSummary> {
   // Primero las entradas que pudieron quedar en Binance sin registrar: si se ejecutaron, no tienen
   // SL ni TP (FR-070). Las de otro modo están en otra cuenta.
-  for (const alert of store.validAlertsWithoutTrade(mode)) await executor.recoverUnconfirmed(alert);
+  const unconfirmed = store.validAlertsWithoutTrade(mode);
+  for (const alert of unconfirmed) await executor.recoverUnconfirmed(alert);
   // Después lo que quedó sin proteger, y por último las entradas pendientes.
+  let resumed = 0;
   for (const state of ['con_ejecución', 'pendiente'] as const) {
     for (const trade of store.tradesInState(state)) {
       const alert = store.getAlert(trade.alertId);
-      if (alert) await executor.resume(alert, trade);
+      if (alert) {
+        await executor.resume(alert, trade);
+        resumed++;
+      }
     }
   }
   // Cierres durante la caída de las operaciones abiertas, incluidas las recién protegidas (FR-040).
+  const reviewed = store.tradesInState('abierta').length;
   await tracker.tick();
-  return { recovered: 0, resumed: 0, reviewed: 0 };
+  return { recovered: unconfirmed.length, resumed, reviewed };
 }

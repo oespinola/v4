@@ -133,7 +133,7 @@ export function parseConfig(env: Env): ConfigResult {
       maxSlDistancePct,
       maxEntryDistancePct,
       dataDir,
-      verbose: false,
+      verbose: env.SIGNALBRIDGE_VERBOSE?.trim() === '1',
     },
   };
 }

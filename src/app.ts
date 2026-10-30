@@ -5,7 +5,17 @@
 import type { Store } from './adapters/store.ts';
 import { CONFIG_EXIT_CODE, formatConfigErrors, parseConfig, startupWarnings, type Config } from './config.ts';
 import { ConnectionMonitor, monitorExchange } from './connection-monitor.ts';
-import { closeLine, criticalLine } from './domain/console-line.ts';
+import {
+  closeLine,
+  criticalLine,
+  editLine,
+  errorLine,
+  limitsLine,
+  marketLine,
+  progressLine,
+  reconcileLine,
+  type MarketSummary,
+} from './domain/console-line.ts';
 import { Executor } from './domain/executor.ts';
 import type { AlertLogRecord } from './domain/log-record.ts';
 import { reconcile } from './domain/reconcile.ts';
@@ -17,6 +27,7 @@ import { SerialQueue } from './queue.ts';
 export interface AppMarket extends MarketData {
   start(): Promise<void>;
   stop(): void;
+  summary(): MarketSummary;
 }
 
 export interface AppWhatsApp extends MessageSource {
@@ -68,21 +79,30 @@ export async function startApp(
 
   const clock = factories.clock();
   const store = factories.store(config, clock);
-  // FR-071: los cierres y los eventos críticos se muestran además de quedar en el log.
+  // FR-071: los cierres y los eventos críticos se muestran además de quedar en el log; con el modo
+  // detallado (FR-072), también las completas, las no ejecutadas, las ediciones y los errores.
+  const alertOf = (payload: Record<string, unknown>) =>
+    typeof payload.alertId === 'string' ? store.getAlert(payload.alertId) : undefined;
   store.onRecord((type, payload) => {
-    const line =
-      type === 'alert'
-        ? closeLine(payload as unknown as AlertLogRecord)
-        : type === 'critical'
-          ? criticalLine(
-              payload as { kind: string; detail: string },
-              typeof payload.alertId === 'string' ? (store.getAlert(payload.alertId)?.symbol ?? null) : null,
-            )
-          : null;
+    let line: string | null = null;
+    if (type === 'alert') {
+      const record = payload as unknown as AlertLogRecord;
+      line = closeLine(record) ?? (config.verbose ? progressLine(record) : null);
+    } else if (type === 'critical') {
+      line = criticalLine(payload as { kind: string; detail: string }, alertOf(payload)?.symbol ?? null);
+    } else if (config.verbose && type === 'edit') {
+      line = editLine(payload as { changedFields: string[] }, alertOf(payload)?.ticker ?? null);
+    } else if (config.verbose && type === 'error') {
+      line = errorLine(payload as { source: string; detail: string }, alertOf(payload)?.symbol ?? null);
+    }
     if (line) log(line);
   });
   const market = factories.market(config, clock, log);
   await market.start();
+  if (config.verbose) {
+    log(marketLine(market.summary()));
+    log(limitsLine(config));
+  }
 
   // El ejecutor se crea antes que el monitor, que consulta si hay un cierre de emergencia en curso.
   const monitorRef: { current: ConnectionMonitor | null } = { current: null };
@@ -96,7 +116,9 @@ export async function startApp(
 
   // FR-039: lo que pasó mientras el proceso estaba detenido, antes de cualquier alerta nueva.
   log('Reconciliando con Binance…');
-  await reconcile({ store, mode: config.mode, executor, tracker });
+  const reconcileStart = clock.now().getTime();
+  const reconciled = await reconcile({ store, mode: config.mode, executor, tracker });
+  if (config.verbose) log(reconcileLine(reconciled, clock.now().getTime() - reconcileStart));
   tracker.start();
 
   const pipeline = new Pipeline({

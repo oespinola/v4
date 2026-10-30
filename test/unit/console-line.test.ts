@@ -81,30 +81,30 @@ describe('líneas de consola (FR-071, AC-90)', () => {
 describe('líneas del modo detallado (FR-072, AC-91)', () => {
   const open = { state: 'abierta', closeCause: null, closedAt: null, realizedPnl: null, fees: null } as const;
 
-  it.fails('una operación completa muestra la cantidad ejecutada y los IDs de sus órdenes', () => {
+  it('una operación completa muestra la cantidad ejecutada y los IDs de sus órdenes', () => {
     expect(progressLine(record('completa', open))).toBe('· KAIAUSDT SHORT completa: ejecutado 4166/4166 (entrada E1, SL S1, TP T1)');
     expect(progressLine(record('completa', { ...open, filledQty: 2000 }))).toBe(
       '· KAIAUSDT SHORT completa: ejecutado 2000/4166 (entrada E1, SL S1, TP T1)',
     );
   });
 
-  it.fails('una entrada no ejecutada se muestra; los cierres y los rechazos no son de esta línea', () => {
+  it('una entrada no ejecutada se muestra; los cierres y los rechazos no son de esta línea', () => {
     expect(progressLine(record('entrada no ejecutada', { ...open, filledQty: 0 }))).toBe('· KAIAUSDT SHORT entrada no ejecutada');
     expect(progressLine(record('cerrada'))).toBeNull();
     expect(progressLine(record('rechazada', null, 'duplicado'))).toBeNull();
   });
 
-  it.fails('una edición muestra el ticker y los datos que cambiaron', () => {
+  it('una edición muestra el ticker y los datos que cambiaron', () => {
     expect(editLine({ changedFields: ['entry', 'sl'] }, 'KAIA')).toBe('· KAIA editada tras procesarse (no se opera): entry, sl');
     expect(editLine({ changedFields: [] }, null)).toBe('· ? editada tras procesarse (no se opera): sin cambios en los datos');
   });
 
-  it.fails('un error del seguimiento muestra el símbolo si lo hay y el detalle', () => {
+  it('un error del seguimiento muestra el símbolo si lo hay y el detalle', () => {
     expect(errorLine({ source: 'seguimiento', detail: 'timeout' }, 'KAIAUSDT')).toBe('· Error del seguimiento KAIAUSDT: timeout');
     expect(errorLine({ source: 'seguimiento', detail: 'timeout' }, null)).toBe('· Error del seguimiento: timeout');
   });
 
-  it.fails('resumen de arranque: símbolos, límites y reconciliación', () => {
+  it('resumen de arranque: símbolos, límites y reconciliación', () => {
     expect(marketLine({ symbols: 512, missingInDemo: 23 })).toBe('Binance: 512 símbolos, ranking cada 60 s; 23 no están en Demo.');
     expect(marketLine({ symbols: 512, missingInDemo: null })).toBe('Binance: 512 símbolos, ranking cada 60 s.');
     expect(

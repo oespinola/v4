@@ -107,18 +107,26 @@ export function wireClient(client: GroupEvents, h: WireHandlers): void {
 }
 
 /** Etapa del arranque con el tiempo transcurrido (FR-072). */
-export function startupLine(_startedAt: number, _now: number, _stage: string): string {
-  throw new Error('no implementado');
+export function startupLine(startedAt: number, now: number, stage: string): string {
+  return `WhatsApp +${((now - startedAt) / 1000).toFixed(1)} s: ${stage}`;
 }
 
 /** Engancha las etapas del arranque de WhatsApp Web, para el modo detallado (FR-072). */
-export function wireStages(_client: GroupEvents, _stage: (text: string) => void): void {
-  throw new Error('no implementado');
+export function wireStages(client: GroupEvents, stage: (text: string) => void): void {
+  let lastPercent = -1;
+  client.on('authenticated', () => stage('sesión autenticada'));
+  client.on('loading_screen', (percent: unknown, message: unknown) => {
+    if (Number(percent) === lastPercent) return;
+    lastPercent = Number(percent);
+    stage(`cargando chats ${percent} %${message ? ` (${message})` : ''}`);
+  });
+  client.on('change_state', (state: unknown) => stage(`estado ${state}`));
+  client.on('ready', () => stage('WhatsApp Web listo; buscando el grupo'));
 }
 
 /** Aviso del grupo que no está, con la lista de grupos de la cuenta (FR-072). */
-export function missingGroupLines(_groupName: string, _groups: readonly string[]): string[] {
-  throw new Error('no implementado');
+export function missingGroupLines(groupName: string, groups: readonly string[]): string[] {
+  return [`No encontré el grupo "${groupName}". Tus grupos:`, ...groups.map((g) => `  - ${g}`)];
 }
 
 /** WhatsApp Web salta a esta dirección cuando la sesión vinculada ya no vale (el dispositivo se
@@ -170,6 +178,8 @@ export interface WhatsAppOptions {
   groupName: string;
   now(): Date;
   log(line: string): void;
+  /** FR-072: etapas del arranque y lista de grupos si falta el configurado. */
+  verbose?: boolean;
 }
 
 /** Busca el grupo en la página sin serializar todos los chats: getChats() y getChatById() fallan
@@ -186,6 +196,17 @@ async function findGroupId(client: wwebjs.Client, name: string): Promise<string 
     await new Promise((r) => setTimeout(r, 5000));
   }
   return null;
+}
+
+/** Nombres de los grupos de la cuenta, por la misma vía que findGroupId. */
+async function listGroupNames(client: wwebjs.Client): Promise<string[]> {
+  return client.pupPage!.evaluate(() =>
+    (globalThis as any)
+      .require('WAWebCollections')
+      .Chat.getModelsArray()
+      .filter((c: any) => c.groupMetadata)
+      .map((c: any) => c.formattedTitle as string),
+  );
 }
 
 export class WhatsAppSource implements MessageSource {
@@ -242,6 +263,12 @@ export class WhatsAppSource implements MessageSource {
       puppeteer: { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false },
     });
     this.client = client;
+    const startedAt = Date.now();
+    const stage = (text: string) => this.opts.log(startupLine(startedAt, Date.now(), text));
+    if (this.opts.verbose) {
+      stage('abriendo Chromium y WhatsApp Web');
+      wireStages(client, stage);
+    }
     wireClient(client, {
       ownId: () => client.info?.wid?._serialized ?? '',
       findGroup: () => findGroupId(client, this.opts.groupName),
@@ -257,11 +284,16 @@ export class WhatsAppSource implements MessageSource {
         this.opts.log(up ? `WhatsApp listo. Escuchando "${this.opts.groupName}".` : 'WhatsApp desconectado.');
         this.connCbs.forEach((cb) => cb(up));
       },
-      onGroupMissing: () => this.opts.log(`No encontré el grupo "${this.opts.groupName}".`),
+      onGroupMissing: async () => {
+        if (!this.opts.verbose) return this.opts.log(`No encontré el grupo "${this.opts.groupName}".`);
+        const groups = await listGroupNames(client).catch(() => []);
+        for (const line of missingGroupLines(this.opts.groupName, groups)) this.opts.log(line);
+      },
     });
     client.on('auth_failure', (msg: string) => this.opts.log(`Falló la autenticación de WhatsApp: ${msg}`));
     client.on('remote_session_saved', () => this.opts.log('Sesión de WhatsApp guardada (cifrada).'));
     await client.initialize();
+    if (this.opts.verbose) stage('Chromium y la página cargados');
   }
 
   /** Vuelve a conectar tras un corte (FR-055). */
