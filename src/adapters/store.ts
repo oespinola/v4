@@ -16,7 +16,7 @@ export interface EditRecord {
   changedFields: string[];
 }
 
-export type LogType = 'alert' | 'edit' | 'connection' | 'critical';
+export type LogType = 'alert' | 'edit' | 'connection' | 'critical' | 'error';
 
 /** Evento `connection` (contracts/log-record.md, FR-055). */
 export interface ConnectionEvent {
@@ -45,6 +45,13 @@ const revive = <T>(json: string): T =>
 function ensurePrivateFile(file: string): void {
   if (!existsSync(file)) closeSync(openSync(file, 'a', 0o600));
   chmodSync(file, 0o600);
+}
+
+/** Falla de una consulta a Binance que no cambia ningún estado (FR-073). */
+export interface ErrorEvent {
+  source: 'seguimiento';
+  alertId: string | null;
+  detail: string;
 }
 
 export class Store {
@@ -216,6 +223,8 @@ export class Store {
   logConnection(e: ConnectionEvent): void {
     this.appendLog('connection', { service: e.service, event: e.event, attempt: e.attempt, waitMs: e.waitMs });
   }
+
+  logError(_e: ErrorEvent): void {}
 
   logCritical(e: CriticalEvent): void {
     this.appendLog('critical', { kind: e.kind, alertId: e.alertId ?? null, detail: e.detail });

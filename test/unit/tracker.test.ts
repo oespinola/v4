@@ -188,6 +188,41 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.getTrade(ALERT.alertId)?.state).toBe('cerrada');
   });
 
+  const errors = () => logLines().filter((l) => l.type === 'error');
+
+  it.fails('una falla de la consulta de posiciones se registra una vez aunque se repita (FR-073, AC-92)', async () => {
+    exchange.impl.openPositions = async () => Promise.reject(new Error('timeout'));
+    await clock.advance(TRACK_POLL_MS * 3);
+    expect(errors()).toEqual([
+      { type: 'error', at: expect.any(String), source: 'seguimiento', alertId: null, detail: 'timeout' },
+    ]);
+  });
+
+  it.fails('una falla de la consulta de una operación se registra con su alertId, y otro error se registra de nuevo (AC-92)', async () => {
+    positions = [];
+    let message = 'boom';
+    exchange.impl.closeOf = async () => Promise.reject(new Error(message));
+    await clock.advance(TRACK_POLL_MS * 2);
+    message = 'otro';
+    await clock.advance(TRACK_POLL_MS);
+    expect(errors().map((e) => [e.alertId, e.detail])).toEqual([
+      [ALERT.alertId, 'boom'],
+      [ALERT.alertId, 'otro'],
+    ]);
+    expect(store.getTrade(ALERT.alertId)?.state).toBe('abierta');
+  });
+
+  it.fails('el mismo error después de un ciclo sano se registra de nuevo (FR-073)', async () => {
+    let fail = true;
+    exchange.impl.openPositions = async () => (fail ? Promise.reject(new Error('timeout')) : positions);
+    await clock.advance(TRACK_POLL_MS);
+    fail = false;
+    await clock.advance(TRACK_POLL_MS);
+    fail = true;
+    await clock.advance(TRACK_POLL_MS);
+    expect(errors().map((e) => e.detail)).toEqual(['timeout', 'timeout']);
+  });
+
   it('sin operaciones abiertas no consulta Binance', async () => {
     closeBy('TP');
     await clock.advance(TRACK_POLL_MS);
