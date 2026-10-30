@@ -48,6 +48,8 @@ function ensurePrivateFile(file: string): void {
 }
 
 export class Store {
+  private readonly listeners: Array<(type: LogType, payload: Record<string, unknown>) => void> = [];
+
   private constructor(
     private readonly db: DatabaseSync,
     private readonly logFile: string,
@@ -195,12 +197,15 @@ export class Store {
   }
 
   /** FR-071: avisa cada registro que se agrega al log; la app muestra en consola los que importan. */
-  onRecord(_listener: (type: LogType, payload: Record<string, unknown>) => void): void {}
+  onRecord(listener: (type: LogType, payload: Record<string, unknown>) => void): void {
+    this.listeners.push(listener);
+  }
 
   /** Una línea JSON por evento, con `type` y `at` primero (contracts/log-record.md). */
   appendLog(type: LogType, payload: Record<string, unknown>): void {
     const line = JSON.stringify({ type, at: this.clock.now().toISOString(), ...payload });
     appendFileSync(this.logFile, `${line}\n`, { mode: 0o600 });
+    for (const listener of this.listeners) listener(type, payload);
   }
 
   /** Registro `alert` de un estado final (contracts/log-record.md). */

@@ -121,7 +121,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     expect(events).toEqual(['reconciliación: consulta la entrada', 'suscripción a mensajes', 'WhatsApp arrancado']);
   });
 
-  it.fails('muestra en consola los cierres y los eventos críticos que registra (FR-071, AC-90)', async () => {
+  it('muestra en consola los cierres y los eventos críticos que registra (FR-071, AC-90)', async () => {
     const lines: string[] = [];
     const starting = startApp(env(path.join(root, 'data')), factories(), (l) => lines.push(l));
     for (let i = 0; i < 20 && !releaseOrder; i++) await new Promise((r) => setTimeout(r, 5));

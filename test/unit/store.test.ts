@@ -185,7 +185,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     ]);
   });
 
-  it.fails('avisa cada registro que agrega al log, con su tipo y su contenido (FR-071)', () => {
+  it('avisa cada registro que agrega al log, con su tipo y su contenido (FR-071)', () => {
     const seen: Array<[string, Record<string, unknown>]> = [];
     store.onRecord((type, payload) => seen.push([type, payload]));
     store.logCritical({ kind: 'SL/TP perdido', alertId: 'x', detail: 'falta el SL' });
