@@ -37,6 +37,34 @@ describe('parser regex (FR-003, AC-20)', () => {
     expect(missingFields(p)).toEqual(['target', 'sl', 'riskLevel']);
   });
 
+  describe('nivel de riesgo libre (FR-003, AC-89)', () => {
+    const withRisk = (risk: string, description = 'Descripción.') =>
+      `*CELO - ALERTA DE TRADING*\n\n${description}\n\nEntrada: 0.07236 usd\nObj.: ASL21, EMA55\nSL: 0.06947 usd\n${risk}`;
+
+    it.fails('toma el texto que sigue a "Riesgo" tal como viene, sin los emojis', () => {
+      expect(parseText(withRisk('Riesgo MUY ALTO 🟣')).riskLevel).toBe('MUY ALTO');
+      expect(parseText(withRisk('Riesgo NIVEL DIOS  🟣🟣🟣')).riskLevel).toBe('NIVEL DIOS');
+    });
+
+    it('sigue normalizando los niveles conocidos, aunque traigan un comentario', () => {
+      expect(parseText(withRisk('Riesgo alto 🔴 (es un claro spike, pero puede seguir)')).riskLevel).toBe('Alto');
+      expect(parseText(withRisk('Riesgo MEDIO-ALTO 🟠')).riskLevel).toBe('Medio-Alto');
+    });
+
+    it.fails('corta el texto libre en el primer paréntesis', () => {
+      expect(parseText(withRisk('Riesgo extremo (no entrar con mucho)')).riskLevel).toBe('extremo');
+    });
+
+    it.fails('solo cuenta la línea que empieza con "Riesgo", no un riesgo de la descripción', () => {
+      const text = withRisk('Riesgo MUY ALTO 🟣', 'Proyecto nuevo, con riesgo regulatorio en EE. UU.');
+      expect(parseText(text).riskLevel).toBe('MUY ALTO');
+    });
+
+    it('sin texto después de "Riesgo" el nivel falta', () => {
+      expect(missingFields(parseText(withRisk('Riesgo 🟣🟣🟣')))).toEqual(['riskLevel']);
+    });
+  });
+
   it('parsea todas las alertas reales del fixture', () => {
     for (const [name, text] of Object.entries(alerts)) {
       expect(missingFields(parseText(text)), name).toEqual([]);

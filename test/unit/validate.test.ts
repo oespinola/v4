@@ -71,6 +71,15 @@ describe('validación en el orden de FR-020', () => {
     expect(r).toMatchObject({ ok: true, alert: { tp: 0.039, tpSource: 'calculado' } });
   });
 
+  it.fails('la alerta de CELO del 29/10 con "Riesgo MUY ALTO 🟣" queda válida (AC-89)', async () => {
+    const { deps, market } = setup();
+    market.symbols.set('CELOUSDT', filters('CELOUSDT', { tickSize: 0.0001 }));
+    market.closes.set('CELOUSDT', Array.from({ length: 60 }, () => 0.0787));
+    const text = alertText('CELO', '0.07236', 'ASL21, EMA55', '0.06947', 'Riesgo MUY ALTO 🟣');
+    const r = await validateAlert(input(text), deps);
+    expect(r).toMatchObject({ ok: true, alert: { symbol: 'CELOUSDT', side: 'LONG', fields: { riskLevel: 'MUY ALTO' } } });
+  });
+
   it('remitente no autorizado va primero y no llama a la IA aunque falten datos (AC-54)', async () => {
     const { deps, extractor } = setup();
     const incomplete = '*KAIA - ALERTA DE TRADING*\nEntrada: 0.0402 usd';

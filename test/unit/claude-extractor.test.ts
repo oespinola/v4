@@ -51,6 +51,16 @@ describe('extractor de Claude (FR-004, FR-059, Principio I)', () => {
     expect(content[1]?.type).toBe('text');
   });
 
+  it.fails('acepta un nivel de riesgo libre y normaliza los conocidos (FR-003)', async () => {
+    const extractRisk = async (risk_level: string) => {
+      const { client } = fakeClient(parsed({ ...full, risk_level }));
+      return new ClaudeExtractor({ client }).extract({ text: 't', image: null, missing: ['riskLevel'] });
+    };
+    expect(await extractRisk('MUY ALTO 🟣')).toEqual({ riskLevel: 'MUY ALTO' });
+    expect(await extractRisk('medio-alto')).toEqual({ riskLevel: 'Medio-Alto' });
+    expect(await extractRisk('🟣')).toEqual({});
+  });
+
   it('descarta valores inválidos (negativos, ticker raro)', async () => {
     const { client } = fakeClient(parsed({ ...full, ticker: 'KA IA!', entry: -1 }));
     expect(await new ClaudeExtractor({ client }).extract({ text: 't', image: null, missing: ['ticker', 'entry'] })).toEqual({});
