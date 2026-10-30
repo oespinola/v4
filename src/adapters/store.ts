@@ -194,6 +194,9 @@ export class Store {
       .map((r) => revive<Trade>(r.record as string));
   }
 
+  /** FR-071: avisa cada registro que se agrega al log; la app muestra en consola los que importan. */
+  onRecord(_listener: (type: LogType, payload: Record<string, unknown>) => void): void {}
+
   /** Una línea JSON por evento, con `type` y `at` primero (contracts/log-record.md). */
   appendLog(type: LogType, payload: Record<string, unknown>): void {
     const line = JSON.stringify({ type, at: this.clock.now().toISOString(), ...payload });

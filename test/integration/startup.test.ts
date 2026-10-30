@@ -54,6 +54,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
   let built: string[];
   let releaseOrder: (() => void) | null;
   let stop: (() => Promise<void>) | null;
+  let opened: Store | null;
   const prevUmask = process.umask();
 
   function factories(): AppFactories {
@@ -80,6 +81,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
       store: (config, c) => {
         built.push('store');
         const store = Store.open(config.dataDir, c);
+        opened = store;
         store.saveAlert({ ...ALERT, status: 'entrada pendiente' });
         store.saveTrade(PENDING);
         return store;
@@ -99,6 +101,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     built = [];
     releaseOrder = null;
     stop = null;
+    opened = null;
   });
 
   afterEach(async () => {
@@ -116,6 +119,22 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     if (started.ok) stop = started.stop;
     expect(started.ok).toBe(true);
     expect(events).toEqual(['reconciliación: consulta la entrada', 'suscripción a mensajes', 'WhatsApp arrancado']);
+  });
+
+  it.fails('muestra en consola los cierres y los eventos críticos que registra (FR-071, AC-90)', async () => {
+    const lines: string[] = [];
+    const starting = startApp(env(path.join(root, 'data')), factories(), (l) => lines.push(l));
+    for (let i = 0; i < 20 && !releaseOrder; i++) await new Promise((r) => setTimeout(r, 5));
+    releaseOrder!();
+    const started = await starting;
+    if (started.ok) stop = started.stop;
+    opened!.logAlert(
+      { ...ALERT, status: 'cerrada' },
+      { ...PENDING, state: 'cerrada', filledQty: 4166, closeCause: 'SL', closedAt: new Date('2026-10-28T12:30:00Z'), realizedPnl: -5.0124, fees: 0.1655 },
+    );
+    opened!.logCritical({ kind: 'SL/TP perdido', alertId: ALERT.alertId, detail: 'falta su orden de TP' });
+    expect(lines).toContain('● KAIAUSDT SHORT cerrada por SL: PnL -5.0124 USDT, comisiones 0.1655 USDT');
+    expect(lines).toContain('⚠ CRÍTICO SL/TP perdido KAIAUSDT: falta su orden de TP');
   });
 
   it('con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062)', async () => {
