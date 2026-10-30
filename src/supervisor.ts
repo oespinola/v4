@@ -8,6 +8,8 @@ export const FIRST_DELAY_MS = 1000;
 export const MAX_DELAY_MS = 15_000;
 /** Una ejecución que duró esto o más se considera sana: la espera vuelve a empezar. */
 export const HEALTHY_RUN_MS = 10 * 60_000;
+/** Reinicios seguidos sin una ejecución sana que se registran como evento crítico (FR-074). */
+export const CRITICAL_RESTARTS = 10;
 
 /** Cómo terminó la app: código de salida, o la señal que la mató (kill -9 → SIGKILL). */
 export interface AppExit {
@@ -24,6 +26,8 @@ export interface SupervisorDeps {
   log(line: string): void;
   /** Antes de relanzar: p. ej., matar un Chromium que sobrevivió a un kill -9. */
   beforeRestart?(): Promise<void> | void;
+  /** FR-074: el evento crítico de los reinicios seguidos, para el log JSONL. */
+  onCritical?(e: { kind: 'reinicios seguidos'; detail: string }): void;
 }
 
 /** 1, 2, 4… s hasta 15 s. */
@@ -52,4 +56,9 @@ export async function supervise(deps: SupervisorDeps): Promise<number> {
     if (deps.stopRequested()) return code;
     await deps.beforeRestart?.();
   }
+}
+
+/** Agrega un evento crítico al log JSONL de la app (contracts/log-record.md) desde el supervisor. */
+export function appendCriticalLog(_logFile: string, _e: { kind: string; detail: string }, _at: Date): void {
+  throw new Error('no implementado');
 }

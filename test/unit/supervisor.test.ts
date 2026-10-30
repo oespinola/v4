@@ -1,6 +1,17 @@
+import { mkdtempSync, readFileSync, rmSync, statSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { CONFIG_EXIT_CODE } from '../../src/config.ts';
-import { HEALTHY_RUN_MS, MAX_DELAY_MS, restartDelayMs, supervise, type AppExit } from '../../src/supervisor.ts';
+import {
+  appendCriticalLog,
+  CRITICAL_RESTARTS,
+  HEALTHY_RUN_MS,
+  MAX_DELAY_MS,
+  restartDelayMs,
+  supervise,
+  type AppExit,
+} from '../../src/supervisor.ts';
 
 /** Supervisor con una secuencia de salidas de la app y un reloj que avanza con cada espera. */
 function run(exits: AppExit[], opts: { runMs?: number[]; stopAfter?: number } = {}) {
@@ -8,6 +19,8 @@ function run(exits: AppExit[], opts: { runMs?: number[]; stopAfter?: number } = 
   let runs = 0;
   const waits: number[] = [];
   const events: string[] = [];
+  const logs: string[] = [];
+  const criticals: Array<{ kind: string; detail: string }> = [];
   const done = supervise({
     runApp: async () => {
       const exit = exits[runs];
@@ -23,10 +36,11 @@ function run(exits: AppExit[], opts: { runMs?: number[]; stopAfter?: number } = 
     },
     now: () => now,
     stopRequested: () => opts.stopAfter !== undefined && runs >= opts.stopAfter,
-    log: () => {},
+    log: (line) => void logs.push(line),
     beforeRestart: () => void events.push('limpieza'),
+    onCritical: (e) => void criticals.push(e),
   });
-  return { done, waits, events, runs: () => runs };
+  return { done, waits, events, logs, criticals, runs: () => runs };
 }
 
 const crash: AppExit = { code: 1, signal: null };
@@ -64,5 +78,40 @@ describe('supervisor (FR-056, AC-31, contracts/cli.md)', () => {
     const s = run([crash, crash, crash, { code: 0, signal: null }], { runMs: [1000, 1000, HEALTHY_RUN_MS, 1000] });
     await s.done;
     expect(s.waits).toEqual([1000, 2000, 1000]);
+  });
+
+  it.fails('al 10.º reinicio seguido registra un evento crítico, lo muestra y sigue relanzando (FR-074, AC-93)', async () => {
+    const s = run([...Array<AppExit>(CRITICAL_RESTARTS + 2).fill(crash), { code: 0, signal: null }]);
+    expect(await s.done).toBe(0);
+    expect(s.runs()).toBe(CRITICAL_RESTARTS + 3);
+    const detail = '10 reinicios seguidos sin quedar en marcha 10 min; se sigue relanzando';
+    expect(s.criticals).toEqual([{ kind: 'reinicios seguidos', detail }]);
+    expect(s.logs).toContain(`⚠ CRÍTICO reinicios seguidos: ${detail}`);
+  });
+
+  it('una ejecución sana reinicia la cuenta de reinicios seguidos (FR-074)', async () => {
+    const exits = [...Array<AppExit>(18).fill(crash), { code: 0, signal: null }];
+    const runMs = exits.map((_, i) => (i === 9 ? HEALTHY_RUN_MS : 1000));
+    const s = run(exits, { runMs });
+    await s.done;
+    expect(s.criticals).toEqual([]);
+  });
+
+  it.fails('el evento crítico se agrega al log JSONL de la app con permisos 0600 (FR-074)', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'sb-sup-'));
+    try {
+      const file = path.join(root, 'alerts.log');
+      appendCriticalLog(file, { kind: 'reinicios seguidos', detail: 'x' }, new Date('2026-10-30T12:00:00Z'));
+      expect(JSON.parse(readFileSync(file, 'utf8'))).toEqual({
+        type: 'critical',
+        at: '2026-10-30T12:00:00.000Z',
+        kind: 'reinicios seguidos',
+        alertId: null,
+        detail: 'x',
+      });
+      expect(statSync(file).mode & 0o777).toBe(0o600);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
