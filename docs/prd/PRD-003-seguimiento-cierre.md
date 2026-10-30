@@ -56,6 +56,9 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
   registra con la cantidad que informa Binance y aplica RF-48 o RF-49; si Binance
   confirma que no existe, la registra como "entrada no ejecutada" y su reenvío se evalúa
   de nuevo (RF-29).
+- RF-61: Si una consulta a Binance del seguimiento de posiciones falla, el sistema debe
+  registrarlo en el log con la operación afectada (si la hay) y el error, sin repetir el
+  mismo error consecutivo de la misma operación, y seguir con el próximo ciclo.
 
 ## Requerimientos No Funcionales
 - RNF-11: El tiempo desde que una posición se cierra en Binance hasta que el sistema
@@ -110,6 +113,9 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - AC-87 (RF-45, RF-58, RF-29): Dada una alerta válida sin operación cuya entrada no
   existe en Binance, cuando el sistema vuelve a arrancar, entonces la registra como
   "entrada no ejecutada" y un reenvío con los mismos valores se evalúa de nuevo.
+- AC-92 (RF-61): Dada una posición abierta, cuando la consulta del seguimiento falla dos
+  ciclos seguidos con el mismo error, entonces el log tiene un solo registro de error con
+  la operación y el detalle; y si después falla con otro error, se registra otro.
 
 ## Fuera de Alcance
 - Mensajes de seguimiento de una alerta ya operada (cerrar, mover el SL, tomar

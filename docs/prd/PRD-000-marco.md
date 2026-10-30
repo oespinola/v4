@@ -76,6 +76,21 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   log, cada cierre de posición (símbolo, side, estado, causa, PnL realizado y
   comisiones) y cada evento crítico (tipo, símbolo si corresponde y detalle), este
   último marcado como crítico.
+- RF-60: El sistema debe tener un modo detallado, apagado por defecto, que se activa con
+  la variable de entorno `SIGNALBRIDGE_VERBOSE=1` (o con `pnpm dev:verbose` y `pnpm
+  start:verbose`). Sin él, la consola muestra solo lo de siempre: el arranque, el QR, la
+  conexión, cada alerta válida o rechazada, los cierres y los eventos críticos (RF-59).
+  Con él, además muestra: cada operación que queda completa, con la cantidad ejecutada y
+  los IDs de las órdenes de entrada, SL y TP; cada entrada no ejecutada; cada edición de
+  una alerta ya procesada, con los datos que cambiaron; al arrancar, la cantidad de
+  símbolos cargados (en DRY, también cuántos no están en Demo), los límites de trading
+  configurados y el resultado de la reconciliación (entradas retomadas, operaciones
+  revisadas y duración); las etapas del arranque de WhatsApp con el tiempo transcurrido
+  y, si no encuentra el grupo configurado, la lista de grupos de la cuenta; y los errores
+  del seguimiento (RF-61).
+- RF-62: Tras 10 reinicios automáticos seguidos (RNF-05) sin que la app quede en marcha
+  10 minutos, el sistema debe registrar un evento crítico en el log, mostrarlo en la
+  consola marcado como crítico (RF-59) y seguir reintentando.
 - RF-06: El sistema debe requerir autenticación para conectarse a WhatsApp, mediante
   un código QR que vincule la cuenta cuyo(s) grupo(s) de alertas se van a monitorear.
 - RF-07: El sistema debe arrancar en modo DRY con `pnpm dev` y en modo LIVE con
@@ -159,6 +174,15 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   el PnL realizado y las comisiones; y cuando pierde su SL o su TP, o la entrada termina
   en un cierre de emergencia, entonces la consola muestra el evento crítico con la marca
   "CRÍTICO", el símbolo y el detalle.
+- AC-91 (RF-60): Dado el sistema arrancado sin `SIGNALBRIDGE_VERBOSE`, cuando una entrada
+  queda completa, otra vence sin ejecutarse y se edita una alerta ya procesada, entonces
+  la consola no muestra ninguna de las tres; dado el sistema arrancado con
+  `SIGNALBRIDGE_VERBOSE=1`, entonces muestra las tres, la completa con la cantidad
+  ejecutada y los IDs de sus órdenes, y al arrancar muestra los símbolos cargados, los
+  límites de trading y el resultado de la reconciliación.
+- AC-93 (RF-62): Dada la app que se cae al arrancar una y otra vez, cuando el supervisor
+  la relanza por 10.ª vez seguida, entonces el log tiene un evento crítico "reinicios
+  seguidos", la consola lo muestra marcado "CRÍTICO" y el supervisor sigue relanzándola.
 
 ## Fuera de Alcance
 - Backtesting o análisis de performance histórica (no se calcula drawdown
