@@ -80,7 +80,7 @@ describe('supervisor (FR-056, AC-31, contracts/cli.md)', () => {
     expect(s.waits).toEqual([1000, 2000, 1000]);
   });
 
-  it.fails('al 10.º reinicio seguido registra un evento crítico, lo muestra y sigue relanzando (FR-074, AC-93)', async () => {
+  it('al 10.º reinicio seguido registra un evento crítico, lo muestra y sigue relanzando (FR-074, AC-93)', async () => {
     const s = run([...Array<AppExit>(CRITICAL_RESTARTS + 2).fill(crash), { code: 0, signal: null }]);
     expect(await s.done).toBe(0);
     expect(s.runs()).toBe(CRITICAL_RESTARTS + 3);
@@ -97,7 +97,7 @@ describe('supervisor (FR-056, AC-31, contracts/cli.md)', () => {
     expect(s.criticals).toEqual([]);
   });
 
-  it.fails('el evento crítico se agrega al log JSONL de la app con permisos 0600 (FR-074)', () => {
+  it('el evento crítico se agrega al log JSONL de la app con permisos 0600 (FR-074)', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'sb-sup-'));
     try {
       const file = path.join(root, 'alerts.log');

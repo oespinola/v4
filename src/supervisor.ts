@@ -1,7 +1,9 @@
 // Reinicio automático (FR-056, contracts/cli.md): `pnpm dev` y `pnpm start` corren la app bajo este
 // supervisor (scripts/supervise.ts). Acá solo las decisiones; el proceso, las señales y el reloj se
 // pasan desde afuera.
+import { appendFileSync } from 'node:fs';
 import { CONFIG_EXIT_CODE } from './config.ts';
+import { criticalLine } from './domain/console-line.ts';
 
 export const FIRST_DELAY_MS = 1000;
 /** Tope de la espera: con el arranque de WhatsApp, la ingesta vuelve en < 60 s (FR-056). */
@@ -52,6 +54,14 @@ export async function supervise(deps: SupervisorDeps): Promise<number> {
     attempt += 1;
     const delay = restartDelayMs(attempt);
     deps.log(`Reinicio automático n.º ${attempt} en ${delay / 1000} s (${describeExit(exit)}).`);
+    if (attempt === CRITICAL_RESTARTS) {
+      const critical = {
+        kind: 'reinicios seguidos' as const,
+        detail: `${attempt} reinicios seguidos sin quedar en marcha 10 min; se sigue relanzando`,
+      };
+      deps.log(criticalLine(critical, null));
+      deps.onCritical?.(critical);
+    }
     await deps.wait(delay);
     if (deps.stopRequested()) return code;
     await deps.beforeRestart?.();
@@ -59,6 +69,7 @@ export async function supervise(deps: SupervisorDeps): Promise<number> {
 }
 
 /** Agrega un evento crítico al log JSONL de la app (contracts/log-record.md) desde el supervisor. */
-export function appendCriticalLog(_logFile: string, _e: { kind: string; detail: string }, _at: Date): void {
-  throw new Error('no implementado');
+export function appendCriticalLog(logFile: string, e: { kind: string; detail: string }, at: Date): void {
+  const line = JSON.stringify({ type: 'critical', at: at.toISOString(), kind: e.kind, alertId: null, detail: e.detail });
+  appendFileSync(logFile, `${line}\n`, { mode: 0o600 });
 }

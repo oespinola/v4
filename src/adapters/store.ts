@@ -28,7 +28,7 @@ export interface ConnectionEvent {
 
 /** Evento `critical` (contracts/log-record.md, FR-030, FR-038, FR-055). */
 export interface CriticalEvent {
-  kind: 'cierre de emergencia' | 'falla del cierre de emergencia' | 'SL/TP perdido' | 'reconexión agotada' | 'entrada sin confirmar';
+  kind: 'cierre de emergencia' | 'falla del cierre de emergencia' | 'SL/TP perdido' | 'reconexión agotada' | 'entrada sin confirmar' | 'reinicios seguidos';
   alertId?: string | null;
   detail: string;
 }

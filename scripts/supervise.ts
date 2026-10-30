@@ -7,8 +7,11 @@
 import { spawn, type ChildProcess } from 'node:child_process';
 import path from 'node:path';
 import { cleanupChromium, systemCleanupDeps } from '../src/chromium-lock.ts';
-import { supervise, type AppExit } from '../src/supervisor.ts';
+import { loadDotEnv } from '../src/config.ts';
+import { appendCriticalLog, supervise, type AppExit } from '../src/supervisor.ts';
 
+// SIGNALBRIDGE_DATA_DIR puede venir del .env: el supervisor lo necesita para el log (FR-074).
+loadDotEnv();
 const mode = process.env.SIGNALBRIDGE_MODE;
 if (mode !== 'DRY' && mode !== 'LIVE') {
   console.error('SIGNALBRIDGE_MODE debe ser DRY o LIVE.');
@@ -68,5 +71,14 @@ const code = await supervise({
   stopRequested: () => stop,
   log: (line) => console.error(line),
   beforeRestart: freeSession,
+  // FR-074: al mismo log JSONL que escribe la app (SIGNALBRIDGE_DATA_DIR, por defecto data/).
+  onCritical: (e) => {
+    const logFile = path.resolve(process.env.SIGNALBRIDGE_DATA_DIR?.trim() || 'data', 'alerts.log');
+    try {
+      appendCriticalLog(logFile, e, new Date());
+    } catch (err) {
+      console.error(`No se pudo registrar el evento crítico en ${logFile}: ${(err as Error).message}`);
+    }
+  },
 });
 process.exit(code);
