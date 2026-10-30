@@ -196,7 +196,7 @@ describe('store (FR-007, FR-046, data-model)', () => {
     ]);
   });
 
-  it.fails('registra un error del seguimiento con source, alertId y detail (FR-073)', () => {
+  it('registra un error del seguimiento con source, alertId y detail (FR-073)', () => {
     store.logError({ source: 'seguimiento', alertId: null, detail: 'timeout' });
     const lines = readFileSync(path.join(dir, 'alerts.log'), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
     expect(lines).toEqual([{ type: 'error', at: '2026-10-28T12:00:00.000Z', source: 'seguimiento', alertId: null, detail: 'timeout' }]);

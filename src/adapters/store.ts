@@ -224,7 +224,9 @@ export class Store {
     this.appendLog('connection', { service: e.service, event: e.event, attempt: e.attempt, waitMs: e.waitMs });
   }
 
-  logError(_e: ErrorEvent): void {}
+  logError(e: ErrorEvent): void {
+    this.appendLog('error', { source: e.source, alertId: e.alertId, detail: e.detail });
+  }
 
   logCritical(e: CriticalEvent): void {
     this.appendLog('critical', { kind: e.kind, alertId: e.alertId ?? null, detail: e.detail });

@@ -25,6 +25,8 @@ export class Tracker {
   private readonly missing = new Map<string, { sl: number; tp: number }>();
   /** Eventos críticos ya registrados, para no repetirlos en cada ciclo. */
   private readonly reported = new Set<string>();
+  /** Último error registrado por operación ('' = consulta de posiciones), mientras se repita (FR-073). */
+  private readonly lastError = new Map<string, string>();
 
   constructor(private readonly deps: TrackerDeps) {}
 
@@ -47,7 +49,9 @@ export class Tracker {
       let positions: PositionState[];
       try {
         positions = await this.deps.exchange.openPositions();
-      } catch {
+        this.lastError.delete('');
+      } catch (e) {
+        this.reportError(null, e);
         return; // se vuelve a mirar en el próximo ciclo
       }
       for (const trade of trades) {
@@ -55,13 +59,24 @@ export class Tracker {
         try {
           if (open) await this.checkProtection(trade);
           else await this.checkClose(trade);
-        } catch {
+          this.lastError.delete(trade.alertId);
+        } catch (e) {
           // Falla de la API: la operación queda como estaba y se reintenta.
+          this.reportError(trade.alertId, e);
         }
       }
     } finally {
       this.running = false;
     }
+  }
+
+  /** FR-073: registra la falla, salvo que sea la misma que la anterior de esa operación. */
+  private reportError(alertId: string | null, e: unknown): void {
+    const detail = e instanceof Error ? e.message : String(e);
+    const key = alertId ?? '';
+    if (this.lastError.get(key) === detail) return;
+    this.lastError.set(key, detail);
+    this.deps.store.logError({ source: 'seguimiento', alertId, detail });
   }
 
   /** FR-038: SL o TP que desaparece con la posición abierta → evento crítico, sin tocar nada. */
