@@ -2,7 +2,8 @@
 
 export type Mode = 'DRY' | 'LIVE';
 export type Side = 'LONG' | 'SHORT';
-export type RiskLevel = 'Medio' | 'Medio-Alto' | 'Alto';
+/** Los niveles conocidos se normalizan; cualquier otro queda con el texto de la alerta (FR-003). */
+export type RiskLevel = 'Medio' | 'Medio-Alto' | 'Alto' | (string & {});
 
 /** Datos que se extraen de cada alerta (FR-003). */
 export type Field = 'ticker' | 'entry' | 'target' | 'sl' | 'riskLevel';

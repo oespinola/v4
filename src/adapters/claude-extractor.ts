@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { z } from 'zod';
 import type { ExtractInput, FieldExtractor } from '../ports.ts';
+import { normalizeRisk } from '../domain/parser.ts';
 import type { RawFields } from '../domain/types.ts';
 
 export const MODEL = 'claude-sonnet-5-5';
@@ -18,7 +19,7 @@ const ExtractionSchema = z.object({
   target_price: z.number().nullable(),
   target_is_indicators_only: z.boolean(),
   target_text: z.string().nullable(),
-  risk_level: z.enum(['Medio', 'Medio-Alto', 'Alto']).nullable(),
+  risk_level: z.string().nullable(),
 });
 type Extraction = z.infer<typeof ExtractionSchema>;
 
@@ -30,7 +31,7 @@ Devolvé solo lo que esté escrito en el texto o se lea claramente en la imagen;
 - target_price: el precio numérico de "Obj." si lo trae; null si el objetivo solo menciona indicadores (ASL21, EMA55).
 - target_is_indicators_only: true si el objetivo menciona indicadores y no trae precio numérico.
 - target_text: el texto del objetivo tal como aparece cuando no trae precio (p. ej. "ASL21, EMA55"); null si trae precio.
-- risk_level: "Riesgo medio" → "Medio", "medio-alto" → "Medio-Alto", "alto" → "Alto".`;
+- risk_level: el texto que sigue a "Riesgo" en la línea que empieza con esa palabra, tal como aparece (p. ej. "medio-alto", "MUY ALTO").`;
 
 type ParseParams = Parameters<Anthropic['beta']['messages']['parse']>[0];
 
@@ -47,7 +48,8 @@ function toFields(e: Extraction): Partial<RawFields> {
   if (e.stop_loss !== null && e.stop_loss > 0) fields.sl = e.stop_loss;
   if (e.target_price !== null && e.target_price > 0) fields.target = { price: e.target_price };
   else if (e.target_is_indicators_only) fields.target = { text: e.target_text?.trim() || 'ASL21, EMA55' };
-  if (e.risk_level !== null) fields.riskLevel = e.risk_level;
+  const riskLevel = e.risk_level === null ? undefined : normalizeRisk(e.risk_level);
+  if (riskLevel !== undefined) fields.riskLevel = riskLevel;
   return fields;
 }
 

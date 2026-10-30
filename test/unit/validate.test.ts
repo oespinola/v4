@@ -71,7 +71,7 @@ describe('validación en el orden de FR-020', () => {
     expect(r).toMatchObject({ ok: true, alert: { tp: 0.039, tpSource: 'calculado' } });
   });
 
-  it.fails('la alerta de CELO del 29/10 con "Riesgo MUY ALTO 🟣" queda válida (AC-89)', async () => {
+  it('la alerta de CELO del 29/10 con "Riesgo MUY ALTO 🟣" queda válida (AC-89)', async () => {
     const { deps, market } = setup();
     market.symbols.set('CELOUSDT', filters('CELOUSDT', { tickSize: 0.0001 }));
     market.closes.set('CELOUSDT', Array.from({ length: 60 }, () => 0.0787));

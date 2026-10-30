@@ -51,7 +51,7 @@ describe('extractor de Claude (FR-004, FR-059, Principio I)', () => {
     expect(content[1]?.type).toBe('text');
   });
 
-  it.fails('acepta un nivel de riesgo libre y normaliza los conocidos (FR-003)', async () => {
+  it('acepta un nivel de riesgo libre y normaliza los conocidos (FR-003)', async () => {
     const extractRisk = async (risk_level: string) => {
       const { client } = fakeClient(parsed({ ...full, risk_level }));
       return new ClaudeExtractor({ client }).extract({ text: 't', image: null, missing: ['riskLevel'] });

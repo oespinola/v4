@@ -41,7 +41,7 @@ describe('parser regex (FR-003, AC-20)', () => {
     const withRisk = (risk: string, description = 'Descripción.') =>
       `*CELO - ALERTA DE TRADING*\n\n${description}\n\nEntrada: 0.07236 usd\nObj.: ASL21, EMA55\nSL: 0.06947 usd\n${risk}`;
 
-    it.fails('toma el texto que sigue a "Riesgo" tal como viene, sin los emojis', () => {
+    it('toma el texto que sigue a "Riesgo" tal como viene, sin los emojis', () => {
       expect(parseText(withRisk('Riesgo MUY ALTO 🟣')).riskLevel).toBe('MUY ALTO');
       expect(parseText(withRisk('Riesgo NIVEL DIOS  🟣🟣🟣')).riskLevel).toBe('NIVEL DIOS');
     });
@@ -51,11 +51,11 @@ describe('parser regex (FR-003, AC-20)', () => {
       expect(parseText(withRisk('Riesgo MEDIO-ALTO 🟠')).riskLevel).toBe('Medio-Alto');
     });
 
-    it.fails('corta el texto libre en el primer paréntesis', () => {
+    it('corta el texto libre en el primer paréntesis', () => {
       expect(parseText(withRisk('Riesgo extremo (no entrar con mucho)')).riskLevel).toBe('extremo');
     });
 
-    it.fails('solo cuenta la línea que empieza con "Riesgo", no un riesgo de la descripción', () => {
+    it('solo cuenta la línea que empieza con "Riesgo", no un riesgo de la descripción', () => {
       const text = withRisk('Riesgo MUY ALTO 🟣', 'Proyecto nuevo, con riesgo regulatorio en EE. UU.');
       expect(parseText(text).riskLevel).toBe('MUY ALTO');
     });
