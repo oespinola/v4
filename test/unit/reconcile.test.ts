@@ -182,6 +182,15 @@ describe('reconciliación al arrancar (FR-039 a FR-042, FR-065)', () => {
     expect(logLines()).toEqual([expect.objectContaining({ status: 'entrada no ejecutada' })]);
   });
 
+  it.fails('devuelve cuánto revisó: alertas sin operación, entradas retomadas y operaciones abiertas (FR-072)', async () => {
+    boot(trade({}), 'entrada pendiente', 10);
+    expect(await run()).toEqual({ recovered: 0, resumed: 1, reviewed: 0 });
+    store.close();
+    boot(trade({ state: 'abierta', filledQty: 4166, slOrderId: 'SL1', tpOrderId: 'TP1' }), 'completa', 30);
+    close = { cause: 'SL', at: new Date('2026-10-28T12:20:00Z'), realizedPnl: -5, fees: 0.06 };
+    expect(await run()).toEqual({ recovered: 0, resumed: 0, reviewed: 1 });
+  });
+
   it('entrada parcial con el plazo vencido: SL y TP sobre lo ejecutado y cancela el resto (FR-042, FR-032)', async () => {
     boot(trade({}), 'entrada pendiente', 10);
     entry = { status: 'partially_filled', filledQty: 1000 };

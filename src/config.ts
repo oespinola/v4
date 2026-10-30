@@ -25,6 +25,8 @@ export interface Config {
   maxSlDistancePct: number;
   maxEntryDistancePct: number;
   dataDir: string;
+  /** SIGNALBRIDGE_VERBOSE=1: modo detallado de la consola (FR-072). */
+  verbose: boolean;
 }
 
 export interface ConfigError {
@@ -131,6 +133,7 @@ export function parseConfig(env: Env): ConfigResult {
       maxSlDistancePct,
       maxEntryDistancePct,
       dataDir,
+      verbose: false,
     },
   };
 }

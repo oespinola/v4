@@ -75,7 +75,11 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
       reconnect: async () => {},
       stop: async () => {},
     };
-    const market = Object.assign(new FakeMarketData([filters('KAIAUSDT')]), { start: async () => {}, stop: () => {} });
+    const market = Object.assign(new FakeMarketData([filters('KAIAUSDT')]), {
+      start: async () => {},
+      stop: () => {},
+      summary: () => ({ symbols: 1, missingInDemo: 0 }),
+    });
     return {
       clock: () => (built.push('clock'), clock),
       store: (config, c) => {
@@ -135,6 +139,43 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     opened!.logCritical({ kind: 'SL/TP perdido', alertId: ALERT.alertId, detail: 'falta su orden de TP' });
     expect(lines).toContain('● KAIAUSDT SHORT cerrada por SL: PnL -5.0124 USDT, comisiones 0.1655 USDT');
     expect(lines).toContain('⚠ CRÍTICO SL/TP perdido KAIAUSDT: falta su orden de TP');
+  });
+
+  /** Arranca la app, registra una completa, una no ejecutada, una edición y un error, y devuelve la consola. */
+  async function consoleWith(extraEnv: Record<string, string>): Promise<string[]> {
+    const lines: string[] = [];
+    const starting = startApp({ ...env(path.join(root, 'data')), ...extraEnv }, factories(), (l) => lines.push(l));
+    for (let i = 0; i < 20 && !releaseOrder; i++) await new Promise((r) => setTimeout(r, 5));
+    releaseOrder!();
+    const started = await starting;
+    if (started.ok) stop = started.stop;
+    const filled = { ...PENDING, state: 'abierta' as const, filledQty: 4166, slOrderId: 'S1', tpOrderId: 'T1' };
+    opened!.logAlert({ ...ALERT, status: 'completa' }, filled);
+    opened!.logAlert({ ...ALERT, status: 'entrada no ejecutada' }, { ...PENDING, state: 'cerrada' });
+    opened!.appendLog('edit', { alertId: ALERT.alertId, changedFields: ['sl'] });
+    opened!.logError({ source: 'seguimiento', alertId: ALERT.alertId, detail: 'timeout' });
+    return lines;
+  }
+
+  const VERBOSE_LINES = [
+    'Binance: 1 símbolos, ranking cada 60 s; 0 no están en Demo.',
+    'Límites: R 5 USDT, máx. 3 posiciones, 500 USDT por posición, 1000 USDT en total, apalancamiento 2x (máx. 2x).',
+    '· KAIAUSDT SHORT completa: ejecutado 4166/4166 (entrada E1, SL S1, TP T1)',
+    '· KAIAUSDT SHORT entrada no ejecutada',
+    '· KAIA editada tras procesarse (no se opera): sl',
+    '· Error del seguimiento KAIAUSDT: timeout',
+  ];
+
+  it('sin SIGNALBRIDGE_VERBOSE la consola no muestra el detalle (FR-072, AC-91)', async () => {
+    const lines = await consoleWith({});
+    for (const line of VERBOSE_LINES) expect(lines).not.toContain(line);
+    expect(lines.some((l) => l.startsWith('Reconciliación con Binance:'))).toBe(false);
+  });
+
+  it.fails('con SIGNALBRIDGE_VERBOSE=1 muestra el resumen de arranque, las completas, las no ejecutadas, las ediciones y los errores (AC-91)', async () => {
+    const lines = await consoleWith({ SIGNALBRIDGE_VERBOSE: '1' });
+    for (const line of VERBOSE_LINES) expect(lines).toContain(line);
+    expect(lines).toContainEqual(expect.stringMatching(/^Reconciliación con Binance: .* \(\d+ ms\)\.$/));
   });
 
   it('con configuración inválida sale con 78 sin construir ningún adaptador (FR-058, FR-062)', async () => {

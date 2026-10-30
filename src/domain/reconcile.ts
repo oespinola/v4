@@ -3,6 +3,7 @@
 // (FR-070), las operaciones `pendiente` y `con_ejecución` las retoma el ejecutor, y las `abierta`
 // las revisa el seguimiento, con la misma lógica que en marcha.
 import type { Store } from '../adapters/store.ts';
+import type { ReconcileSummary } from './console-line.ts';
 import type { Executor } from './executor.ts';
 import type { Tracker } from './tracker.ts';
 import type { Mode } from './types.ts';
@@ -14,7 +15,8 @@ export interface ReconcileDeps {
   tracker: Pick<Tracker, 'tick'>;
 }
 
-export async function reconcile({ store, mode, executor, tracker }: ReconcileDeps): Promise<void> {
+/** Cuánto se revisó, para el resumen del modo detallado (FR-072). */
+export async function reconcile({ store, mode, executor, tracker }: ReconcileDeps): Promise<ReconcileSummary> {
   // Primero las entradas que pudieron quedar en Binance sin registrar: si se ejecutaron, no tienen
   // SL ni TP (FR-070). Las de otro modo están en otra cuenta.
   for (const alert of store.validAlertsWithoutTrade(mode)) await executor.recoverUnconfirmed(alert);
@@ -27,4 +29,5 @@ export async function reconcile({ store, mode, executor, tracker }: ReconcileDep
   }
   // Cierres durante la caída de las operaciones abiertas, incluidas las recién protegidas (FR-040).
   await tracker.tick();
+  return { recovered: 0, resumed: 0, reviewed: 0 };
 }

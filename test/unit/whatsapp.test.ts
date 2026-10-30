@@ -1,6 +1,16 @@
 import { EventEmitter } from 'node:events';
 import { describe, expect, it } from 'vitest';
-import { isLogoutUrl, senderOf, startOrRelink, wireClient, type RawWaMessage, type WireHandlers } from '../../src/adapters/whatsapp.ts';
+import {
+  isLogoutUrl,
+  missingGroupLines,
+  senderOf,
+  startOrRelink,
+  startupLine,
+  wireClient,
+  wireStages,
+  type RawWaMessage,
+  type WireHandlers,
+} from '../../src/adapters/whatsapp.ts';
 import type { IncomingEdit, IncomingMessage } from '../../src/ports.ts';
 import { flush } from '../fakes/index.ts';
 
@@ -185,5 +195,38 @@ describe('adaptador de WhatsApp: sesión cerrada por WhatsApp (FR-048)', () => {
     const { steps: s, seen } = steps({ failures: [], loggedOut: true });
     await startOrRelink(s);
     expect(seen).toMatchObject({ starts: 1, discarded: 0 });
+  });
+});
+
+describe('adaptador de WhatsApp: modo detallado (FR-072)', () => {
+  it.fails('cada etapa del arranque lleva el tiempo transcurrido', () => {
+    expect(startupLine(1_000, 2_500, 'sesión autenticada')).toBe('WhatsApp +1.5 s: sesión autenticada');
+  });
+
+  it.fails('engancha las etapas del arranque, sin repetir el mismo porcentaje de carga', () => {
+    const client = new EventEmitter();
+    const stages: string[] = [];
+    wireStages(client, (s) => void stages.push(s));
+    client.emit('authenticated');
+    client.emit('loading_screen', 50, 'WhatsApp');
+    client.emit('loading_screen', 50, 'WhatsApp');
+    client.emit('loading_screen', 100, '');
+    client.emit('change_state', 'CONNECTED');
+    client.emit('ready');
+    expect(stages).toEqual([
+      'sesión autenticada',
+      'cargando chats 50 % (WhatsApp)',
+      'cargando chats 100 %',
+      'estado CONNECTED',
+      'WhatsApp Web listo; buscando el grupo',
+    ]);
+  });
+
+  it.fails('si no encuentra el grupo, lista los grupos de la cuenta', () => {
+    expect(missingGroupLines('ALERTAS', ['Familia', 'ALERTAS CRYPTO+'])).toEqual([
+      'No encontré el grupo "ALERTAS". Tus grupos:',
+      '  - Familia',
+      '  - ALERTAS CRYPTO+',
+    ]);
   });
 });

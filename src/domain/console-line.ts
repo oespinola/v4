@@ -20,3 +20,53 @@ export function closeLine(record: AlertLogRecord): string | null {
 export function criticalLine(e: { kind: string; detail: string }, symbol: string | null): string {
   return `⚠ CRÍTICO ${e.kind}${symbol ? ` ${symbol}` : ''}: ${e.detail}`;
 }
+
+// ── Modo detallado (FR-072) ───────────────────────────────────────────────────
+
+/** Símbolos cargados; `missingInDemo` es null en LIVE. */
+export interface MarketSummary {
+  symbols: number;
+  missingInDemo: number | null;
+}
+
+export interface TradingLimits {
+  riskR: number;
+  maxPositions: number;
+  maxPositionSize: number;
+  maxCapital: number;
+  symbolLeverage: number;
+  maxLeverage: number;
+}
+
+export interface ReconcileSummary {
+  recovered: number;
+  resumed: number;
+  reviewed: number;
+}
+
+/** Línea de "completa" o "entrada no ejecutada"; `null` para los demás estados. */
+export function progressLine(_record: AlertLogRecord): string | null {
+  throw new Error('no implementado');
+}
+
+/** Línea de una edición registrada (FR-047). */
+export function editLine(_e: { changedFields: readonly string[] }, _ticker: string | null): string {
+  throw new Error('no implementado');
+}
+
+/** Línea de un error del seguimiento (FR-073). */
+export function errorLine(_e: { source: string; detail: string }, _symbol: string | null): string {
+  throw new Error('no implementado');
+}
+
+export function marketLine(_s: MarketSummary): string {
+  throw new Error('no implementado');
+}
+
+export function limitsLine(_l: TradingLimits): string {
+  throw new Error('no implementado');
+}
+
+export function reconcileLine(_r: ReconcileSummary, _ms: number): string {
+  throw new Error('no implementado');
+}

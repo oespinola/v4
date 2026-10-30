@@ -106,6 +106,21 @@ export function wireClient(client: GroupEvents, h: WireHandlers): void {
   });
 }
 
+/** Etapa del arranque con el tiempo transcurrido (FR-072). */
+export function startupLine(_startedAt: number, _now: number, _stage: string): string {
+  throw new Error('no implementado');
+}
+
+/** Engancha las etapas del arranque de WhatsApp Web, para el modo detallado (FR-072). */
+export function wireStages(_client: GroupEvents, _stage: (text: string) => void): void {
+  throw new Error('no implementado');
+}
+
+/** Aviso del grupo que no está, con la lista de grupos de la cuenta (FR-072). */
+export function missingGroupLines(_groupName: string, _groups: readonly string[]): string[] {
+  throw new Error('no implementado');
+}
+
 /** WhatsApp Web salta a esta dirección cuando la sesión vinculada ya no vale (el dispositivo se
  *  desvinculó desde el teléfono, o WhatsApp la cerró). */
 export function isLogoutUrl(url: string | undefined): boolean {
