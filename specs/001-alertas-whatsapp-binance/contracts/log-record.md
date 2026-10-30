@@ -45,5 +45,10 @@ aplican van en `null` (FR-043).
 ## `type: "critical"`
 
 `kind` (`"cierre de emergencia"` \| `"falla del cierre de emergencia"` \| `"SL/TP perdido"` \|
-`"reconexión agotada"` \| `"entrada sin confirmar"`), `alertId` si aplica y `detail` (FR-030,
-FR-038, FR-055, FR-069).
+`"reconexión agotada"` \| `"entrada sin confirmar"` \| `"reinicios seguidos"`), `alertId` si aplica y
+`detail` (FR-030, FR-038, FR-055, FR-069, FR-074).
+
+## `type: "error"`
+
+`source` (`"seguimiento"`), `alertId` (`null` si la consulta no es de una operación) y `detail`
+(FR-073). No se repite el mismo `detail` consecutivo del mismo `alertId`.

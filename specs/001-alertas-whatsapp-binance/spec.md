@@ -316,6 +316,11 @@ log y los permisos de los archivos.
    una línea con el símbolo, el side, la causa, el PnL realizado y las comisiones; **When** pierde
    su SL o su TP, o la entrada termina en un cierre de emergencia, **Then** la consola muestra el
    evento crítico con la marca "CRÍTICO", el símbolo y el detalle (AC-90).
+6. **Given** el sistema arrancado sin `SIGNALBRIDGE_VERBOSE`, **When** una entrada queda completa,
+   otra vence sin ejecutarse y se edita una alerta ya procesada, **Then** la consola no muestra
+   ninguna de las tres; **Given** el sistema arrancado con `SIGNALBRIDGE_VERBOSE=1`, **Then** muestra
+   las tres, la completa con la cantidad ejecutada y los IDs de sus órdenes, y al arrancar muestra los
+   símbolos cargados, los límites de trading y el resultado de la reconciliación (AC-91).
 
 ---
 
@@ -349,6 +354,9 @@ de órdenes restantes y la liberación del cupo.
    (AC-61).
 7. **Given** una posición completa, **When** el operador cancela a mano su orden de SL, **Then** el
    sistema registra un evento crítico y la posición y su TP quedan sin cambios (AC-64).
+8. **Given** una posición abierta, **When** la consulta del seguimiento falla dos ciclos seguidos con
+   el mismo error, **Then** el log tiene un solo registro de error con la operación y el detalle; si
+   después falla con otro error, se registra otro (AC-92).
 
 ---
 
@@ -417,6 +425,9 @@ ingesta.
 5. **Given** un cierre de emergencia en curso y la API de Binance caída, **When** se acumulan 10
    intentos fallidos consecutivos, **Then** el sistema registra el evento crítico pero no termina
    el proceso y sigue reintentando el cierre (AC-74).
+6. **Given** la app que se cae al arrancar una y otra vez, **When** el supervisor la relanza por
+   10.ª vez seguida, **Then** el log tiene un evento crítico "reinicios seguidos", la consola lo
+   muestra marcado "CRÍTICO" y el supervisor sigue relanzándola (AC-93).
 
 ---
 
@@ -669,6 +680,9 @@ key de producción en Binance.
   por TP, SL o cierre manual, y "liquidada" una posición liquidada.
 - **FR-038** (RF-47): Si una posición abierta pierde su SL o su TP sin haberse cerrado, el sistema
   MUST registrarlo como evento crítico, sin modificar la posición.
+- **FR-073** (RF-61): Si una consulta a Binance del seguimiento falla, el sistema MUST registrarlo en
+  el log (`type: "error"`) con la operación afectada si la hay y el detalle, sin repetir el mismo
+  error consecutivo de la misma operación, y seguir con el próximo ciclo.
 
 **Reconciliación al arrancar (PRD-003)**
 
@@ -714,6 +728,14 @@ key de producción en Binance.
   emergencia", el sistema MUST mostrar en la consola una línea con el símbolo, el side, el estado, la
   causa de cierre, el PnL realizado y las comisiones que tenga; al registrar un evento crítico, MUST
   mostrar una línea marcada "CRÍTICO" con el tipo, el símbolo de la alerta si la hay y el detalle.
+- **FR-072** (RF-60): Con `SIGNALBRIDGE_VERBOSE=1` (`pnpm dev:verbose`, `pnpm start:verbose`) el
+  sistema MUST mostrar además en la consola: cada registro "completa", con la cantidad ejecutada y los
+  IDs de entrada, SL y TP; cada "entrada no ejecutada"; cada edición registrada (FR-047), con los datos
+  que cambiaron; cada error del seguimiento (FR-073); al arrancar, los símbolos cargados (en DRY,
+  cuántos no están en Demo), los límites de trading y el resultado de la reconciliación (entradas
+  retomadas, operaciones revisadas y duración); y las etapas del arranque de WhatsApp con el tiempo
+  transcurrido y, si no encuentra el grupo, la lista de grupos de la cuenta. Sin la variable, nada de
+  esto MUST aparecer en la consola.
 
 **WhatsApp (PRD-000)**
 
@@ -767,6 +789,9 @@ key de producción en Binance.
   cierre se sigue reintentando hasta que la posición quede cerrada.
 - **FR-056** (RNF-05): Si el proceso se cae, MUST reiniciarse automáticamente y retomar la ingesta
   en < 60 s.
+- **FR-074** (RF-62): Al 10.º reinicio automático seguido sin que la app quede en marcha 10 minutos, el
+  supervisor MUST registrar un evento crítico "reinicios seguidos" en el log, mostrarlo en la consola
+  marcado "CRÍTICO" (FR-071) y seguir relanzándola.
 
 ### Key Entities *(include if feature involves data)*
 

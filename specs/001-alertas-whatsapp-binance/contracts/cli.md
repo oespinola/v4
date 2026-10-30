@@ -6,6 +6,8 @@
 |---|---|---|
 | `pnpm dev` | Supervisor + app en modo DRY (Binance Demo Trading) | FR-050, FR-051 |
 | `pnpm start` | Supervisor + app en modo LIVE (producción) | FR-050, FR-051 |
+| `pnpm dev:verbose` | Como `pnpm dev`, con `SIGNALBRIDGE_VERBOSE=1` | FR-072 |
+| `pnpm start:verbose` | Como `pnpm start`, con `SIGNALBRIDGE_VERBOSE=1` | FR-072 |
 | `pnpm dev:once` | La app en DRY sin supervisor (para depurar; no se relanza) | — |
 | `pnpm test` | Tests (Vitest), sin red ni credenciales | Principio IV |
 | `pnpm typecheck` | `tsc --noEmit` | AGENTS.md |
@@ -40,6 +42,7 @@ Sin sesión guardada, la app muestra el QR en la terminal (FR-048).
 | `MAX_SL_DISTANCE_PCT` | ambos | > 0; por defecto 15 (FR-013) |
 | `MAX_ENTRY_DISTANCE_PCT` | ambos | > 0; por defecto 10 (FR-068) |
 | `SIGNALBRIDGE_DATA_DIR` | ambos | opcional; por defecto `data` |
+| `SIGNALBRIDGE_VERBOSE` | ambos | opcional; `1` activa el modo detallado de la consola (FR-072) |
 
 El modo lo fija el comando (`SIGNALBRIDGE_MODE=DRY|LIVE`), no el `.env`. Si falta o es inválida
 cualquier variable requerida, la app escribe en la consola la lista de lo que falta y sale con 78 sin
