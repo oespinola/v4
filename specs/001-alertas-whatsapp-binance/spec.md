@@ -312,6 +312,10 @@ log y los permisos de los archivos.
 4. **Given** una entrada con ejecución parcial, **When** termina su seguimiento (se ejecuta del todo
    o a los 3 minutos se cancela el resto), **Then** la última entrada del log de esa alerta tiene la
    cantidad ejecutada según Binance, además de la cantidad pedida (AC-88).
+5. **Given** una posición completa, **When** se cierra por TP o por SL, **Then** la consola muestra
+   una línea con el símbolo, el side, la causa, el PnL realizado y las comisiones; **When** pierde
+   su SL o su TP, o la entrada termina en un cierre de emergencia, **Then** la consola muestra el
+   evento crítico con la marca "CRÍTICO", el símbolo y el detalle (AC-90).
 
 ---
 
@@ -706,6 +710,10 @@ key de producción en Binance.
   MUST tener permisos 0600, legibles solo por el usuario del proceso.
 - **FR-047** (PRD-000, Fuera de Alcance): La edición de una alerta ya procesada MUST registrarse en
   el log (texto anterior y nuevo, y los datos que cambiaron) sin operarse.
+- **FR-071** (RF-59): Al registrar en el log un estado final "cerrada", "liquidada" o "cerrada por
+  emergencia", el sistema MUST mostrar en la consola una línea con el símbolo, el side, el estado, la
+  causa de cierre, el PnL realizado y las comisiones que tenga; al registrar un evento crítico, MUST
+  mostrar una línea marcada "CRÍTICO" con el tipo, el símbolo de la alerta si la hay y el detalle.
 
 **WhatsApp (PRD-000)**
 
