@@ -25,7 +25,11 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
   mayores ganadores o los 3 mayores perdedores según la copia local vigente del
   ranking (RF-23).
 - RF-09: El sistema debe extraer de cada alerta la entrada, el objetivo, el stop loss,
-  el nivel de riesgo y el ticker a partir del texto del mensaje.
+  el nivel de riesgo y el ticker a partir del texto del mensaje. El nivel de riesgo es
+  el texto que sigue a "Riesgo" en la línea que empieza con esa palabra: si empieza con
+  medio-alto, medio o alto (sin distinguir mayúsculas) se toma como Medio-Alto, Medio o
+  Alto; si no, se toma tal como viene, hasta el primer emoji o paréntesis (p. ej. "MUY
+  ALTO" o "NIVEL DIOS"). Si no queda texto, el nivel de riesgo falta.
 - RF-11: El sistema debe asignar a cada alerta procesada (cargada o rechazada) un
   identificador único persistente, formado por el ID del mensaje de WhatsApp y un hash
   de (símbolo, Entrada, SL, TP) calculado después del mapeo del ticker (RF-31) y del
@@ -143,6 +147,9 @@ top 3 ganadores/perdedores) antes de operar, sin intervención manual del operad
 - AC-21 (RF-17): Dada una alerta a la que le falta algún dato tanto en el texto como
   en la imagen, cuando el sistema la procesa, entonces la rechaza y loguea el motivo
   "incompleta".
+- AC-89 (RF-09, RF-27): Dada una alerta con todos los datos y la línea "Riesgo MUY ALTO
+  🟣", cuando el sistema la procesa, entonces no la rechaza como "incompleta" y loguea
+  el nivel de riesgo "MUY ALTO".
 - AC-25 (RF-21): Dada una copia local del ranking con más de 120 s de antigüedad,
   cuando llega una alerta, entonces el sistema la rechaza y loguea el motivo
   "ranking no disponible".

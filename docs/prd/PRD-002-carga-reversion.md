@@ -40,8 +40,8 @@ Binance Futuros con SL y TP correctos, sin dejar nunca una posición desprotegid
 - RF-20: El sistema debe rechazar una alerta válida si abrirla haría que el nocional
   total de las posiciones abiertas y de las órdenes de entrada pendientes supere el
   máximo configurable de capital comprometido (USDT).
-- RF-27: El nivel de riesgo de la alerta (Medio, Medio-Alto, Alto) no debe modificar la
-  cantidad calculada en RF-08.
+- RF-27: El nivel de riesgo de la alerta (Medio, Medio-Alto, Alto o el texto que traiga,
+  RF-09) no debe modificar la cantidad calculada en RF-08.
 - RF-30: El sistema debe rechazar una alerta cuya cantidad redondeada (RF-08) quede por
   debajo de la cantidad mínima o del nocional mínimo del símbolo.
 - RF-33: El sistema debe colocar la entrada como una orden límite al precio de Entrada
