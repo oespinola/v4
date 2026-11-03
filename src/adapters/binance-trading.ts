@@ -45,6 +45,14 @@ const toFill = (t: RawTrade): Fill => ({
 const NO_NEED_TO_CHANGE_MARGIN_TYPE = -4046;
 const UNKNOWN_ORDER = -2011; // al cancelar algo que ya no está abierto
 const ORDER_DOES_NOT_EXIST = -2013; // al consultar una orden que Binance no tiene
+/** Estados de una algo order que todavía pueden terminar en nuestro cierre (FR-075). */
+const UNSETTLED_ALGO = new Set(['NEW', 'TRIGGERING', 'TRIGGERED']);
+
+interface Protection {
+  fillOrderId: string | null;
+  clientId: string | null;
+  settled: boolean;
+}
 
 const STATUS: Record<string, OrderStatus> = {
   NEW: 'open',
@@ -257,15 +265,24 @@ export class BinanceTrading implements Exchange {
       .filter((p) => Number(p.positionAmt) !== 0)
       .map((p) => ({ symbol: p.symbol, side: sideOf(p), quantity: Math.abs(Number(p.positionAmt)) }));
 
-  /** Orden real que generó un SL/TP condicional al dispararse, si ya se disparó. */
-  private async fillOrderOf(ref: OrderRef | null): Promise<string | null> {
+  /** Un SL/TP condicional: la orden real que generó al dispararse, su ID de cliente y si ya está
+   *  asentado (FR-075). Que Binance no lo tenga cuenta como sin SL/TP; otra falla se propaga. */
+  private async protectionOf(ref: OrderRef | null): Promise<Protection | null> {
     if (!ref) return null;
+    let algo: { algoStatus: string; actualOrderId?: string | number; clientAlgoId?: string };
     try {
-      const algo = await this.call<{ actualOrderId?: string | number }>('fapiPrivateGetAlgoOrder', { algoId: ref.id });
-      return algo.actualOrderId ? String(algo.actualOrderId) : null;
-    } catch {
-      return null; // si no se puede saber, la causa queda "cierre manual" y no se inventa
+      algo = await this.call('fapiPrivateGetAlgoOrder', { algoId: ref.id });
+    } catch (err) {
+      if (binanceCode(err) === ORDER_DOES_NOT_EXIST) return null;
+      throw err;
     }
+    const fillOrderId = algo.actualOrderId ? String(algo.actualOrderId) : null;
+    return {
+      fillOrderId,
+      clientId: algo.clientAlgoId || null,
+      // Abierto, disparándose o ejecutado sin su orden informada: Binance puede no haberlo ligado aún.
+      settled: !(UNSETTLED_ALGO.has(algo.algoStatus) || (algo.algoStatus === 'FINISHED' && !fillOrderId)),
+    };
   }
 
   // Hasta 1000 ejecuciones del símbolo desde la entrada: alcanza con una operación por símbolo
@@ -278,16 +295,27 @@ export class BinanceTrading implements Exchange {
     });
     const found = findClose(t.side, trades.map(toFill), t.entryOrderId);
     if (!found) return null;
-    const [slFillOrderId, tpFillOrderId, closingOrder] = await Promise.all([
-      this.fillOrderOf(t.sl),
-      this.fillOrderOf(t.tp),
+    const [sl, tp, closingOrder] = await Promise.all([
+      this.protectionOf(t.sl),
+      this.protectionOf(t.tp),
       this.call<{ type: string; clientOrderId: string }>('fapiPrivateGetOrder', {
         symbol: t.symbol,
         orderId: found.closingOrderId,
       }),
     ]);
+    const cause = closeCause(
+      found.closingOrderId,
+      {
+        slFillOrderId: sl?.fillOrderId ?? null,
+        tpFillOrderId: tp?.fillOrderId ?? null,
+        slClientId: sl?.clientId ?? null,
+        tpClientId: tp?.clientId ?? null,
+      },
+      closingOrder,
+    );
     return {
-      cause: closeCause(found.closingOrderId, { slFillOrderId, tpFillOrderId, slClientId: null, tpClientId: null }, closingOrder),
+      cause,
+      unsettled: cause === 'cierre manual' && [sl, tp].some((p) => p !== null && !p.settled),
       at: new Date(found.closedAt),
       ...closeTotals(found),
     };

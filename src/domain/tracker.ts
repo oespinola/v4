@@ -7,6 +7,9 @@ import type { Clock, Exchange, OrderRef, PositionState, TimerHandle } from '../p
 import type { Trade } from './types.ts';
 
 export const TRACK_POLL_MS = 2000;
+/** Un "cierre manual" con el SL o el TP sin asentar se vuelve a mirar hasta este plazo desde el cierre
+ *  (FR-075): Demo puede tardar segundos en ligar el SL/TP a la orden que generó. */
+export const CLOSE_SETTLE_MS = 8000;
 /** Un SL/TP que falta un solo ciclo puede estar disparándose: cuenta desde el segundo seguido. */
 const MISSING_CYCLES = 2;
 
@@ -112,6 +115,7 @@ export class Tracker {
       since: trade.entryPlacedAt,
     });
     if (!close) return; // Binance todavía no informa las ejecuciones del cierre
+    if (close.unsettled && this.deps.clock.now().getTime() - close.at.getTime() < CLOSE_SETTLE_MS) return;
     // FR-034: la que no se disparó queda huérfana; cancel ignora lo que ya no está abierto.
     for (const ref of [sl, tp]) if (ref) await exchange.cancel(ref).catch(() => {});
     const closed: Trade = {

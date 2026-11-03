@@ -1,7 +1,8 @@
 // Cierre de una operación según sus ejecuciones (FR-033, FR-036, FR-037), como en v3: desde la
 // entrada, se suman las ejecuciones que abren y se restan las que cierran hasta volver a cero. La
-// causa la da la orden que dejó la posición en cero: la que generó nuestro TP o SL al dispararse,
-// una liquidación de Binance, o cualquier otra ("cierre manual").
+// causa la da la orden que dejó la posición en cero: la que generó nuestro TP o SL al dispararse
+// (por su ID o por el ID de cliente que Binance le copia, FR-075), una liquidación de Binance, o
+// cualquier otra ("cierre manual").
 import type { CloseCause, Side } from './types.ts';
 
 export interface Fill {
@@ -67,8 +68,10 @@ export function closeCause(
   protections: { slFillOrderId: string | null; tpFillOrderId: string | null; slClientId: string | null; tpClientId: string | null },
   closingOrder: { type: string; clientOrderId: string },
 ): CloseCause {
-  if (protections.tpFillOrderId === closingOrderId) return 'TP';
-  if (protections.slFillOrderId === closingOrderId) return 'SL';
+  const by = (fillOrderId: string | null, clientId: string | null) =>
+    fillOrderId === closingOrderId || (clientId !== null && clientId === closingOrder.clientOrderId);
+  if (by(protections.tpFillOrderId, protections.tpClientId)) return 'TP';
+  if (by(protections.slFillOrderId, protections.slClientId)) return 'SL';
   if (isForcedClose(closingOrder)) return 'liquidación';
   return 'cierre manual';
 }

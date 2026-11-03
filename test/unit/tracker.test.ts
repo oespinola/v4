@@ -156,7 +156,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.getTrade(ALERT.alertId)?.state).toBe('cerrada');
   });
 
-  it.fails('un cierre manual con el SL o el TP sin asentar se registra recién a los 8 s del cierre (FR-075)', async () => {
+  it('un cierre manual con el SL o el TP sin asentar se registra recién a los 8 s del cierre (FR-075)', async () => {
     positions = [];
     close = { cause: 'cierre manual', at: new Date('2026-10-28T13:00:01Z'), realizedPnl: -1, fees: 0.06, unsettled: true };
     await clock.advance(TRACK_POLL_MS * 3); // 13:00:06
@@ -166,7 +166,7 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     expect(store.getTrade(ALERT.alertId)).toMatchObject({ state: 'cerrada', closeCause: 'cierre manual' });
   });
 
-  it.fails('mientras espera, si Binance asienta el SL, se registra como SL (FR-075, AC-94)', async () => {
+  it('mientras espera, si Binance asienta el SL, se registra como SL (FR-075, AC-94)', async () => {
     positions = [];
     close = { cause: 'cierre manual', at: new Date('2026-10-28T13:00:01Z'), realizedPnl: -1, fees: 0.06, unsettled: true };
     await clock.advance(TRACK_POLL_MS);

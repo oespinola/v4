@@ -67,7 +67,7 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
     );
   });
 
-  it.fails('el SL o el TP también se reconoce por su ID de cliente, que Binance repite en la orden de cierre (FR-075, AC-94)', () => {
+  it('el SL o el TP también se reconoce por su ID de cliente, que Binance repite en la orden de cierre (FR-075, AC-94)', () => {
     const p = { slFillOrderId: null, tpFillOrderId: null, slClientId: 'x-sl', tpClientId: 'x-tp' };
     expect(closeCause('S9', p, { type: 'MARKET', clientOrderId: 'x-sl' })).toBe('SL');
     expect(closeCause('T9', p, { type: 'MARKET', clientOrderId: 'x-tp' })).toBe('TP');

@@ -277,12 +277,12 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
     };
     const algo = (algoStatus: string, clientAlgoId: string, actualOrderId = '') => () => ({ algoStatus, clientAlgoId, actualOrderId });
 
-    it.fails('SL ejecutado sin su orden informada todavía: "SL" por el ID de cliente (TIAUSDT 03/11, AC-94)', async () => {
+    it('SL ejecutado sin su orden informada todavía: "SL" por el ID de cliente (TIAUSDT 03/11, AC-94)', async () => {
       const close = await closeWith({ '900': algo('FINISHED', 'x-sl'), '901': algo('EXPIRED', 'x-tp') });
       expect(close).toMatchObject({ cause: 'SL', unsettled: false });
     });
 
-    it.fails('manual con el SL o el TP sin asentar: unsettled (NEW, TRIGGERING, TRIGGERED, FINISHED sin orden)', async () => {
+    it('manual con el SL o el TP sin asentar: unsettled (NEW, TRIGGERING, TRIGGERED, FINISHED sin orden)', async () => {
       for (const status of ['NEW', 'TRIGGERING', 'TRIGGERED', 'FINISHED']) {
         const close = await closeWith({ '900': algo(status, 'x-sl'), '901': algo('EXPIRED', 'x-tp') }, 'web_abc');
         expect(close).toMatchObject({ cause: 'cierre manual', unsettled: true });
@@ -301,7 +301,7 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
       expect(close?.unsettled ?? false).toBe(false);
     });
 
-    it.fails('otra falla al consultar el SL/TP se propaga: no se decide "cierre manual" (AC-95)', async () => {
+    it('otra falla al consultar el SL/TP se propaga: no se decide "cierre manual" (AC-95)', async () => {
       await expect(closeWith({ '900': binanceError(-1001), '901': algo('EXPIRED', 'x-tp') }, 'web_abc')).rejects.toThrow();
     });
   });
