@@ -242,9 +242,68 @@ describe('adaptador de trading de Binance (R-06, FR-024, FR-027 a FR-030, FR-060
       tp: { symbol: 'KAIAUSDT', id: '901', algo: true },
       since,
     });
-    expect(close).toEqual({ cause: 'TP', at: new Date(t0 + 60_000), realizedPnl: 9.16, fees: 0.06 });
+    expect(close).toMatchObject({ cause: 'TP', at: new Date(t0 + 60_000), realizedPnl: 9.16, fees: 0.06 });
+    expect(close?.unsettled ?? false).toBe(false);
     expect(f.of('fapiPrivateGetUserTrades')[0]).toEqual({ symbol: 'KAIAUSDT', startTime: since.getTime(), limit: 1000 });
     expect(f.of('fapiPrivateGetOrder')).toEqual([{ symbol: 'KAIAUSDT', orderId: '777' }]);
+  });
+
+  describe('causa del cierre con el SL/TP de Binance (FR-075)', () => {
+    const fill = (orderId: number, side: string, time: number) => ({
+      id: orderId,
+      orderId,
+      side,
+      positionSide: 'LONG',
+      qty: '469',
+      realizedPnl: side === 'SELL' ? '-8.8172' : '0',
+      commission: '0.1',
+      commissionAsset: 'USDT',
+      time,
+    });
+    const closeWith = (algos: Record<string, () => unknown>, closingClientId = 'x-sl') => {
+      const f = fakeClient({
+        fapiPrivateGetUserTrades: () => [fill(111, 'BUY', 1000), fill(777, 'SELL', 60_000)],
+        fapiPrivateGetAlgoOrder: (p) => algos[String(p?.algoId)]!(),
+        fapiPrivateGetOrder: () => ({ orderId: 777, type: 'MARKET', clientOrderId: closingClientId }),
+      });
+      return new BinanceTrading(f.client).closeOf({
+        symbol: 'TIAUSDT',
+        side: 'LONG',
+        entryOrderId: '111',
+        sl: { symbol: 'TIAUSDT', id: '900', algo: true },
+        tp: { symbol: 'TIAUSDT', id: '901', algo: true },
+        since: new Date(0),
+      });
+    };
+    const algo = (algoStatus: string, clientAlgoId: string, actualOrderId = '') => () => ({ algoStatus, clientAlgoId, actualOrderId });
+
+    it.fails('SL ejecutado sin su orden informada todavía: "SL" por el ID de cliente (TIAUSDT 03/11, AC-94)', async () => {
+      const close = await closeWith({ '900': algo('FINISHED', 'x-sl'), '901': algo('EXPIRED', 'x-tp') });
+      expect(close).toMatchObject({ cause: 'SL', unsettled: false });
+    });
+
+    it.fails('manual con el SL o el TP sin asentar: unsettled (NEW, TRIGGERING, TRIGGERED, FINISHED sin orden)', async () => {
+      for (const status of ['NEW', 'TRIGGERING', 'TRIGGERED', 'FINISHED']) {
+        const close = await closeWith({ '900': algo(status, 'x-sl'), '901': algo('EXPIRED', 'x-tp') }, 'web_abc');
+        expect(close).toMatchObject({ cause: 'cierre manual', unsettled: true });
+      }
+    });
+
+    it('manual con el SL y el TP ya cancelados o vencidos: asentado', async () => {
+      const close = await closeWith({ '900': algo('CANCELED', 'x-sl'), '901': algo('EXPIRED', 'x-tp') }, 'web_abc');
+      expect(close).toMatchObject({ cause: 'cierre manual' });
+      expect(close?.unsettled ?? false).toBe(false);
+    });
+
+    it('un SL/TP que Binance no tiene (-2013) cuenta como sin SL/TP', async () => {
+      const close = await closeWith({ '900': binanceError(-2013), '901': binanceError(-2013) }, 'web_abc');
+      expect(close).toMatchObject({ cause: 'cierre manual' });
+      expect(close?.unsettled ?? false).toBe(false);
+    });
+
+    it.fails('otra falla al consultar el SL/TP se propaga: no se decide "cierre manual" (AC-95)', async () => {
+      await expect(closeWith({ '900': binanceError(-1001), '901': algo('EXPIRED', 'x-tp') }, 'web_abc')).rejects.toThrow();
+    });
   });
 
   it('si las ejecuciones no cierran la posición, closeOf devuelve null sin más consultas', async () => {

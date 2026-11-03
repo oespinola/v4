@@ -87,6 +87,8 @@ export interface CloseInfo {
   realizedPnl: number;
   /** Comisiones en USDT de la entrada y del cierre. */
   fees: number;
+  /** Causa "cierre manual" con el SL o el TP todavía sin asentar en Binance: puede ser demora (FR-075). */
+  unsettled?: boolean;
 }
 
 /** Lo que hace falta para encontrar el cierre de una operación. */

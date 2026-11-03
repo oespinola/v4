@@ -64,7 +64,7 @@ function isForcedClose(order: { type: string; clientOrderId: string }): boolean 
 
 export function closeCause(
   closingOrderId: string,
-  protections: { slFillOrderId: string | null; tpFillOrderId: string | null },
+  protections: { slFillOrderId: string | null; tpFillOrderId: string | null; slClientId: string | null; tpClientId: string | null },
   closingOrder: { type: string; clientOrderId: string },
 ): CloseCause {
   if (protections.tpFillOrderId === closingOrderId) return 'TP';

@@ -287,7 +287,7 @@ export class BinanceTrading implements Exchange {
       }),
     ]);
     return {
-      cause: closeCause(found.closingOrderId, { slFillOrderId, tpFillOrderId }, closingOrder),
+      cause: closeCause(found.closingOrderId, { slFillOrderId, tpFillOrderId, slClientId: null, tpClientId: null }, closingOrder),
       at: new Date(found.closedAt),
       ...closeTotals(found),
     };

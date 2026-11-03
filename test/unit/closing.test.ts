@@ -54,7 +54,7 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
   });
 
   it('causa: la orden que generó nuestro TP o SL, una liquidación, o cierre manual (AC-56 a AC-59)', () => {
-    const p = { slFillOrderId: 'S9', tpFillOrderId: 'T9' };
+    const p = { slFillOrderId: 'S9', tpFillOrderId: 'T9', slClientId: null, tpClientId: null };
     const plain = { type: 'MARKET', clientOrderId: 'web_abc' };
     expect(closeCause('T9', p, plain)).toBe('TP');
     expect(closeCause('S9', p, plain)).toBe('SL');
@@ -62,7 +62,16 @@ describe('cierre por ejecuciones (FR-033, FR-036, FR-037)', () => {
     expect(closeCause('L2', p, { type: 'MARKET', clientOrderId: 'autoclose-123' })).toBe('liquidación');
     expect(closeCause('L3', p, { type: 'MARKET', clientOrderId: 'adl_autoclose' })).toBe('liquidación');
     expect(closeCause('M1', p, plain)).toBe('cierre manual');
-    expect(closeCause('M1', { slFillOrderId: null, tpFillOrderId: null }, plain)).toBe('cierre manual');
+    expect(closeCause('M1', { slFillOrderId: null, tpFillOrderId: null, slClientId: null, tpClientId: null }, plain)).toBe(
+      'cierre manual',
+    );
+  });
+
+  it.fails('el SL o el TP también se reconoce por su ID de cliente, que Binance repite en la orden de cierre (FR-075, AC-94)', () => {
+    const p = { slFillOrderId: null, tpFillOrderId: null, slClientId: 'x-sl', tpClientId: 'x-tp' };
+    expect(closeCause('S9', p, { type: 'MARKET', clientOrderId: 'x-sl' })).toBe('SL');
+    expect(closeCause('T9', p, { type: 'MARKET', clientOrderId: 'x-tp' })).toBe('TP');
+    expect(closeCause('M1', p, { type: 'MARKET', clientOrderId: 'web_abc' })).toBe('cierre manual');
   });
 
   it('PnL del cierre y comisiones en USDT de entrada y cierre, sin ruido de coma flotante', () => {
