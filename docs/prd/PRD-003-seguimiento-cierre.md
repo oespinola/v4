@@ -59,6 +59,14 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - RF-61: Si una consulta a Binance del seguimiento de posiciones falla, el sistema debe
   registrarlo en el log con la operación afectada (si la hay) y el error, sin repetir el
   mismo error consecutivo de la misma operación, y seguir con el próximo ciclo.
+- RF-63: Para identificar la causa de un cierre (RF-40), el sistema debe reconocer la
+  orden de SL o de TP tanto por la orden de mercado que generó al dispararse como por su
+  identificador de cliente, que Binance repite en esa orden. Si la causa resultaría
+  "cierre manual" mientras el SL o el TP todavía no se asentó en Binance (sigue abierto,
+  disparándose, o figura ejecutado sin informar su orden), el sistema debe volver a
+  mirar hasta 8 s después de la hora de cierre antes de registrarlo como manual. Si la
+  consulta del SL o del TP falla, no debe registrar el cierre como manual: aplica RF-61
+  y lo vuelve a intentar en el próximo ciclo.
 
 ## Requerimientos No Funcionales
 - RNF-11: El tiempo desde que una posición se cierra en Binance hasta que el sistema
@@ -116,6 +124,12 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - AC-92 (RF-61): Dada una posición abierta, cuando la consulta del seguimiento falla dos
   ciclos seguidos con el mismo error, entonces el log tiene un solo registro de error con
   la operación y el detalle; y si después falla con otro error, se registra otro.
+- AC-94 (RF-40, RF-63): Dada una posición completa que cierra su SL, cuando el sistema
+  detecta el cierre antes de que Binance informe la orden que generó el SL, entonces el
+  log de la alerta tiene causa "SL" y no "cierre manual".
+- AC-95 (RF-63, RF-61): Dada una posición cerrada, cuando la consulta de su SL o su TP
+  falla, entonces el cierre no se registra todavía, el log tiene un registro de error de
+  la operación, y en el ciclo siguiente, con la consulta sana, se registra con su causa.
 
 ## Fuera de Alcance
 - Mensajes de seguimiento de una alerta ya operada (cerrar, mover el SL, tomar
