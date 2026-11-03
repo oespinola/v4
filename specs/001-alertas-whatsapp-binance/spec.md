@@ -357,6 +357,12 @@ de órdenes restantes y la liberación del cupo.
 8. **Given** una posición abierta, **When** la consulta del seguimiento falla dos ciclos seguidos con
    el mismo error, **Then** el log tiene un solo registro de error con la operación y el detalle; si
    después falla con otro error, se registra otro (AC-92).
+9. **Given** una posición completa que cierra su SL, **When** el sistema detecta el cierre antes de
+   que Binance informe la orden que generó el SL, **Then** el log tiene causa "SL" y no "cierre
+   manual" (AC-94).
+10. **Given** una posición cerrada, **When** la consulta de su SL o su TP falla, **Then** el cierre no
+    se registra todavía, el log tiene un registro de error de la operación y, en el ciclo siguiente
+    con la consulta sana, se registra con su causa (AC-95).
 
 ---
 
@@ -683,6 +689,13 @@ key de producción en Binance.
 - **FR-073** (RF-61): Si una consulta a Binance del seguimiento falla, el sistema MUST registrarlo en
   el log (`type: "error"`) con la operación afectada si la hay y el detalle, sin repetir el mismo
   error consecutivo de la misma operación, y seguir con el próximo ciclo.
+- **FR-075** (RF-63): Para la causa de un cierre (FR-033), el sistema MUST reconocer el SL o el TP por
+  la orden de mercado que generó al dispararse (`actualOrderId`) o por su identificador de cliente
+  (`clientAlgoId` igual al `clientOrderId` de la orden de cierre). Si la causa resultaría "cierre
+  manual" con el SL o el TP sin asentar (NEW, TRIGGERING, TRIGGERED, o FINISHED sin `actualOrderId`),
+  MUST volver a mirar en los ciclos siguientes hasta 8 s después de la hora de cierre. Una consulta
+  del SL o del TP que falla (salvo "la orden no existe") MUST tratarse como falla del seguimiento
+  (FR-073), sin registrar el cierre.
 
 **Reconciliación al arrancar (PRD-003)**
 
