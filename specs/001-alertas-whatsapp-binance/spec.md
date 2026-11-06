@@ -437,6 +437,9 @@ ingesta.
 7. **Given** la app conectada a WhatsApp, **When** el guardado periódico de la sesión cifrada falla
    (Chromium borra un archivo del perfil durante la copia), **Then** la consola muestra el fallo, el
    proceso sigue corriendo y la copia cifrada anterior queda intacta (AC-96).
+8. **Given** la app corriendo, **When** una promesa se rechaza sin que nada la capture, **Then** la
+   consola muestra la caída, el log tiene un registro `error` con `source: "caída"`, la app cierra en
+   orden con código 1 y el supervisor la relanza (AC-97).
 
 ---
 
@@ -812,6 +815,10 @@ key de producción en Binance.
   cada 5 min, el inicial tras vincular o el del cierre—, el sistema MUST mostrarlo en la consola y
   MUST NOT terminar el proceso: la copia cifrada anterior queda vigente y el guardado se reintenta en
   el próximo ciclo.
+- **FR-077** (RF-65): Ante un error que nada maneja (`unhandledRejection`, `uncaughtException` o
+  una excepción del arranque), el sistema MUST mostrarlo en la consola, registrarlo en el log como
+  `error` con `source: "caída"` y el origen y el mensaje en `detail`, y cerrar en orden (FR-056) con
+  código 1. Una segunda caída durante ese cierre solo se registra: no inicia otro cierre.
 
 ### Key Entities *(include if feature involves data)*
 

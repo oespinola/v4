@@ -50,5 +50,7 @@ aplican van en `null` (FR-043).
 
 ## `type: "error"`
 
-`source` (`"seguimiento"`), `alertId` (`null` si la consulta no es de una operación) y `detail`
-(FR-073). No se repite el mismo `detail` consecutivo del mismo `alertId`.
+`source` (`"seguimiento"` \| `"caída"`), `alertId` (`null` si la consulta no es de una operación;
+siempre `null` en una caída) y `detail` (FR-073, FR-077). En el seguimiento no se repite el mismo
+`detail` consecutivo del mismo `alertId`. En una caída, `detail` es `<origen>: <error>`, con origen
+`unhandledRejection`, `uncaughtException` o `arranque`.
