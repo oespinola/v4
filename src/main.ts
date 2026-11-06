@@ -9,10 +9,14 @@ import { Store } from './adapters/store.ts';
 import { WhatsAppSource } from './adapters/whatsapp.ts';
 import { startApp, type AppFactories } from './app.ts';
 import { loadDotEnv } from './config.ts';
+import { handleCrashes } from './crash.ts';
+
+/** El log de la app, para registrar una caída (FR-077); se abre dentro de startApp. */
+let openedStore: Store | null = null;
 
 const factories: AppFactories = {
   clock: () => new SystemClock(),
-  store: (config, clock) => Store.open(config.dataDir, clock),
+  store: (config, clock) => (openedStore = Store.open(config.dataDir, clock)),
   market: (config, clock, log) =>
     new BinancePublicMarketData({
       clock,
@@ -49,6 +53,18 @@ async function fatal(code: number): Promise<void> {
   process.exit(code);
 }
 
+const crash = handleCrashes(process, {
+  record: (detail) => {
+    if (!openedStore) throw new Error('el log todavía no está abierto');
+    openedStore.logError({ source: 'caída', alertId: null, detail });
+  },
+  log: (line, err) => {
+    log(line);
+    console.error(err);
+  },
+  shutdown: (code) => fatal(code),
+});
+
 async function main(): Promise<void> {
   loadDotEnv();
   process.on('SIGINT', () => void fatal(0));
@@ -58,7 +74,4 @@ async function main(): Promise<void> {
   if (!started.ok) process.exit(started.exitCode);
 }
 
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
+main().catch((e: unknown) => crash('arranque', e));

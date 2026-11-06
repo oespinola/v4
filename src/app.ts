@@ -92,7 +92,8 @@ export async function startApp(
       line = criticalLine(payload as { kind: string; detail: string }, alertOf(payload)?.symbol ?? null);
     } else if (config.verbose && type === 'edit') {
       line = editLine(payload as { changedFields: string[] }, alertOf(payload)?.ticker ?? null);
-    } else if (config.verbose && type === 'error') {
+    } else if (config.verbose && type === 'error' && payload.source !== 'caída') {
+      // La caída ya la muestra src/crash.ts siempre, con o sin modo detallado (FR-077).
       line = errorLine(payload as { source: string; detail: string }, alertOf(payload)?.symbol ?? null);
     }
     if (line) log(line);

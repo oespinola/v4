@@ -178,7 +178,7 @@ describe('arranque (FR-039, FR-058, FR-062)', () => {
     expect(lines).toContainEqual(expect.stringMatching(/^Reconciliación con Binance: .* \(\d+ ms\)\.$/));
   });
 
-  it.fails('con SIGNALBRIDGE_VERBOSE=1 una caída no se repite como error del seguimiento (FR-077)', async () => {
+  it('con SIGNALBRIDGE_VERBOSE=1 una caída no se repite como error del seguimiento (FR-077)', async () => {
     const lines = await consoleWith({ SIGNALBRIDGE_VERBOSE: '1' });
     opened!.logError({ source: 'caída', alertId: null, detail: 'unhandledRejection: Error: x' });
     expect(lines.some((l) => l.includes('Error del caída'))).toBe(false);

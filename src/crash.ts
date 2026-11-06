@@ -19,7 +19,31 @@ export interface CrashOptions {
   shutdown: (code: number) => unknown;
 }
 
-/** Escucha las caídas del proceso y devuelve la misma reacción para las del arranque. */
-export function handleCrashes(_proc: CrashSource, _opts: CrashOptions): (origin: CrashOrigin, err: unknown) => void {
-  return () => {};
+/** "Error: …" para un Error; el texto tal cual para un rechazo con otra cosa ("auth timeout"). */
+export function describeCrash(err: unknown): string {
+  return err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+}
+
+/**
+ * Escucha las caídas del proceso y devuelve la misma reacción para las del arranque. La primera
+ * cierra; las que llegan durante el cierre solo se muestran y se registran (un segundo cierre
+ * cortaría el primero a mitad, con Chromium abierto).
+ */
+export function handleCrashes(proc: CrashSource, opts: CrashOptions): (origin: CrashOrigin, err: unknown) => void {
+  let crashed = false;
+  const crash = (origin: CrashOrigin, err: unknown) => {
+    const error = describeCrash(err);
+    opts.log(`Caída (${origin}): ${error}`, err);
+    try {
+      opts.record(`${origin}: ${error}`);
+    } catch (recordErr) {
+      opts.log(`No se pudo registrar la caída en el log: ${describeCrash(recordErr)}`, recordErr);
+    }
+    if (crashed) return;
+    crashed = true;
+    void opts.shutdown(1);
+  };
+  proc.on('unhandledRejection', (err) => crash('unhandledRejection', err));
+  proc.on('uncaughtException', (err) => crash('uncaughtException', err));
+  return crash;
 }

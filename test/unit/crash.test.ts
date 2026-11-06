@@ -19,7 +19,7 @@ function setup(opts: { recordFails?: boolean } = {}) {
 const ENOENT = Object.assign(new Error('ENOENT: no such file or directory, chmod 013681.ldb'), { code: 'ENOENT' });
 
 describe('caída del proceso (FR-077, AC-97)', () => {
-  it.fails('una promesa rechazada sin capturar se muestra, se registra y cierra con código 1', () => {
+  it('una promesa rechazada sin capturar se muestra, se registra y cierra con código 1', () => {
     const { proc, got } = setup();
     proc.emit('unhandledRejection', ENOENT);
     expect(got.logs).toEqual(['Caída (unhandledRejection): Error: ENOENT: no such file or directory, chmod 013681.ldb']);
@@ -27,7 +27,7 @@ describe('caída del proceso (FR-077, AC-97)', () => {
     expect(got.exits).toEqual([1]);
   });
 
-  it.fails('una excepción sin capturar también, y un rechazo con texto se registra tal cual', () => {
+  it('una excepción sin capturar también, y un rechazo con texto se registra tal cual', () => {
     const { proc, got } = setup();
     proc.emit('uncaughtException', new TypeError("Cannot read properties of null (reading 'Socket')"));
     expect(got.records).toEqual(["uncaughtException: TypeError: Cannot read properties of null (reading 'Socket')"]);
@@ -36,14 +36,14 @@ describe('caída del proceso (FR-077, AC-97)', () => {
     expect(other.got.records).toEqual(['unhandledRejection: auth timeout']);
   });
 
-  it.fails('la caída del arranque usa la misma reacción', () => {
+  it('la caída del arranque usa la misma reacción', () => {
     const { crash, got } = setup();
     crash('arranque', new Error('Execution context was destroyed'));
     expect(got.records).toEqual(['arranque: Error: Execution context was destroyed']);
     expect(got.exits).toEqual([1]);
   });
 
-  it.fails('una segunda caída durante el cierre solo se registra', () => {
+  it('una segunda caída durante el cierre solo se registra', () => {
     const { proc, got } = setup();
     proc.emit('unhandledRejection', ENOENT);
     proc.emit('uncaughtException', new Error('otra'));
@@ -51,7 +51,7 @@ describe('caída del proceso (FR-077, AC-97)', () => {
     expect(got.exits).toEqual([1]);
   });
 
-  it.fails('si registrar en el log falla, igual se avisa y se cierra', () => {
+  it('si registrar en el log falla, igual se avisa y se cierra', () => {
     const { proc, got } = setup({ recordFails: true });
     proc.emit('unhandledRejection', ENOENT);
     expect(got.logs).toContain('No se pudo registrar la caída en el log: Error: disco lleno');
