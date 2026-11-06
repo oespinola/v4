@@ -2,10 +2,12 @@ import { EventEmitter } from 'node:events';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import wwebjs from 'whatsapp-web.js';
 import {
+  BACKUP_EVERY_MS,
   SafeRemoteAuth,
   isLogoutUrl,
   missingGroupLines,
   senderOf,
+  sessionSaveFailedLine,
   startOrRelink,
   startupLine,
   wireClient,
@@ -264,5 +266,17 @@ describe('SafeRemoteAuth (FR-076, AC-96)', () => {
     await make(errors).storeRemoteSession({ emit: true });
     expect(spy).toHaveBeenCalledWith({ emit: true });
     expect(errors).toEqual([]);
+  });
+});
+
+describe('intervalo del guardado periódico de la sesión (FR-076)', () => {
+  it.fails('guarda la sesión cifrada cada 15 min', () => {
+    expect(BACKUP_EVERY_MS).toBe(15 * 60_000);
+  });
+
+  it.fails('el aviso de guardado fallido dice cuándo se reintenta', () => {
+    expect(sessionSaveFailedLine(new Error('ENOENT'))).toBe(
+      'No se pudo guardar la sesión de WhatsApp (se reintenta en 15 min): Error: ENOENT',
+    );
   });
 });
