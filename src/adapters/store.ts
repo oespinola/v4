@@ -47,9 +47,9 @@ function ensurePrivateFile(file: string): void {
   chmodSync(file, 0o600);
 }
 
-/** Falla de una consulta a Binance que no cambia ningún estado (FR-073). */
+/** Falla de una consulta a Binance que no cambia ningún estado (FR-073) o caída del proceso (FR-077). */
 export interface ErrorEvent {
-  source: 'seguimiento';
+  source: 'seguimiento' | 'caída';
   alertId: string | null;
   detail: string;
 }
