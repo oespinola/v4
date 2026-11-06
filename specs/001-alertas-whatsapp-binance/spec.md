@@ -434,6 +434,9 @@ ingesta.
 6. **Given** la app que se cae al arrancar una y otra vez, **When** el supervisor la relanza por
    10.ª vez seguida, **Then** el log tiene un evento crítico "reinicios seguidos", la consola lo
    muestra marcado "CRÍTICO" y el supervisor sigue relanzándola (AC-93).
+7. **Given** la app conectada a WhatsApp, **When** el guardado periódico de la sesión cifrada falla
+   (Chromium borra un archivo del perfil durante la copia), **Then** la consola muestra el fallo, el
+   proceso sigue corriendo y la copia cifrada anterior queda intacta (AC-96).
 
 ---
 
@@ -805,6 +808,10 @@ key de producción en Binance.
 - **FR-074** (RF-62): Al 10.º reinicio automático seguido sin que la app quede en marcha 10 minutos, el
   supervisor MUST registrar un evento crítico "reinicios seguidos" en el log, mostrarlo en la consola
   marcado "CRÍTICO" (FR-071) y seguir relanzándola.
+- **FR-076** (RF-64): Si falla un guardado de la sesión cifrada de WhatsApp (FR-049) —el periódico
+  cada 5 min, el inicial tras vincular o el del cierre—, el sistema MUST mostrarlo en la consola y
+  MUST NOT terminar el proceso: la copia cifrada anterior queda vigente y el guardado se reintenta en
+  el próximo ciclo.
 
 ### Key Entities *(include if feature involves data)*
 
