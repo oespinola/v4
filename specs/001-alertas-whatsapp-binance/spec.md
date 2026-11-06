@@ -812,7 +812,7 @@ key de producción en Binance.
   supervisor MUST registrar un evento crítico "reinicios seguidos" en el log, mostrarlo en la consola
   marcado "CRÍTICO" (FR-071) y seguir relanzándola.
 - **FR-076** (RF-64): Si falla un guardado de la sesión cifrada de WhatsApp (FR-049) —el periódico
-  cada 5 min, el inicial tras vincular o el del cierre—, el sistema MUST mostrarlo en la consola y
+  cada 15 min, el inicial tras vincular o el del cierre—, el sistema MUST mostrarlo en la consola y
   MUST NOT terminar el proceso: la copia cifrada anterior queda vigente y el guardado se reintenta en
   el próximo ciclo.
 - **FR-077** (RF-65): Ante un error que nada maneja (`unhandledRejection`, `uncaughtException` o
