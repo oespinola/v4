@@ -94,6 +94,11 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
 - RF-64: Si falla el guardado periódico de la sesión cifrada de WhatsApp (RNF-03), el
   sistema debe mostrarlo en la consola, seguir corriendo sin cortar la ingesta, conservar
   la última copia cifrada válida y reintentar el guardado en el próximo ciclo.
+- RF-65: Si el proceso recibe un error que nada maneja (una excepción o una promesa
+  rechazada sin capturar, también durante el arranque), el sistema debe mostrarlo en la
+  consola, registrarlo en el log como error de origen "caída" y cerrar en orden (guardar
+  la sesión cifrada, cerrar Chromium y la base) antes de salir para que el reinicio
+  automático (RNF-05) la relance.
 - RF-06: El sistema debe requerir autenticación para conectarse a WhatsApp, mediante
   un código QR que vincule la cuenta cuyo(s) grupo(s) de alertas se van a monitorear.
 - RF-07: El sistema debe arrancar en modo DRY con `pnpm dev` y en modo LIVE con
@@ -190,6 +195,10 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
   de la sesión falla (por ejemplo, Chromium borra un archivo del perfil durante la copia),
   entonces la consola muestra el fallo, el proceso sigue corriendo y la copia cifrada
   anterior queda intacta.
+- AC-97 (RF-65, RNF-05): Dada la app corriendo, cuando una promesa se rechaza sin que
+  nada la capture, entonces la consola muestra la caída, el log tiene un registro `error`
+  con `source: "caída"` y el detalle, la app cierra en orden con código 1 y el supervisor
+  la relanza.
 
 ## Fuera de Alcance
 - Backtesting o análisis de performance histórica (no se calcula drawdown
