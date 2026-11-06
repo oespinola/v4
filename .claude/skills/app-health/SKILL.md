@@ -116,7 +116,7 @@ for (const r of db.prepare(\"select record from alerts where record like ? order
 | `Error procesando un mensaje: …` | excepción en la cola de un mensaje; el resto sigue |
 | `Caída (<origen>): <error>` + stack | error sin manejar (FR-077): queda como `error` `"caída"` en el log, la app cierra en orden con código 1 y el supervisor la relanza. Si se repite, es un bug a corregir |
 | `No se pudo registrar la caída en el log: …` | la caída llegó antes de abrir el log (al principio del arranque) o falló la escritura; la línea de arriba tiene el error |
-| `No se pudo guardar la sesión de WhatsApp (se reintenta en 5 min): …` | falló el guardado de la sesión cifrada (FR-076), típicamente `ENOENT` porque Chromium borró un `.ldb` durante la copia; sigue la copia anterior. Solo preocupa si se repite en cada ciclo |
+| `No se pudo guardar la sesión de WhatsApp (se reintenta en 15 min): …` | falló el guardado de la sesión cifrada (FR-076), típicamente `ENOENT` porque Chromium borró un `.ldb` durante la copia; sigue la copia anterior. Solo preocupa si se repite en cada ciclo |
 
 Solo con `pnpm dev:verbose` (FR-072): `Binance: N símbolos…`, `Límites: …`,
 `Reconciliación con Binance: …` al arrancar; `· <SYMBOL> <SIDE> completa: ejecutado q/q

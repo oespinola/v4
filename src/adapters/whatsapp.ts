@@ -17,11 +17,11 @@ const { Client, RemoteAuth } = wwebjs;
 const CLIENT_ID = 'signalbridge';
 const SESSION_NAME = `RemoteAuth-${CLIENT_ID}`;
 /** Respaldo periódico de la sesión cifrada mientras corre (RemoteAuth pide ≥ 60 s). */
-export const BACKUP_EVERY_MS = 5 * 60_000;
+export const BACKUP_EVERY_MS = 15 * 60_000;
 
 /** Aviso de consola cuando falla un guardado de la sesión cifrada (FR-076). */
 export function sessionSaveFailedLine(e: unknown): string {
-  return `No se pudo guardar la sesión de WhatsApp (se reintenta en 5 min): ${String(e)}`;
+  return `No se pudo guardar la sesión de WhatsApp (se reintenta en ${BACKUP_EVERY_MS / 60_000} min): ${String(e)}`;
 }
 
 type RemoteAuthOptions = NonNullable<ConstructorParameters<typeof RemoteAuth>[0]>;

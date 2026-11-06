@@ -270,11 +270,11 @@ describe('SafeRemoteAuth (FR-076, AC-96)', () => {
 });
 
 describe('intervalo del guardado periódico de la sesión (FR-076)', () => {
-  it.fails('guarda la sesión cifrada cada 15 min', () => {
+  it('guarda la sesión cifrada cada 15 min', () => {
     expect(BACKUP_EVERY_MS).toBe(15 * 60_000);
   });
 
-  it.fails('el aviso de guardado fallido dice cuándo se reintenta', () => {
+  it('el aviso de guardado fallido dice cuándo se reintenta', () => {
     expect(sessionSaveFailedLine(new Error('ENOENT'))).toBe(
       'No se pudo guardar la sesión de WhatsApp (se reintenta en 15 min): Error: ENOENT',
     );
