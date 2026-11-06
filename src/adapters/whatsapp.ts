@@ -33,6 +33,17 @@ export class SafeRemoteAuth extends RemoteAuth {
   ) {
     super(opts);
   }
+
+  async storeRemoteSession(options?: { emit?: boolean }): Promise<void> {
+    const parent = RemoteAuth.prototype as unknown as {
+      storeRemoteSession: (this: unknown, o?: { emit?: boolean }) => Promise<void>;
+    };
+    try {
+      await parent.storeRemoteSession.call(this, options);
+    } catch (e) {
+      this.onSaveError(e);
+    }
+  }
 }
 
 /** Lo que usamos de un mensaje de whatsapp-web.js. */
@@ -230,7 +241,7 @@ export class WhatsAppSource implements MessageSource {
   private readonly editCbs: ((e: IncomingEdit) => void)[] = [];
   private readonly connCbs: ((up: boolean) => void)[] = [];
   private client: wwebjs.Client | null = null;
-  private auth: InstanceType<typeof RemoteAuth> | null = null;
+  private auth: SafeRemoteAuth | null = null;
   private store: EncryptedSessionStore | null = null;
   private ready = false;
 
@@ -265,12 +276,10 @@ export class WhatsAppSource implements MessageSource {
     await wipeWorkingProfile(this.opts.authDir, SESSION_NAME, CLIENT_ID);
     const store = new EncryptedSessionStore({ dataPath: this.opts.authDir, key: this.opts.sessionKey });
     this.store = store;
-    const auth = new RemoteAuth({
-      clientId: CLIENT_ID,
-      dataPath: this.opts.authDir,
-      store,
-      backupSyncIntervalMs: BACKUP_EVERY_MS,
-    });
+    const auth = new SafeRemoteAuth(
+      { clientId: CLIENT_ID, dataPath: this.opts.authDir, store, backupSyncIntervalMs: BACKUP_EVERY_MS },
+      (e) => this.opts.log(`No se pudo guardar la sesión de WhatsApp (se reintenta en 5 min): ${String(e)}`),
+    );
     this.auth = auth;
     const client = new Client({
       authStrategy: auth,
@@ -321,10 +330,8 @@ export class WhatsAppSource implements MessageSource {
   /** Guarda la sesión cifrada, cierra Chromium y borra el perfil de trabajo en claro. */
   async stop(): Promise<void> {
     // RemoteAuth recién guarda 60 s después de vincular: si se cierra antes, se guarda acá.
-    const auth = this.auth as unknown as { storeRemoteSession?: () => Promise<void> } | null;
-    if (this.ready && auth?.storeRemoteSession) {
-      await auth.storeRemoteSession().catch((e: unknown) => this.opts.log(`No se pudo guardar la sesión: ${String(e)}`));
-    }
+    // SafeRemoteAuth no rechaza: un fallo ya se avisa en consola (FR-076).
+    if (this.ready && this.auth) await this.auth.storeRemoteSession();
     if (this.client?.pupBrowser) await this.client.destroy();
     this.client = null;
     this.auth = null;

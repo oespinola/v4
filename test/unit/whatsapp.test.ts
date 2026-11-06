@@ -250,7 +250,7 @@ describe('SafeRemoteAuth (FR-076, AC-96)', () => {
 
   afterEach(() => vi.restoreAllMocks());
 
-  it.fails('si el guardado falla, no rechaza y el error llega al aviso', async () => {
+  it('si el guardado falla, no rechaza y el error llega al aviso', async () => {
     const enoent = Object.assign(new Error('ENOENT: no such file or directory, chmod 013681.ldb'), { code: 'ENOENT' });
     parentSave().mockRejectedValue(enoent);
     const errors: unknown[] = [];
