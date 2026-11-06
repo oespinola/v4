@@ -91,6 +91,9 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
 - RF-62: Tras 10 reinicios automáticos seguidos (RNF-05) sin que la app quede en marcha
   10 minutos, el sistema debe registrar un evento crítico en el log, mostrarlo en la
   consola marcado como crítico (RF-59) y seguir reintentando.
+- RF-64: Si falla el guardado periódico de la sesión cifrada de WhatsApp (RNF-03), el
+  sistema debe mostrarlo en la consola, seguir corriendo sin cortar la ingesta, conservar
+  la última copia cifrada válida y reintentar el guardado en el próximo ciclo.
 - RF-06: El sistema debe requerir autenticación para conectarse a WhatsApp, mediante
   un código QR que vincule la cuenta cuyo(s) grupo(s) de alertas se van a monitorear.
 - RF-07: El sistema debe arrancar en modo DRY con `pnpm dev` y en modo LIVE con
@@ -183,6 +186,10 @@ todo registrado para poder auditar qué se ejecutó, qué se descartó, y por qu
 - AC-93 (RF-62): Dada la app que se cae al arrancar una y otra vez, cuando el supervisor
   la relanza por 10.ª vez seguida, entonces el log tiene un evento crítico "reinicios
   seguidos", la consola lo muestra marcado "CRÍTICO" y el supervisor sigue relanzándola.
+- AC-96 (RF-64, RNF-03): Dada la app conectada a WhatsApp, cuando el guardado periódico
+  de la sesión falla (por ejemplo, Chromium borra un archivo del perfil durante la copia),
+  entonces la consola muestra el fallo, el proceso sigue corriendo y la copia cifrada
+  anterior queda intacta.
 
 ## Fuera de Alcance
 - Backtesting o análisis de performance histórica (no se calcula drawdown
