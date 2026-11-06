@@ -64,7 +64,10 @@ grep -n '"type":"critical"\|"type":"error"' data/alerts.log | tail -10 | cut -c1
   con qué precios se evaluó. Para eso, la base (abajo).
 - `type: "critical"` (`kind`: cierre de emergencia, falla del cierre de emergencia, SL/TP
   perdido, reconexión agotada, entrada sin confirmar, reinicios seguidos): mirarlo primero.
-- `type: "error"` (seguimiento, FR-073), `type: "edit"` (FR-047), `type: "connection"`
+- `type: "error"`: `source: "seguimiento"` (consulta a Binance que falló, FR-073) o
+  `source: "caída"` (error sin manejar que cerró la app, FR-077; `detail` es `<origen>: <error>`,
+  origen `unhandledRejection`, `uncaughtException` o `arranque`). Una caída va seguida de un
+  `Reinicio automático` del supervisor: es la causa de ese reinicio. `type: "edit"` (FR-047), `type: "connection"`
   (whatsapp/binance: interrupción → reintento → reconectado).
 - Los mensajes comunes del grupo **no se loguean**: que no haya nada no prueba que
   WhatsApp esté caído.
@@ -111,6 +114,9 @@ for (const r of db.prepare(\"select record from alerts where record like ? order
 | `Chromium N seguía abierto con la sesión de WhatsApp: …` | el supervisor cerró un Chromium que sobrevivió a la app |
 | `No se pudo refrescar símbolos/ranking: …` | falla del refresco de 60 s de Binance público; las alertas pueden rechazarse por "ranking no disponible" |
 | `Error procesando un mensaje: …` | excepción en la cola de un mensaje; el resto sigue |
+| `Caída (<origen>): <error>` + stack | error sin manejar (FR-077): queda como `error` `"caída"` en el log, la app cierra en orden con código 1 y el supervisor la relanza. Si se repite, es un bug a corregir |
+| `No se pudo registrar la caída en el log: …` | la caída llegó antes de abrir el log (al principio del arranque) o falló la escritura; la línea de arriba tiene el error |
+| `No se pudo guardar la sesión de WhatsApp (se reintenta en 5 min): …` | falló el guardado de la sesión cifrada (FR-076), típicamente `ENOENT` porque Chromium borró un `.ldb` durante la copia; sigue la copia anterior. Solo preocupa si se repite en cada ciclo |
 
 Solo con `pnpm dev:verbose` (FR-072): `Binance: N símbolos…`, `Límites: …`,
 `Reconciliación con Binance: …` al arrancar; `· <SYMBOL> <SIDE> completa: ejecutado q/q
