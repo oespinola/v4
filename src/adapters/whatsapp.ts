@@ -19,6 +19,22 @@ const SESSION_NAME = `RemoteAuth-${CLIENT_ID}`;
 /** Respaldo periódico de la sesión cifrada mientras corre (RemoteAuth pide ≥ 60 s). */
 const BACKUP_EVERY_MS = 5 * 60_000;
 
+type RemoteAuthOptions = NonNullable<ConstructorParameters<typeof RemoteAuth>[0]>;
+
+/**
+ * RemoteAuth cuyo guardado de la sesión nunca rechaza (FR-076): la librería lo llama desde un
+ * setInterval sin catch, y un fallo (Chromium borra un .ldb durante la copia) tumbaba el proceso.
+ * Se informa y se reintenta en el próximo ciclo; la copia cifrada anterior queda vigente.
+ */
+export class SafeRemoteAuth extends RemoteAuth {
+  constructor(
+    opts: RemoteAuthOptions,
+    private readonly onSaveError: (e: unknown) => void,
+  ) {
+    super(opts);
+  }
+}
+
 /** Lo que usamos de un mensaje de whatsapp-web.js. */
 export interface RawWaMessage {
   id: { id?: string; _serialized: string };

@@ -1,6 +1,8 @@
 import { EventEmitter } from 'node:events';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import wwebjs from 'whatsapp-web.js';
 import {
+  SafeRemoteAuth,
   isLogoutUrl,
   missingGroupLines,
   senderOf,
@@ -228,5 +230,39 @@ describe('adaptador de WhatsApp: modo detallado (FR-072)', () => {
       '  - Familia',
       '  - ALERTAS CRYPTO+',
     ]);
+  });
+});
+
+describe('SafeRemoteAuth (FR-076, AC-96)', () => {
+  const store = {
+    sessionExists: async () => true,
+    save: async () => {},
+    extract: async () => {},
+    delete: async () => {},
+  };
+  const parentSave = () =>
+    vi.spyOn(wwebjs.RemoteAuth.prototype as unknown as { storeRemoteSession: () => Promise<void> }, 'storeRemoteSession');
+  const make = (errors: unknown[]) =>
+    new SafeRemoteAuth(
+      { clientId: 'test', dataPath: '/nonexistent/wwebjs', store, backupSyncIntervalMs: 60_000 },
+      (e) => errors.push(e),
+    ) as unknown as { storeRemoteSession: (o?: { emit?: boolean }) => Promise<void> };
+
+  afterEach(() => vi.restoreAllMocks());
+
+  it.fails('si el guardado falla, no rechaza y el error llega al aviso', async () => {
+    const enoent = Object.assign(new Error('ENOENT: no such file or directory, chmod 013681.ldb'), { code: 'ENOENT' });
+    parentSave().mockRejectedValue(enoent);
+    const errors: unknown[] = [];
+    await expect(make(errors).storeRemoteSession()).resolves.toBeUndefined();
+    expect(errors).toEqual([enoent]);
+  });
+
+  it('si el guardado anda, no hay aviso y pasa las opciones', async () => {
+    const spy = parentSave().mockResolvedValue(undefined);
+    const errors: unknown[] = [];
+    await make(errors).storeRemoteSession({ emit: true });
+    expect(spy).toHaveBeenCalledWith({ emit: true });
+    expect(errors).toEqual([]);
   });
 });
