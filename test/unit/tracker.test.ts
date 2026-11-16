@@ -83,6 +83,16 @@ describe('seguimiento hasta el cierre (FR-033 a FR-038, SC-004)', () => {
     close = { cause, at: new Date('2026-10-28T13:00:01Z'), realizedPnl: 9.16, fees: 0.06 };
   };
 
+  it.fails('busca las ejecuciones desde 5 min antes de la entrada: Binance puede fecharla antes de la hora local (AC-98)', async () => {
+    closeBy('cierre manual');
+    await clock.advance(TRACK_POLL_MS);
+    const { FILLS_MARGIN_MS } = (await import('../../src/domain/tracker.ts')) as { FILLS_MARGIN_MS?: number };
+    expect(FILLS_MARGIN_MS).toBe(5 * 60_000);
+    expect(exchange.callsTo('closeOf')[0]?.args).toEqual([
+      expect.objectContaining({ since: new Date(OPEN_TRADE.entryPlacedAt.getTime() - 5 * 60_000) }),
+    ]);
+  });
+
   it('cierre por TP: "cerrada" con causa, hora, PnL y comisiones (AC-56)', async () => {
     closeBy('TP');
     await clock.advance(TRACK_POLL_MS);
