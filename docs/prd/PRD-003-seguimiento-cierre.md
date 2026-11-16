@@ -19,7 +19,8 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - RF-40: El sistema debe detectar el cierre total de cada posición completa (RF-10) e
   identificar su causa: TP, SL, liquidación o cierre manual del operador, entendido
   como todo cierre total que no se deba a la orden de TP, a la de SL ni a una
-  liquidación.
+  liquidación. Las ejecuciones de la operación se buscan desde 5 minutos antes de la
+  hora local en que se pidió la entrada: Binance puede fecharla antes de esa hora.
 - RF-41: Al detectar el cierre de una posición, el sistema debe cancelar las órdenes de
   SL y TP de esa operación que sigan abiertas en Binance.
 - RF-42: Al detectar el cierre de una posición, el sistema debe dejar de contarla para
@@ -130,6 +131,9 @@ cupo de exposición se libere apenas una posición se cierra, y que no queden en
 - AC-95 (RF-63, RF-61): Dada una posición cerrada, cuando la consulta de su SL o su TP
   falla, entonces el cierre no se registra todavía, el log tiene un registro de error de
   la operación, y en el ciclo siguiente, con la consulta sana, se registra con su causa.
+- AC-98 (RF-40): Dada una posición completa cuya entrada Binance fechó antes de la hora
+  local registrada al pedirla, cuando la posición se cierra, entonces el sistema detecta
+  el cierre y la operación deja de ocupar cupo.
 
 ## Fuera de Alcance
 - Mensajes de seguimiento de una alerta ya operada (cerrar, mover el SL, tomar

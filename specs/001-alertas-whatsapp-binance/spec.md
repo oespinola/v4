@@ -363,6 +363,9 @@ de órdenes restantes y la liberación del cupo.
 10. **Given** una posición cerrada, **When** la consulta de su SL o su TP falla, **Then** el cierre no
     se registra todavía, el log tiene un registro de error de la operación y, en el ciclo siguiente
     con la consulta sana, se registra con su causa (AC-95).
+11. **Given** una posición completa cuya entrada Binance fechó antes de la hora local registrada al
+    pedirla, **When** la posición se cierra, **Then** el sistema detecta el cierre y la operación deja
+    de ocupar cupo (AC-98).
 
 ---
 
@@ -681,7 +684,8 @@ key de producción en Binance.
 
 - **FR-033** (RF-40): El sistema MUST detectar el cierre total de cada posición completa e
   identificar su causa: TP, SL, liquidación o cierre manual (todo cierre total que no se deba al
-  TP, al SL ni a una liquidación).
+  TP, al SL ni a una liquidación). Las ejecuciones se buscan desde 5 minutos antes de la hora local
+  del pedido de la entrada, porque Binance puede fecharla antes de esa hora.
 - **FR-034** (RF-41): Al detectar un cierre, el sistema MUST cancelar las órdenes de SL y TP de esa
   operación que sigan abiertas.
 - **FR-035** (RF-42): Al detectar un cierre, el sistema MUST dejar de contar la posición para los
