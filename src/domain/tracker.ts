@@ -10,6 +10,9 @@ export const TRACK_POLL_MS = 2000;
 /** Un "cierre manual" con el SL o el TP sin asentar se vuelve a mirar hasta este plazo desde el cierre
  *  (FR-075): Demo puede tardar segundos en ligar el SL/TP a la orden que generó. */
 export const CLOSE_SETTLE_MS = 8000;
+/** Las ejecuciones se buscan desde este margen antes del pedido de la entrada (FR-033, AC-98): Binance
+ *  puede fechar la ejecución antes de la hora local registrada, y sin la entrada no se reconoce el cierre. */
+export const FILLS_MARGIN_MS = 5 * 60_000;
 /** Un SL/TP que falta un solo ciclo puede estar disparándose: cuenta desde el segundo seguido. */
 const MISSING_CYCLES = 2;
 
@@ -112,7 +115,7 @@ export class Tracker {
       entryOrderId: trade.entryOrderId!,
       sl,
       tp,
-      since: trade.entryPlacedAt,
+      since: new Date(trade.entryPlacedAt.getTime() - FILLS_MARGIN_MS),
     });
     if (!close) return; // Binance todavía no informa las ejecuciones del cierre
     if (close.unsettled && this.deps.clock.now().getTime() - close.at.getTime() < CLOSE_SETTLE_MS) return;
