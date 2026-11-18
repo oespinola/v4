@@ -153,7 +153,7 @@ sequenceDiagram
   loop cada 2 s
     T->>B: ¿sigue la posición? ¿están el SL y el TP?
   end
-  T->>B: cierre: causa, PnL y comisiones; cancela la orden que quedó
+  T->>B: cierre: causa, PnL y comisiones, y cancela la orden que quedó
 ```
 
 ## 5. Datos
