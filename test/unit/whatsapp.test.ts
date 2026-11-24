@@ -176,7 +176,7 @@ describe('adaptador de WhatsApp: sesión cerrada por WhatsApp (FR-048)', () => {
     expect(isLogoutUrl(undefined)).toBe(false);
   });
 
-  it.fails('reconoce la página /login/ a la que WhatsApp Web manda una sesión desvinculada', () => {
+  it('reconoce la página /login/ a la que WhatsApp Web manda una sesión desvinculada', () => {
     expect(isLogoutUrl('https://web.whatsapp.com/login/')).toBe(true);
     expect(isLogoutUrl('https://web.whatsapp.com/login/?post_logout=1')).toBe(true);
     expect(isLogoutUrl('https://web.whatsapp.com/')).toBe(false);

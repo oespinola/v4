@@ -162,9 +162,16 @@ export function missingGroupLines(groupName: string, groups: readonly string[]):
 }
 
 /** WhatsApp Web salta a esta dirección cuando la sesión vinculada ya no vale (el dispositivo se
- *  desvinculó desde el teléfono, o WhatsApp la cerró). */
+ *  desvinculó desde el teléfono, o WhatsApp la cerró). Desde el 23/11/2026 es `/login/`; antes,
+ *  `?post_logout=1`. */
 export function isLogoutUrl(url: string | undefined): boolean {
-  return url?.includes('post_logout=1') ?? false;
+  if (!url) return false;
+  if (url.includes('post_logout=1')) return true;
+  try {
+    return new URL(url).pathname.startsWith('/login');
+  } catch {
+    return false;
+  }
 }
 
 /** Arranca el cliente; si falla porque WhatsApp cerró la sesión, la descarta y arranca una vez más,
