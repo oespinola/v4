@@ -128,6 +128,8 @@ typecheck` y `pnpm test` en verde. Al cerrar cada fase: push (AGENTS.md).
 - [X] T112 Pasar `BACKUP_EVERY_MS` a 15 min en src/adapters/whatsapp.ts, derivar de él el texto del aviso, actualizar la tabla de mensajes de .claude/skills/app-health/SKILL.md y pasar T111 a `it`
 - [X] T113 Escribir test del margen de búsqueda del cierre (FR-033, AC-98): el seguimiento pide a `closeOf` las ejecuciones desde `FILLS_MARGIN_MS` (5 min) antes de `entryPlacedAt` — en `it.fails` — en test/unit/tracker.test.ts
 - [X] T114 Aplicar `FILLS_MARGIN_MS` al `since` de `closeOf` en src/domain/tracker.ts y pasar T113 a `it`
+- [X] T115 Escribir test de la página de logout nueva (FR-048): `isLogoutUrl` reconoce `https://web.whatsapp.com/login/`, adonde WhatsApp Web manda desde el 23/11 una sesión desvinculada — en `it.fails` — en test/unit/whatsapp.test.ts
+- [ ] T116 Reconocer la ruta `/login` en `isLogoutUrl` en src/adapters/whatsapp.ts y pasar T115 a `it`
 - [X] T089 [US1] Escribir tests de deduplicación por hash enmendada (RF-11, RF-29, RF-38 enmendados; AC-37, AC-77, AC-78): el hash usa símbolo mapeado y precios ajustados al tickSize ("PEPE 0.002404" y "1000PEPE 2.404" dan el mismo hash) y los valores crudos si se rechaza antes del mapeo; solo una alerta no rechazada en 24 h bloquea el reenvío; "ticker inexistente" antes que "duplicado (hash)" — en `it.fails` — en test/unit/identity.test.ts, test/unit/store.test.ts, test/unit/validate.test.ts y test/integration/pipeline-validation.test.ts
 - [X] T090 [US1] Implementar el hash sobre valores mapeados y ajustados en src/domain/identity.ts, el nuevo orden en src/domain/validate.ts y que `hasContentHashSince` ignore las rechazadas en src/adapters/store.ts, y pasar T089 a `it`
 
