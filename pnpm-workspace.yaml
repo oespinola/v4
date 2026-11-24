@@ -4,3 +4,5 @@ allowBuilds:
   # Solo imprimen avisos al instalar; no hacen falta para usar CCXT.
   ccxt: false
   bufferutil: false
+  # Fix de main sin publicar (PR #201990); su "prepare" solo instala hooks de husky.
+  whatsapp-web.js@https://codeload.github.com/wwebjs/whatsapp-web.js/tar.gz/38eb45b2759450cc6fccb6a7a3f2cbc3bdb87db2: false
